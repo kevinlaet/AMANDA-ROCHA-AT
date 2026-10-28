@@ -1,42 +1,85 @@
 # Amanda Rocha · site, agenda e folders
 
-Site leve (menos de 150 KB) feito para celular, com agenda ligada ao Supabase e painel para a Amanda.
+Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, página de links para o Instagram, painel para a Amanda cuidar dos horários e os folders de divulgação.
 
-- `index.html`: site das clientes (agenda, serviços, sobre, dúvidas)
-- `links/`: página para a bio do Instagram
-- `admin/`: painel da Amanda (login com senha)
-- `config.js`: endereço e chave pública do Supabase
-- `supabase/schema.sql`: tabelas e regras de segurança do banco
-- `agenda.js`: horários de exemplo, usados só enquanto o `config.js` estiver vazio
-- `folders/`: modelos dos folders e PNGs prontos em `folders/png/`
+| Arquivo | O que é |
+|---|---|
+| `index.html` | Site das clientes: agenda, serviços, sobre, dúvidas |
+| `links/` | Página curta para a bio do Instagram |
+| `admin/` | Painel da Amanda (entra com e-mail e senha) |
+| `agenda.js` | Serviços (e os horários usados enquanto o Supabase não estiver ligado) |
+| `config.js` | Ligação com o Supabase |
+| `supabase/schema.sql` | Banco: tabelas, regras de horário e segurança |
+| `folders/` | Modelos dos folders; PNGs prontos em `folders/png/` |
+| `tests/` | Testes automáticos da agenda |
 
-## Como a agenda funciona
+## Os dois modos da agenda
 
-1. A Amanda entra em `/admin/`, escolhe um dia e os horários e toca em "Abrir esses horários".
-2. A cliente vê só os horários livres, escolhe e toca em "Confirmar pelo WhatsApp".
-3. O horário fica reservado como pedido. Duas clientes nunca pegam o mesmo horário.
-4. A Amanda vê o pedido no painel e toca em Confirmar ou Recusar. Recusar libera o horário.
-5. Horário combinado por fora: toque no horário e em "Marcar como ocupado".
+**Agora (sem Supabase):** a cliente escolhe serviço, dia e horário, e o WhatsApp abre com a mensagem pronta. Os dias vêm do `agenda.js`. Nada é reservado automaticamente: a Amanda confirma pelo WhatsApp.
 
-Nomes das clientes aparecem só no painel. O site público enxerga apenas dia, hora e se está livre.
+**Com Supabase ligado:** os horários vêm do banco, e a Amanda cuida deles pelo painel.
 
-## Colocar no ar (uma vez só)
+1. No painel, a Amanda escolhe o dia e os horários e toca em "Abrir horários". Dá para repetir por várias semanas e incluir horários como 13h30.
+2. A cliente vê só os horários livres, preenche nome e WhatsApp e toca em "Reservar meu horário". O horário fica guardado e o WhatsApp abre com a mensagem pronta.
+3. Duas clientes nunca pegam o mesmo horário. A segunda recebe o aviso "Esse horário acabou de ser pego".
+4. No painel, a Amanda toca em **Confirmar** ou **Recusar**. Depois de cada ação, aparece o botão para avisar a cliente no WhatsApp com a mensagem já escrita.
+5. Horário combinado por fora: toque nele e em "Marcar como ocupado".
 
-**Supabase** (grátis)
-1. Crie um projeto em supabase.com.
-2. Authentication > Users > Add user: e-mail e senha da Amanda (marque "Auto confirm").
-3. Authentication > Sign In / Providers: desligue "Allow new users to sign up".
-4. Abra `supabase/schema.sql`, troque `SEU_EMAIL_AQUI` pelo e-mail da Amanda (aparece 2 vezes) e rode no SQL Editor.
-5. Project Settings > API: copie "Project URL" e a chave "anon public" para o `config.js`.
+**Regras que o banco garante:**
 
-**GitHub Pages**
-1. Settings > General > Danger Zone > Change visibility > Public (o plano grátis só publica repositório público).
-2. Settings > Pages > Source: "Deploy from a branch", escolha o branch e a pasta "/ (root)".
-3. O endereço sai em `https://<usuario>.github.io/AMANDA-ROCHA-AT/`.
+- Horário que já passou, ou que começa em menos de 1 hora, some do site.
+- Tudo segue o horário de Brasília, mesmo que o relógio do celular esteja errado.
+- Cada telefone pode ter no máximo 2 horários reservados ao mesmo tempo.
+- Recusar ou cancelar sempre pede confirmação.
+- Se o horário mudou enquanto a Amanda olhava a tela (por exemplo, uma cliente pediu naquele instante), a ação não acontece e ela é avisada.
+- Nomes e telefones das clientes só aparecem no painel, nunca no site.
+- Toda mudança fica registrada na tabela `historico`: quem, quando e de que status para qual. No Supabase, ela fica em Table Editor > historico.
 
-## Folders
+## Colocar no ar
 
-Abra `folders/folder.html` no navegador com:
+### 1. GitHub Pages (o site)
 
-- `?v=novidade`, `?v=agenda` ou `?v=aluguel`
-- `&f=feed` para o formato 4:5 (sem isso, sai no formato story 9:16)
+1. Em Settings > General > Danger Zone > Change visibility, mude o repositório para **Public**. O plano grátis só publica repositório público. Nada secreto fica no repositório.
+2. Em Settings > Pages > Build and deployment, escolha **Deploy from a branch**, o branch do site e a pasta **/ (root)**.
+3. O endereço será `https://kevinlaet.github.io/AMANDA-ROCHA-AT/`. A página de links fica em `…/links/` e o painel em `…/admin/`.
+
+Se um dia usarem domínio próprio, troquem o endereço nas tags `og:` e `canonical` de `index.html` e `links/index.html`. É isso que faz a prévia com imagem aparecer quando o link é mandado no WhatsApp.
+
+### 2. Supabase (a agenda com reserva e o painel)
+
+1. Crie um projeto grátis em supabase.com, na região **South America (São Paulo)**.
+2. Em Authentication > Users > Add user > Create new user, cadastre o e-mail e a senha da Amanda e marque **Auto Confirm User**.
+3. Em Authentication > Sign In / Providers, desligue **Allow new users to sign up**.
+4. Abra `supabase/schema.sql` e troque `SEU_EMAIL_AQUI` pelo e-mail da Amanda. Ele aparece uma vez só; se esquecer, o próprio arquivo avisa e não roda. Cole o arquivo inteiro em SQL Editor > New query > Run.
+5. Copie para o `config.js` o **Project URL** e a chave pública (**Publishable key**, que começa com `sb_publishable_`, ou "anon public" em projetos antigos). Os dois ficam no botão **Connect** do projeto e em Project Settings > Data API / API Keys. Nunca coloque ali a Secret key nem a service_role.
+6. Envie o `config.js` para o GitHub. Em poucos minutos, o site e o painel passam a usar o banco.
+
+### 3. Painel no celular da Amanda
+
+Abra `…/admin/` no celular dela e escolha "Adicionar à tela de início" (no Safari, pelo botão de compartilhar). O painel vira um ícone como de aplicativo. Ele se atualiza sozinho a cada 30 segundos e quando ela volta para a tela.
+
+## Mudar textos e serviços
+
+- **Serviços**, ou a data de estreia da limpeza de pele (`desde`): `agenda.js`
+- **Textos do site**: `index.html`
+- **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5.
+
+## Testes
+
+Os testes sobem um PostgreSQL de verdade com o `schema.sql` e abrem o site e o painel num navegador. Eles cobrem, entre outros casos:
+
+- duas clientes no mesmo horário;
+- celular com relógio errado;
+- tela desatualizada no painel;
+- queda de internet no meio de uma ação;
+- telefone repetido;
+- privacidade dos dados das clientes.
+
+O GitHub roda os testes sozinho a cada mudança (aba Actions). Para rodar no computador:
+
+```sh
+cd tests
+npm ci
+npx playwright install chromium
+npm test
+```

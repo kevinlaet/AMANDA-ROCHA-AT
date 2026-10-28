@@ -1,5 +1,11 @@
 /*
-  AGENDA DA AMANDA — é só editar este arquivo para mudar dias e horários.
+  SERVIÇOS E HORÁRIOS
+
+  Os serviços abaixo valem sempre.
+
+  Os dias e horários abaixo só são usados enquanto o Supabase não estiver
+  ligado (config.js vazio). Depois de ligado, a Amanda cuida da agenda
+  pelo painel (/admin/) e esta lista é ignorada.
 
   - dias: cada dia de atendimento, no formato "AAAA-MM-DD".
   - horarios: os horários daquele dia.
@@ -13,7 +19,8 @@ window.AGENDA = {
 
   servicos: [
     { id: "auriculo", nome: "Auriculoterapia", detalhe: "Ansiedade, sono e bem-estar" },
-    { id: "limpeza", nome: "Limpeza de pele", detalhe: "Novidade no salão", novidade: true }
+    // "desde": primeiro dia em que o serviço pode ser marcado
+    { id: "limpeza", nome: "Limpeza de pele", detalhe: "Novidade no salão", novidade: true, desde: "2026-11-14" }
   ],
 
   dias: [

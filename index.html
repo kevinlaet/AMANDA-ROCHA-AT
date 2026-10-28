@@ -6,9 +6,20 @@
 <title>Amanda Rocha · Auriculoterapia e Estética</title>
 <meta name="description" content="Auriculoterapia e limpeza de pele com o cuidado de uma enfermeira. Agende seu horário pelo WhatsApp.">
 <meta name="theme-color" content="#0B5F59">
+<!-- Endereço do site: se mudar (domínio próprio), troque também em links/index.html -->
+<link rel="canonical" href="https://kevinlaet.github.io/AMANDA-ROCHA-AT/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="Amanda Rocha">
+<meta property="og:url" content="https://kevinlaet.github.io/AMANDA-ROCHA-AT/">
 <meta property="og:title" content="Amanda Rocha · Auriculoterapia e Estética">
 <meta property="og:description" content="Novidade: limpeza de pele a partir de 14/11. Agende seu horário pelo WhatsApp.">
-<meta property="og:image" content="img/og.jpg">
+<meta property="og:image" content="https://kevinlaet.github.io/AMANDA-ROCHA-AT/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="img/icone-180.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HealthAndBeautyBusiness","name":"Amanda Rocha · Auriculoterapia e Estética","url":"https://kevinlaet.github.io/AMANDA-ROCHA-AT/","image":"https://kevinlaet.github.io/AMANDA-ROCHA-AT/img/og.jpg","telephone":"+55-11-94890-7302","sameAs":["https://instagram.com/amandarochaat"],"description":"Auriculoterapia e limpeza de pele com o cuidado de uma enfermeira."}</script>
 <link rel="icon" href="img/logo.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/montserrat-sub.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -61,15 +72,19 @@ section{padding:40px 22px}
 .opt .pill{position:absolute;top:-9px;right:12px;background:var(--peach);color:var(--teal-d);font-weight:800;font-size:10px;letter-spacing:1.5px;padding:3px 9px;border-radius:99px}
 .opts.cols .opt{align-items:center;text-align:center;padding:12px 8px}
 .opt[aria-pressed=true]{border-color:var(--teal);background:#E9F4F1;box-shadow:inset 0 0 0 1px var(--teal)}
-.opt:disabled{opacity:.4;text-decoration:line-through;cursor:not-allowed}
+.opt:disabled{opacity:.45;cursor:not-allowed}
+.opt:disabled .a{text-decoration:line-through}
+.opt:focus-visible,.btn:focus-visible,summary:focus-visible{outline:3px solid var(--peach);outline-offset:2px}
+.resumo a{color:var(--peach);font-weight:800}
 .empty{color:var(--muted);font-size:15px;padding:12px 2px}
-input[type=text]{width:100%;min-height:56px;font:inherit;font-size:17px;padding:14px 16px;border-radius:16px;border:2px solid var(--line);background:#fff;color:var(--ink);outline:none}
-input[type=text]:focus{border-color:var(--teal)}
+input[type=text],input[type=tel]{width:100%;min-height:56px;font:inherit;font-size:17px;padding:14px 16px;border-radius:16px;border:2px solid var(--line);background:#fff;color:var(--ink);outline:none}
+input[type=text]:focus,input[type=tel]:focus{border-color:var(--teal)}
 .resumo{margin-top:22px;padding:16px;border-radius:16px;background:var(--teal);color:var(--cream);font-size:15px;display:none}
 .resumo.on{display:block}
 .resumo b{color:var(--peach)}
 .go{width:100%;margin-top:14px;background:var(--wa);color:#fff;box-shadow:0 10px 24px rgba(31,175,90,.3)}
 .go:disabled{background:#B9C7C3;box-shadow:none;cursor:not-allowed}
+.campo-dica{font-size:14px;color:var(--muted);margin-top:6px}
 .hint{font-size:14px;color:var(--muted);text-align:center;margin-top:10px}
 .hint a{font-weight:700;color:var(--teal)}
 
@@ -130,7 +145,7 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
   <p class="tag">Um tempo só seu, com cuidado de verdade.</p>
   <div class="btns">
     <a class="btn btn-main" href="#agendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agendar meu horário</a>
-    <a class="btn btn-ghost js-wa" href="https://wa.me/5511948907302"><svg viewBox="0 0 32 32"><path fill="#25D366" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#fff" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg>Conversar no WhatsApp</a>
+    <a class="btn btn-ghost js-wa" href="https://wa.me/5511948907302"><svg viewBox="0 0 32 32"><path fill="#25D366" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#fff" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg>Falar no WhatsApp</a>
     <a class="btn btn-ghost" href="https://instagram.com/amandarochaat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>@amandarochaat</a>
   </div>
   <a class="novo" href="#agendar"><span class="pill">NOVIDADE</span><span><b>Limpeza de pele</b> no salão a partir de <b>14/11</b>. Vagas limitadas.</span></a>
@@ -140,18 +155,19 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
 <section id="agendar">
   <h2 class="h2 script">Agende seu horário</h2>
   <p class="sub">Escolha abaixo e envie pelo WhatsApp. É rapidinho.</p>
+  <noscript><p class="empty">Para agendar, chame a Amanda no WhatsApp: <a href="https://wa.me/5511948907302">(11) 94890-7302</a>.</p></noscript>
 
   <div class="step">
-    <div class="step-t"><span class="n">1</span>O que você quer fazer?</div>
-    <div class="opts" id="o-servico"></div>
+    <div class="step-t" id="t-servico"><span class="n">1</span>O que você quer fazer?</div>
+    <div class="opts" id="o-servico" role="group" aria-labelledby="t-servico"></div>
   </div>
   <div class="step">
-    <div class="step-t"><span class="n">2</span>Qual dia?</div>
-    <div class="opts cols" id="o-dia"></div>
+    <div class="step-t" id="t-dia"><span class="n">2</span>Qual dia?</div>
+    <div class="opts cols" id="o-dia" role="group" aria-labelledby="t-dia"><p class="empty">Carregando os dias…</p></div>
   </div>
   <div class="step">
-    <div class="step-t"><span class="n">3</span>Qual horário?</div>
-    <div class="opts cols" id="o-hora"><p class="empty">Escolha um dia primeiro.</p></div>
+    <div class="step-t" id="t-hora"><span class="n">3</span>Qual horário?</div>
+    <div class="opts cols" id="o-hora" role="group" aria-labelledby="t-hora"><p class="empty">Escolha um dia primeiro.</p></div>
   </div>
   <div class="step">
     <label class="step-t" for="nome"><span class="n">4</span>Seu nome</label>
@@ -159,12 +175,14 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
   </div>
   <div class="step" id="stTel">
     <label class="step-t" for="tel"><span class="n">5</span>Seu WhatsApp</label>
-    <input type="text" id="tel" inputmode="tel" autocomplete="tel-national" placeholder="(11) 90000-0000" maxlength="16">
+    <input type="tel" id="tel" inputmode="tel" autocomplete="tel-national" placeholder="(11) 90000-0000" maxlength="19">
+    <p class="campo-dica">Para a Amanda conseguir falar com você.</p>
   </div>
 
   <div class="resumo" id="resumo" aria-live="polite"></div>
-  <button class="btn go" id="go" disabled><svg viewBox="0 0 32 32"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#1FAF5A" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg>Confirmar pelo WhatsApp</button>
-  <p class="hint">O WhatsApp abre com a mensagem pronta. A Amanda confirma seu horário por lá.<br>Não achou um horário bom? <a class="js-wa" href="https://wa.me/5511948907302">Fale comigo</a>.</p>
+  <button class="btn go" id="go" type="button" disabled><svg viewBox="0 0 32 32"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#1FAF5A" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg><span id="goTxt">Enviar pelo WhatsApp</span></button>
+  <p class="hint" id="hint">O WhatsApp abre com a mensagem pronta. A Amanda confirma seu horário por lá.</p>
+  <p class="hint">Não achou um horário bom? <a class="js-wa" href="https://wa.me/5511948907302">Fale comigo</a>.</p>
 </section>
 
 <section class="alt" id="servicos">
@@ -228,85 +246,108 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
 <script>
 (function(){
   var A=window.AGENDA, C=window.SUPABASE||{}, live=!!(C.url&&C.anonKey);
-  var GO_HTML=document.getElementById('go').innerHTML;
-  var S={servico:null,dia:null,hora:null}, slots=[], falhou=false, aviso='';
+  var S={servico:null,dia:null,hora:null}, slots=[], falhou=false, aviso='', enviando=false, reservado=false;
   var SEM=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
   var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   var $=function(id){return document.getElementById(id)};
-  function parse(d){var p=d.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  // datas como texto AAAA-MM-DD; o dia da semana é calculado sem depender do fuso do celular
+  function utc(d){var p=d.split('-');return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]))}
   function dd(n){return (n<10?'0':'')+n}
-  function curta(d){var x=parse(d);return dd(x.getDate())+'/'+dd(x.getMonth()+1)}
+  function curta(d){var x=utc(d);return dd(x.getUTCDate())+'/'+dd(x.getUTCMonth()+1)}
+  function sem(d){return SEM[utc(d).getUTCDay()]}
   function hh(h){var m=/^(\d\d):(\d\d)$/.exec(h);return m?(+m[1])+(m[2]==='00'?'h':'h'+m[2]):h}
-  var hoje=new Date();hoje.setHours(0,0,0,0);
+  function hojeLocal(){var n=new Date();return n.getFullYear()+'-'+dd(n.getMonth()+1)+'-'+dd(n.getDate())}
+  function servico(){return A.servicos.filter(function(s){return s.id===S.servico})[0]}
+  function slot(){return slots.filter(function(q){return q.id===S.hora})[0]}
+  function cedoDemais(d){var s=servico();return !!(s&&s.desde&&d<s.desde)}
 
+  // Com o Supabase ligado, o banco decide o que aparece (horário de Brasília).
+  // Sem ele, usa a lista do agenda.js.
   function load(){
-    if(!live){slots=[];A.dias.forEach(function(d){d.horarios.forEach(function(h){
-      slots.push({id:d.data+h,data:d.data,hora:h,status:(A.ocupados[d.data]||[]).indexOf(h)<0?'livre':'ocupado'})})});return Promise.resolve()}
-    return fetch(C.url+'/rest/v1/horarios_publicos?select=id,data,hora,status&order=data,hora',{headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey}})
-      .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j;falhou=false}).catch(function(){falhou=true});
+    if(!live){slots=[];var h=hojeLocal();A.dias.forEach(function(d){if(d.data<h)return;d.horarios.forEach(function(x){
+      slots.push({id:d.data+' '+x,data:d.data,hora:x,status:(A.ocupados[d.data]||[]).indexOf(x)<0?'livre':'ocupado'})})});return Promise.resolve()}
+    return fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey,'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j||[];falhou=false}).catch(function(){falhou=true});
   }
-  function dias(){var m={},out=[];slots.forEach(function(x){if(!live&&parse(x.data)<hoje)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
+  function dias(){var m={},out=[];slots.forEach(function(x){if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
     return out.map(function(d){return {data:d,slots:m[d]}})}
+  // depois de recarregar, desfaz escolhas que deixaram de valer
+  function conferir(){
+    var ds=dias(),d=ds.filter(function(x){return x.data===S.dia})[0];
+    if(S.dia&&(!d||cedoDemais(S.dia))){S.dia=null;S.hora=null}
+    var q=slot();if(S.hora&&(!q||q.status!=='livre'))S.hora=null;
+  }
 
   function opt(a,b,pill,on,dis){var el=document.createElement('button');el.type='button';el.className='opt';el.setAttribute('aria-pressed',on?'true':'false');if(dis)el.disabled=true;
     el.innerHTML=(pill?'<span class="pill">'+pill+'</span>':'')+'<span class="a">'+a+'</span>'+(b?'<span class="b">'+b+'</span>':'');return el}
 
   function render(){
+    conferir();
     var o=$('o-servico');o.innerHTML='';
-    A.servicos.forEach(function(s){var el=opt(s.nome,s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;render()};o.appendChild(el)});
+    A.servicos.forEach(function(s){var el=opt(s.nome,s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;aviso='';render()};o.appendChild(el)});
 
     var ds=dias();o=$('o-dia');o.innerHTML='';
-    if(falhou)o.innerHTML='<p class="empty">Não consegui carregar a agenda agora. Chame a Amanda no WhatsApp.</p>';
-    else if(!ds.length)o.innerHTML='<p class="empty">Novas datas em breve. Me chame no WhatsApp!</p>';
-    ds.forEach(function(d){var x=parse(d.data),livres=d.slots.filter(function(q){return q.status==='livre'});
-      var el=opt(dd(x.getDate())+' '+MES[x.getMonth()],livres.length?SEM[x.getDay()].toLowerCase():'lotado','',S.dia===d.data,!livres.length);
-      el.onclick=function(){S.dia=d.data;S.hora=null;render()};o.appendChild(el)});
+    if(falhou)o.innerHTML='<p class="empty">Não consegui carregar a agenda agora. <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Chame a Amanda no WhatsApp</a>.</p>';
+    else if(!ds.length)o.innerHTML='<p class="empty">Novas datas em breve. <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Me chame no WhatsApp</a>!</p>';
+    ds.forEach(function(d){var x=utc(d.data),livres=d.slots.filter(function(q){return q.status==='livre'}),cedo=cedoDemais(d.data);
+      var sub=cedo?'a partir de '+curta(servico().desde):livres.length?sem(d.data).toLowerCase():'lotado';
+      var el=opt(dd(x.getUTCDate())+' '+MES[x.getUTCMonth()],sub,'',S.dia===d.data,!livres.length||cedo);
+      el.onclick=function(){S.dia=d.data;S.hora=null;aviso='';render()};o.appendChild(el)});
 
     o=$('o-hora');
     if(S.dia){o.innerHTML='';var d=ds.filter(function(x){return x.data===S.dia})[0];
-      if(d)d.slots.forEach(function(q){var el=opt(hh(q.hora),'','',S.hora===q.id,q.status!=='livre');el.onclick=function(){S.hora=q.id;render()};o.appendChild(el)})}
+      if(d)d.slots.forEach(function(q){var el=opt(hh(q.hora),q.status==='livre'?'':'ocupado','',S.hora===q.id,q.status!=='livre');el.onclick=function(){S.hora=q.id;aviso='';render()};o.appendChild(el)})}
     else o.innerHTML='<p class="empty">Escolha um dia primeiro.</p>';
 
-    var ok=S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1&&(!live||telOk());
-    $('go').disabled=!ok;
-    var r=$('resumo'),sl=S.hora&&slots.filter(function(q){return q.id===S.hora})[0];
-    if(S.servico&&S.dia&&sl){var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
-      r.innerHTML='<b>'+sv.nome+'</b><br>'+SEM[x.getDay()]+', '+curta(S.dia)+' às '+hh(sl.hora);r.className='resumo on'}
-    else if(aviso){r.innerHTML=aviso;r.className='resumo on'}
+    $('go').disabled=enviando||reservado||!(S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1&&(!live||telOk()));
+    var r=$('resumo'),sl=slot(),sv=servico();
+    if(reservado)return;
+    if(aviso){r.innerHTML=aviso;r.className='resumo on'}
+    else if(sv&&S.dia&&sl){r.innerHTML='<b>'+sv.nome+'</b><br>'+sem(S.dia)+', '+curta(S.dia)+' às '+hh(sl.hora);r.className='resumo on'}
     else r.className='resumo';
   }
 
+  // telefone: aceita qualquer jeito de digitar e mostra no formato (11) 91234-5678
   function digitos(){var t=$('tel').value.replace(/\D/g,'');if(t.indexOf('55')===0&&(t.length===12||t.length===13))t=t.slice(2);return t}
   function telOk(){var t=digitos();return t.length===10||t.length===11}
+  function formata(){var t=digitos();if(t.length<3)return;var a=t.slice(0,2),b=t.slice(2);
+    $('tel').value='('+a+') '+(b.length>(t.length===11?5:4)?b.slice(0,t.length===11?5:4)+'-'+b.slice(t.length===11?5:4):b)}
+
   $('stTel').hidden=!live;
+  if(live){$('goTxt').textContent='Reservar meu horário';$('hint').textContent='Seu horário fica guardado e o WhatsApp abre com a mensagem pronta. A Amanda confirma por lá.'}
   $('nome').oninput=function(){aviso='';render()};
   $('tel').oninput=function(){aviso='';render()};
+  $('tel').onblur=function(){if(telOk())formata()};
+
   $('go').onclick=function(){
-    var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia),sl=slots.filter(function(q){return q.id===S.hora})[0];
-    var nome=$('nome').value.trim();
-    var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+SEM[x.getDay()]+', '+curta(S.dia)+' às '+hh(sl.hora)+'\n\nMeu nome é '+nome+'.';
-    var abrir=function(){location.href='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg)};
-    if(!live){abrir();return}
-    $('go').disabled=true;$('go').textContent='Reservando…';
-    var volta=function(){$('go').innerHTML=GO_HTML;render()};
+    var sv=servico(),sl=slot(),nome=$('nome').value.trim();if(!sv||!sl)return;
+    var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+sem(S.dia)+', '+curta(S.dia)+' às '+hh(sl.hora)+'\n\nMeu nome é '+nome+'.';
+    var url='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
+    if(!live){location.href=url;return}
+    enviando=true;$('goTxt').textContent='Reservando…';render();
     fetch(C.url+'/rest/v1/rpc/pedir_horario',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey,'Content-Type':'application/json'},
       body:JSON.stringify({p_id:sl.id,p_servico:sv.nome,p_nome:nome,p_telefone:digitos()})})
       .then(function(r){if(!r.ok)throw 0;return r.json()})
       .then(function(res){
+        enviando=false;$('goTxt').textContent='Reservar meu horário';
         if(res==='ok'){
-          var url='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
-          $('resumo').innerHTML='<b>Horário reservado!</b><br>Agora envie a mensagem no WhatsApp para a Amanda confirmar.<br><a href="'+url+'" style="color:#F5C59D;font-weight:800">Abrir o WhatsApp</a>';
-          $('resumo').className='resumo on';$('go').innerHTML=GO_HTML;$('go').disabled=true;abrir();return}
-        S.hora=null;
-        aviso=res==='limite'?'<b>Você já tem 2 horários reservados.</b><br>Para marcar mais, fale com a Amanda no WhatsApp.':
-              res==='dados'?'<b>Confira seu nome e WhatsApp.</b><br>Use o número com DDD.':
-              '<b>Esse horário acabou de ser pego.</b><br>Escolha outro, por favor.';
-        return load().then(function(){$('go').innerHTML=GO_HTML;render()})})
-      .catch(function(){aviso='<b>Não consegui reservar agora.</b><br>Toque em “Fale comigo” abaixo e chame a Amanda.';volta()});
+          reservado=true;render();
+          $('resumo').innerHTML='<b>Horário guardado para você!</b><br>'+sv.nome+', '+sem(S.dia).toLowerCase()+' '+curta(S.dia)+' às '+hh(sl.hora)+'.<br>Agora envie a mensagem no WhatsApp para a Amanda confirmar.<br><a href="'+url+'">Abrir o WhatsApp</a>';
+          $('resumo').className='resumo on';location.href=url;return}
+        if(res==='limite'){aviso='<b>Você já tem 2 horários reservados.</b><br>Para marcar mais, fale com a Amanda no WhatsApp.';render();return}
+        if(res==='dados'){aviso='<b>Confira seu nome e WhatsApp.</b><br>Use o número com DDD.';render();return}
+        S.hora=null;aviso='<b>Esse horário acabou de ser pego.</b><br>Escolha outro, por favor.';
+        return load().then(render)})
+      .catch(function(){enviando=false;$('goTxt').textContent='Reservar meu horário';
+        aviso='<b>Não consegui reservar agora.</b><br>Confira a internet e tente de novo, ou toque em “Fale comigo” abaixo.';render()});
   };
+
   var hi=encodeURIComponent('Olá Amanda! Vim pelo site e queria tirar uma dúvida.');
-  [].forEach.call(document.querySelectorAll('.js-wa'),function(a){a.href='https://wa.me/'+A.whatsapp+'?text='+hi});
-  load().then(render);
+  function linksWa(){[].forEach.call(document.querySelectorAll('.js-wa'),function(a){a.href='https://wa.me/'+A.whatsapp+'?text='+hi})}
+  load().then(function(){render();linksWa()});
+  linksWa();
+  // quem deixa a página aberta e volta depois vê os horários atualizados
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&live&&!enviando&&!reservado)load().then(function(){render();linksWa()})});
 
   var fab=document.querySelector('.fab'),vis={};
   if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){vis[e.target.id]=e.isIntersecting});fab.classList.toggle('off',!!(vis.topo||vis.agendar))},{rootMargin:'0px 0px -35% 0px'});

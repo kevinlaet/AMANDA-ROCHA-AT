@@ -4,228 +4,398 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Painel da Amanda</title>
+<title>Agenda da Amanda</title>
 <meta name="theme-color" content="#0B5F59">
 <link rel="icon" href="../img/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../img/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agenda">
 <style>
 @font-face{font-family:'Great Vibes';src:url(../fonts/greatvibes-sub.woff2) format('woff2');font-display:swap}
 @font-face{font-family:'Montserrat';src:url(../fonts/montserrat-sub.woff2) format('woff2');font-weight:400 800;font-display:swap}
-:root{--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;--ok:#1B8A4B;--warn:#B5651D;--bad:#B3392F;color-scheme:light}
+/* Painel de uso diário, no celular: uma coluna, ações grandes, cores de estado (livre, pedido, confirmado). */
+:root{--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;
+  --ok:#1B8A4B;--ok-bg:#E6F4EC;--warn:#B5651D;--warn-bg:#FFF3E5;--bad:#B3392F;--bad-bg:#FDECEA;--livre:#BFD9D4;--livre-bg:#EEF7F5;color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Montserrat,system-ui,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--cream);min-height:100vh;-webkit-text-size-adjust:100%}
-button,input{font:inherit;color:inherit}
+body{font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--cream);min-height:100vh;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:560px;margin:0 auto;padding:0 16px 60px}
-header{background:var(--teal);color:var(--cream);padding:18px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 120px}
+header{background:var(--teal);color:var(--cream);padding:calc(16px + env(safe-area-inset-top)) 16px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 header h1{font-family:'Great Vibes',cursive;font-weight:400;font-size:34px;color:var(--peach);line-height:1}
 header small{display:block;font-weight:600;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--peach-l)}
 .sair{background:transparent;border:1.5px solid rgba(245,197,157,.6);color:var(--peach-l);border-radius:12px;padding:10px 16px;min-height:44px;font-weight:600}
-h2{font-size:18px;font-weight:800;color:var(--teal);margin:28px 0 12px;display:flex;align-items:center;gap:8px}
+.sync{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:13px;color:var(--muted)}
+.sync button{background:none;border:0;color:var(--teal);font-weight:700;padding:8px 0;min-height:40px}
+h2{font-size:18px;font-weight:800;color:var(--teal);margin:26px 0 12px;display:flex;align-items:center;gap:8px}
 .badge{background:var(--warn);color:#fff;font-size:13px;font-weight:800;border-radius:99px;padding:2px 10px}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}
-.msg{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:#fdecea;color:var(--bad);font-weight:600;font-size:15px}
-.msg.ok{background:#e6f4ec;color:var(--ok)}
-label{display:block;font-weight:700;font-size:14px;margin:12px 0 6px}
-input[type=email],input[type=password],input[type=date]{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
-input:focus{border-color:var(--teal)}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 18px;border-radius:14px;border:2px solid transparent;font-weight:700;width:100%}
-.btn.main{background:var(--teal);color:var(--cream);margin-top:16px}
+.banner{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
+.msg{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
+label,.label{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
+input[type=email],input[type=password],input[type=date],input[type=time],input[type=text],select{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
+input:focus,select:focus{border-color:var(--teal)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 18px;border-radius:14px;border:2px solid transparent;font-weight:700;width:100%;text-align:center;text-decoration:none}
+.btn.main{background:var(--teal);color:var(--cream)}
 .btn.ok{background:var(--ok);color:#fff}
+.btn.zap{background:#1FAF5A;color:#fff}
+.btn.zap-leve{background:#fff;border-color:#BFE6CD;color:#147A3E}
 .btn.ghost{border-color:var(--line);background:#fff;color:var(--ink)}
 .btn.bad{border-color:var(--bad);color:var(--bad);background:#fff}
-.btn:disabled{opacity:.5}
+.btn.bad-solid{background:var(--bad);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{min-height:44px;min-width:68px;padding:8px 12px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700}
 .chip[aria-pressed=true]{background:#E9F4F1;border-color:var(--teal);color:var(--teal-d)}
-.pedido{border-left:6px solid var(--warn)}
-.pedido b{font-size:18px}
-.pedido .qd{color:var(--muted);font-size:15px;margin:2px 0 4px}
-.dia{margin-top:14px}
-.dia h3{font-size:15px;font-weight:800;margin-bottom:8px}
-.s{min-height:48px;min-width:76px;padding:6px 12px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700;text-align:center;line-height:1.2}
-.s small{display:block;font-weight:600;font-size:11px;letter-spacing:.5px}
-.s.livre{border-color:#BFD9D4;background:#EEF7F5;color:var(--teal-d)}
-.s.pedido{border-color:var(--warn);background:#FFF3E5;color:var(--warn)}
-.s.confirmado{border-color:var(--ok);background:#E6F4EC;color:var(--ok)}
-.s[aria-pressed=true]{outline:3px solid var(--teal);outline-offset:1px}
-.acoes{margin-top:12px;padding:14px;border-radius:14px;background:var(--sand);display:grid;gap:10px}
-.acoes p{font-weight:700}
+.extra{display:grid;grid-template-columns:1fr auto;gap:10px}
+.extra .btn{width:auto}
+.previa{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--sand);font-size:15px}
+.previa b{color:var(--teal-d)}
+.ped{border-left:6px solid var(--warn);margin-bottom:10px;display:grid;gap:4px}
+.ped .nome{font-size:18px;font-weight:800}
+.ped .qd{color:var(--muted);font-size:15px}
+.ped .velho{color:var(--warn);font-weight:700;font-size:14px}
+.ped .passou{color:var(--bad);font-weight:700;font-size:14px}
+.ped .btn.zap{margin-top:8px}
+.dia{margin-top:16px}
+.dia h3{font-size:15px;font-weight:800;margin-bottom:2px}
+.dia .resumo{font-size:13px;color:var(--muted);margin-bottom:8px}
+.s{min-height:52px;min-width:80px;padding:6px 12px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700;text-align:center;line-height:1.2}
+.s small{display:block;font-weight:600;font-size:11px;letter-spacing:.3px;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s.livre{border-color:var(--livre);background:var(--livre-bg);color:var(--teal-d)}
+.s.pedido{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.s.confirmado{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.s.velho{opacity:.45}
 .vazio{color:var(--muted);padding:6px 2px}
-.legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .legenda i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+/* painel de ações que sobe de baixo */
+.veu{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(5,63,58,.45);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;margin:0 auto;max-width:560px;max-height:88vh;overflow:auto;background:var(--cream);border-radius:22px 22px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.25);display:grid;gap:10px}
+.sheet .t{font-size:19px;font-weight:800;color:var(--teal-d)}
+.sheet .d{color:var(--muted);font-size:15px}
+.sheet .pergunta{background:var(--bad-bg);color:var(--bad);border-radius:14px;padding:12px 14px;font-weight:700}
+.sheet .estado{display:inline-block;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border-radius:99px;padding:3px 10px;margin-bottom:4px}
+.estado.livre{background:var(--livre-bg);color:var(--teal-d)}.estado.pedido{background:var(--warn-bg);color:var(--warn)}.estado.confirmado{background:var(--ok-bg);color:var(--ok)}
+/* aviso que aparece embaixo, perto do dedo */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:30;margin:0 auto;max-width:528px;background:var(--ink);color:var(--cream);
+  border-radius:16px;padding:14px 16px;box-shadow:0 12px 30px rgba(0,0,0,.3);display:grid;gap:10px;font-weight:600}
+.toast.erro{background:var(--bad)}
+.toast .acoes{display:flex;gap:10px}
+.toast .acoes>*{flex:1;min-height:44px}
+.toast .fechar{background:rgba(255,255,255,.15);border:0;color:inherit;border-radius:12px;font-weight:700;padding:0 14px;flex:0 0 auto}
 [hidden]{display:none!important}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
 </head>
 <body>
 
 <section id="vLogin" hidden>
-  <header><div><h1>Amanda Rocha</h1><small>Painel da agenda</small></div></header>
+  <header><div><h1>Amanda Rocha</h1><small>Agenda</small></div></header>
   <div class="wrap">
     <h2>Entrar</h2>
-    <form class="card" id="fLogin">
+    <form class="card" id="fLogin" novalidate>
       <label for="email">E-mail</label>
-      <input type="email" id="email" autocomplete="username" required>
+      <input type="email" id="email" autocomplete="username" inputmode="email" required>
       <label for="senha">Senha</label>
       <input type="password" id="senha" autocomplete="current-password" required>
-      <button class="btn main" type="submit" id="bLogin">Entrar</button>
-      <div class="msg" id="mLogin" hidden></div>
+      <button class="btn main" type="submit" id="bLogin" style="margin-top:18px">Entrar</button>
+      <div class="msg" id="mLogin" role="alert" hidden></div>
     </form>
   </div>
 </section>
 
 <section id="vApp" hidden>
-  <header><div><h1>Amanda Rocha</h1><small>Painel da agenda</small></div><button class="sair" id="bSair" type="button">Sair</button></header>
+  <header><div><h1>Amanda Rocha</h1><small>Agenda</small></div><button class="sair" id="bSair" type="button">Sair</button></header>
   <div class="wrap">
-    <div class="msg" id="mApp" hidden></div>
+    <div class="sync"><span id="atualizado">Carregando…</span><button type="button" id="bAtualizar">Atualizar agora</button></div>
+    <div class="banner" id="semNet" role="alert" hidden>Sem conexão. O que você vê pode estar desatualizado. Não confirme nada até a internet voltar.</div>
 
-    <h2>Pedidos para confirmar <span class="badge" id="nPed" hidden></span></h2>
-    <div id="pedidos"></div>
+    <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
+    <div id="pedidos"><p class="vazio">Carregando…</p></div>
 
-    <h2>Abrir novos horários</h2>
+    <h2>Abrir horários</h2>
     <div class="card">
       <label for="novaData">Dia</label>
       <input type="date" id="novaData">
-      <label>Horários (toque para escolher)</label>
-      <div class="chips" id="horas"></div>
-      <button class="btn main" type="button" id="bAbrir">Abrir esses horários</button>
+      <span class="label" id="lHoras">Horários (toque para escolher)</span>
+      <div class="chips" id="horas" role="group" aria-labelledby="lHoras"></div>
+      <label for="horaExtra">Outro horário</label>
+      <div class="extra"><input type="time" id="horaExtra" step="900"><button class="btn ghost" type="button" id="bExtra">Adicionar</button></div>
+      <label for="repetir">Repetir</label>
+      <select id="repetir">
+        <option value="1">Só neste dia</option>
+        <option value="2">Neste e no mesmo dia da próxima semana (2 semanas)</option>
+        <option value="4">Por 4 semanas</option>
+        <option value="8">Por 8 semanas</option>
+      </select>
+      <div class="previa" id="previa" aria-live="polite">Escolha o dia.</div>
+      <button class="btn main" type="button" id="bAbrir" style="margin-top:14px">Abrir horários</button>
     </div>
 
     <h2>Minha agenda</h2>
-    <div class="legenda"><span><i style="background:#BFD9D4"></i>livre</span><span><i style="background:var(--warn)"></i>pedido</span><span><i style="background:var(--ok)"></i>confirmado</span></div>
+    <div class="legenda"><span><i style="background:var(--livre)"></i>livre</span><span><i style="background:var(--warn)"></i>pedido</span><span><i style="background:var(--ok)"></i>confirmado</span></div>
     <div id="agenda"></div>
-    <div class="acoes" id="acoes" hidden></div>
   </div>
 </section>
+
+<div class="veu" id="veu" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script src="../config.js"></script>
 <script>
 (function(){
   var C=window.SUPABASE||{},$=function(i){return document.getElementById(i)};
   var SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
-  var HORAS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
-  var escolhidas={'13:00':1,'14:00':1,'15:00':1,'16:00':1,'17:00':1};
-  var rows=[],sel=null,sess=null;
+  var PADRAO=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+  var extras=[],escolhidas={'13:00':1,'14:00':1,'15:00':1,'16:00':1,'17:00':1};
+  var rows=[],sess=null,aberto=null,pergunta=null,ocupado=false,relogio=null,ultimo=null;
 
-  function hh(h){return (+h.slice(0,2))+(h.slice(3)==='00'?'h':'h'+h.slice(3))}
-  function parse(d){var p=d.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  // ---------- utilidades ----------
   function dd(n){return (n<10?'0':'')+n}
-  function dia(d){var x=parse(d);return SEM[x.getDay()]+', '+dd(x.getDate())+'/'+dd(x.getMonth()+1)}
-  function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-  function say(id,t,ok){var m=$(id);if(!t){m.hidden=true;return}m.textContent=t;m.className='msg'+(ok?' ok':'');m.hidden=false}
+  function hh(h){return (+h.slice(0,2))+(h.slice(3)==='00'?'h':'h'+h.slice(3))}
+  function utc(d){var p=d.split('-');return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]))}
+  function somaDias(d,n){var x=utc(d);x.setUTCDate(x.getUTCDate()+n);return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())}
+  function curta(d){var x=utc(d);return dd(x.getUTCDate())+'/'+dd(x.getUTCMonth()+1)}
+  function semana(d){return SEM[utc(d).getUTCDay()]}
+  function dia(d){var h=hojeSP();return (d===h?'hoje':d===somaDias(h,1)?'amanhã':semana(d))+', '+curta(d)}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function primeiro(n){return String(n||'').trim().split(/\s+/)[0]}
 
-  try{sess=JSON.parse(localStorage.getItem('amanda-sess')||'null')}catch(e){}
-  function save(s){sess=s;try{s?localStorage.setItem('amanda-sess',JSON.stringify(s)):localStorage.removeItem('amanda-sess')}catch(e){}}
-
-  function auth(path,body){return fetch(C.url+'/auth/v1/'+path,{method:'POST',headers:{apikey:C.anonKey,'Content-Type':'application/json'},body:JSON.stringify(body)})
-    .then(function(r){return r.json().then(function(j){if(!r.ok)throw j;return j})})}
-  function toSess(j){return {token:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-60000}}
-  function token(){
-    if(!sess)return Promise.reject();
-    if(Date.now()<sess.exp)return Promise.resolve(sess.token);
-    return auth('token?grant_type=refresh_token',{refresh_token:sess.refresh}).then(function(j){save(toSess(j));return sess.token}).catch(function(){save(null);throw 0});
+  // Relógio: usa a hora do servidor (Brasília), nunca a do celular.
+  function agoraSP(){
+    if(relogio)return new Date(relogio.srv+(Date.now()-relogio.local));
+    var p={};try{new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
+      .formatToParts(new Date()).forEach(function(x){p[x.type]=x.value})}catch(e){var n=new Date();return new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate(),n.getHours(),n.getMinutes()))}
+    return new Date(Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute));
   }
-  function api(method,path,body,extra){
+  function hojeSP(){var x=agoraSP();return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())}
+  function agoraTxt(){var x=agoraSP();return hojeSP()+' '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())}
+  function passou(r){return (r.data+' '+r.hora)<=agoraTxt()}
+  function idade(iso){if(!iso)return '';var m=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000));
+    return m<1?'agora mesmo':m<60?'há '+m+' min':m<1440?'há '+Math.floor(m/60)+' h':'há '+Math.floor(m/1440)+' dia'+(m>=2880?'s':'')}
+
+  // Mensagens prontas para a Amanda mandar à cliente
+  function zapUrl(r,tipo){
+    if(!r.telefone)return '';
+    var n=primeiro(r.nome),q=semana(r.data)+', '+curta(r.data)+' às '+hh(r.hora),t;
+    if(tipo==='confirmar')t='Oi, '+n+'! Aqui é a Amanda. Seu horário de '+r.servico+' está confirmado para '+q+'. Qualquer coisa, é só me chamar. Até lá!';
+    else if(tipo==='recusar')t='Oi, '+n+'! Aqui é a Amanda. Infelizmente não vou conseguir te atender '+q+'. Quer escolher outro horário? É só me responder aqui.';
+    else if(tipo==='cancelar')t='Oi, '+n+'! Aqui é a Amanda. Precisei desmarcar seu horário de '+q+'. Me desculpe! Quer remarcar? É só me responder aqui.';
+    else t='Oi, '+n+'! Aqui é a Amanda, sobre o seu horário de '+r.servico+' em '+q+'.';
+    return 'https://wa.me/55'+r.telefone+'?text='+encodeURIComponent(t);
+  }
+
+  // ---------- avisos ----------
+  var tTimer;
+  function toast(txt,erro,link,linkTxt){
+    var t=$('toast');clearTimeout(tTimer);
+    t.className='toast'+(erro?' erro':'');
+    t.innerHTML='<div>'+esc(txt)+'</div><div class="acoes">'+(link?'<a class="btn zap" target="_blank" rel="noopener" href="'+esc(link)+'">'+esc(linkTxt)+'</a>':'')+'<button class="fechar" type="button" data-fechar>Fechar</button></div>';
+    t.hidden=false;
+    tTimer=setTimeout(function(){t.hidden=true},link?15000:erro?9000:5000);
+  }
+
+  // ---------- sessão ----------
+  try{sess=JSON.parse(localStorage.getItem('amanda-sess')||'null')}catch(e){}
+  function salvar(s){sess=s;try{s?localStorage.setItem('amanda-sess',JSON.stringify(s)):localStorage.removeItem('amanda-sess')}catch(e){}}
+  function auth(caminho,corpo){
+    return fetch(C.url+'/auth/v1/'+caminho,{method:'POST',headers:{apikey:C.anonKey,'Content-Type':'application/json'},body:JSON.stringify(corpo)})
+      .then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok){var e=new Error('auth');e.status=r.status;throw e}return j})},
+            function(){var e=new Error('rede');e.rede=true;throw e});
+  }
+  function paraSessao(j){return {token:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-120000}}
+  var renovando=null;
+  function token(){
+    if(!sess)return Promise.reject('sessao');
+    if(Date.now()<sess.exp)return Promise.resolve(sess.token);
+    if(!renovando)renovando=auth('token?grant_type=refresh_token',{refresh_token:sess.refresh})
+      .then(function(j){salvar(paraSessao(j));return sess.token},function(e){if(e.rede)throw 'rede';salvar(null);throw 'sessao'})
+      .then(function(t){renovando=null;return t},function(e){renovando=null;throw e});
+    return renovando;
+  }
+  // Erros: 'sessao' (precisa entrar de novo), 'rede' (sem internet), 'erro' (o banco recusou)
+  function api(metodo,caminho,corpo,extra){
     return token().then(function(t){
       var h={apikey:C.anonKey,Authorization:'Bearer '+t,'Content-Type':'application/json'};if(extra)for(var k in extra)h[k]=extra[k];
-      return fetch(C.url+'/rest/v1/'+path,{method:method,headers:h,body:body?JSON.stringify(body):undefined});
-    }).then(function(r){if(r.status===401){save(null);show();throw 0}if(!r.ok)throw 1;return r.status===204?null:r.text().then(function(t){return t?JSON.parse(t):null})});
+      return fetch(C.url+'/rest/v1/'+caminho,{method:metodo,headers:h,body:corpo===undefined?undefined:JSON.stringify(corpo)}).catch(function(){throw 'rede'});
+    }).then(function(r){
+      if(r.status===401){salvar(null);mostrar('Sua sessão expirou. Entre de novo, por favor.');throw 'sessao'}
+      if(!r.ok)throw 'erro';
+      return r.text().then(function(t){return t?JSON.parse(t):null});
+    });
   }
 
-  function show(){
-    var on=!!sess&&C.url;
-    $('vLogin').hidden=on;$('vApp').hidden=!on;
-    if(!C.url){$('vLogin').hidden=false;say('mLogin','O painel ainda não foi ligado ao Supabase. Preencha o arquivo config.js.')}
+  // ---------- telas ----------
+  function mostrar(msgLogin){
+    var on=!!(sess&&C.url&&C.anonKey);
+    $('vLogin').hidden=on;$('vApp').hidden=!on;fecharSheet();
+    if(!C.url||!C.anonKey){$('bLogin').disabled=true;erroLogin('O painel ainda não foi ligado ao Supabase. Preencha o arquivo config.js.')}
+    else if(msgLogin)erroLogin(msgLogin);
     if(on)carregar();
   }
+  function erroLogin(t){var m=$('mLogin');m.textContent=t;m.hidden=!t}
 
-  $('fLogin').onsubmit=function(e){e.preventDefault();$('bLogin').disabled=true;say('mLogin','');
-    auth('token?grant_type=password',{email:$('email').value.trim(),password:$('senha').value})
-      .then(function(j){save(toSess(j));$('senha').value='';show()})
-      .catch(function(){say('mLogin','E-mail ou senha incorretos.')})
-      .then(function(){$('bLogin').disabled=false})};
-  $('bSair').onclick=function(){save(null);rows=[];sel=null;show()};
+  $('fLogin').onsubmit=function(e){
+    e.preventDefault();var em=$('email').value.trim().toLowerCase(),se=$('senha').value;
+    if(!em||!se){erroLogin('Preencha o e-mail e a senha.');return}
+    $('bLogin').disabled=true;$('bLogin').textContent='Entrando…';erroLogin('');
+    auth('token?grant_type=password',{email:em,password:se})
+      .then(function(j){salvar(paraSessao(j));return api('POST','rpc/sou_admin',{})})
+      .then(function(admin){
+        if(admin!==true){salvar(null);erroLogin('Este e-mail entrou, mas não tem acesso à agenda. Confira o e-mail cadastrado no arquivo do banco.');return}
+        $('senha').value='';mostrar();
+      })
+      .catch(function(err){salvar(null);erroLogin(err&&err.rede||err==='rede'?'Sem conexão. Confira a internet e tente de novo.':err&&err.status===400?'E-mail ou senha incorretos.':'Não consegui entrar agora. Tente de novo em instantes.')})
+      .then(function(){$('bLogin').disabled=false;$('bLogin').textContent='Entrar'});
+  };
+  $('bSair').onclick=function(){salvar(null);rows=[];mostrar()};
 
-  function hojeSP(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'})}
-  var ocupado=false,semNet=false;
+  // ---------- carregar ----------
   function carregar(){
-    return api('GET','horarios?select=*&data=gte.'+hojeSP()+'&order=data,hora').then(function(j){rows=j||[];if(semNet){semNet=false;say('mApp','')}desenhar()})
-      .catch(function(e){if(e!==0){semNet=true;say('mApp','Sem conexão. O que você vê pode estar desatualizado. Confira a internet.')}});
+    return api('POST','rpc/agora_sp',{})
+      .then(function(s){var m=/^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)(?::(\d\d))?/.exec(s||'');
+        if(m)relogio={srv:Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)),local:Date.now()}})
+      .then(function(){return api('GET','horarios?select=*&data=gte.'+hojeSP()+'&order=data.asc,hora.asc')})
+      .then(function(j){rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;desenhar()})
+      .catch(function(e){if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
   }
-  function idade(iso){if(!iso)return '';var m=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000));
-    return m<1?'agora':m<60?'há '+m+' min':m<1440?'há '+Math.floor(m/60)+' h':'há '+Math.floor(m/1440)+' d'}
-  function zap(r){return r.telefone?'<a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/55'+r.telefone+'">Chamar no WhatsApp</a>':''}
-  // atualiza sozinho: a cada 30 s e quando ela volta para a tela
-  setInterval(function(){if(sess&&!document.hidden&&!ocupado)carregar()},30000);
-  document.addEventListener('visibilitychange',function(){if(sess&&!document.hidden)carregar()});
+  setInterval(function(){if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
+  document.addEventListener('visibilitychange',function(){if(sess&&!document.hidden&&!ocupado)carregar()});
+  window.addEventListener('online',function(){if(sess)carregar()});
+  $('bAtualizar').onclick=function(){carregar()};
 
+  // ---------- desenhar ----------
   function desenhar(){
+    var x=ultimo||agoraSP();
+    $('atualizado').textContent='Atualizado às '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes());
     var ped=rows.filter(function(r){return r.status==='pedido'});
-    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+'Painel da Amanda';
-    $('pedidos').innerHTML=ped.length?ped.map(function(r){return '<div class="card pedido" style="margin-bottom:10px"><b>'+esc(r.nome)+'</b><div class="qd">'+esc(r.servico)+'<br>'+dia(r.data)+' às '+hh(r.hora)+'<br>Pedido '+idade(r.pedido_em)+'</div>'+zap(r)+
-      '<div class="row"><button class="btn ok" data-a="confirmar" data-id="'+r.id+'" type="button">Confirmar</button><button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Recusar</button></div></div>'}).join(''):'<p class="vazio">Nenhum pedido por enquanto.</p>';
+    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+'Agenda da Amanda';
+    $('pedidos').innerHTML=ped.length?ped.map(function(r){
+      var min=r.pedido_em?(Date.now()-new Date(r.pedido_em).getTime())/60000:0,z=zapUrl(r,'falar');
+      return '<div class="card ped"><div class="nome">'+esc(r.nome)+'</div>'+
+        '<div class="qd">'+esc(r.servico)+'<br><b>'+dia(r.data)+' às '+hh(r.hora)+'</b><br>Pedido '+idade(r.pedido_em)+'</div>'+
+        (passou(r)?'<div class="passou">Esse horário já passou.</div>':min>180?'<div class="velho">Esperando sua resposta há bastante tempo.</div>':'')+
+        (z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar '+esc(primeiro(r.nome))+' no WhatsApp</a>':'')+
+        '<div class="row"><button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button">Confirmar</button>'+
+        '<button class="btn bad" data-a="perg-recusar" data-id="'+esc(r.id)+'" type="button">Recusar</button></div></div>'}).join(''):'<p class="vazio">Nenhum pedido esperando resposta.</p>';
 
     var por={},ordem=[];rows.forEach(function(r){if(!por[r.data]){por[r.data]=[];ordem.push(r.data)}por[r.data].push(r)});
-    $('agenda').innerHTML=ordem.length?ordem.map(function(d){return '<div class="dia"><h3>'+dia(d)+'</h3><div class="chips">'+por[d].map(function(r){
-      return '<button class="s '+r.status+'" data-id="'+r.id+'" aria-pressed="'+(sel===r.id)+'" type="button">'+hh(r.hora)+'<small>'+(r.status==='livre'?'livre':esc((r.nome||'').split(' ')[0]||r.status))+'</small></button>'}).join('')+'</div></div>'}).join(''):'<p class="vazio">Nenhum horário aberto. Use “Abrir novos horários” acima.</p>';
-    acoes();
+    $('agenda').innerHTML=ordem.length?ordem.map(function(d){
+      var c={livre:0,pedido:0,confirmado:0};por[d].forEach(function(r){c[r.status]++});
+      var resumo=[c.livre?c.livre+' livre'+(c.livre>1?'s':''):'',c.pedido?c.pedido+' pedido'+(c.pedido>1?'s':''):'',c.confirmado?c.confirmado+' confirmado'+(c.confirmado>1?'s':''):''].filter(Boolean).join(' · ');
+      return '<div class="dia"><h3>'+dia(d)+'</h3><div class="resumo">'+resumo+'</div><div class="chips">'+por[d].map(function(r){
+        var rot=r.status==='livre'?'livre':esc(primeiro(r.nome));
+        return '<button class="s '+r.status+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?'livre':r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
+      '<p class="vazio">Nenhum horário aberto. Use “Abrir horários” acima.</p>';
+    // com uma pergunta aberta, não redesenha (não apaga o que ela está digitando);
+    // a ação continua segura porque só vale se o horário não tiver mudado
+    if(aberto&&!pergunta)desenharSheet();
   }
 
-  function acoes(){
-    var box=$('acoes'),r=rows.filter(function(x){return x.id===sel})[0];
-    if(!r){box.hidden=true;return}
-    var h='<p>'+dia(r.data)+' às '+hh(r.hora)+'</p>';
-    if(r.status==='pedido')h+='<div>'+esc(r.nome)+' · '+esc(r.servico)+'</div>'+zap(r)+'<button class="btn ok" data-a="confirmar" data-id="'+r.id+'" type="button">Confirmar</button><button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Recusar e liberar</button>';
-    if(r.status==='confirmado')h+='<div>'+esc(r.nome)+' · '+esc(r.servico)+'</div>'+zap(r)+'<button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Cancelar e liberar horário</button>';
-    if(r.status==='livre')h+='<button class="btn ghost" data-a="ocupar" data-id="'+r.id+'" type="button">Marcar como ocupado (marquei por fora)</button>';
-    if(r.status==='livre')h+='<button class="btn ghost" data-a="remover" data-id="'+r.id+'" type="button">Remover este horário</button>';
-    else h+='<p style="font-weight:500;font-size:14px;color:var(--muted)">Para remover este horário, primeiro cancele e libere.</p>';
-    box.innerHTML=h;box.hidden=false;
+  // ---------- painel de ações ----------
+  function linha(id){return rows.filter(function(r){return r.id===id})[0]}
+  function abrirSheet(id){aberto=id;pergunta=null;desenharSheet()}
+  function fecharSheet(){aberto=null;pergunta=null;$('sheet').hidden=true;$('veu').hidden=true}
+  function desenharSheet(){
+    var r=linha(aberto),s=$('sheet');
+    if(!r){fecharSheet();return}
+    var nomes={livre:'Livre',pedido:'Pedido',confirmado:'Confirmado'};
+    var h='<div><span class="estado '+r.status+'">'+nomes[r.status]+'</span><div class="t" id="sheetT">'+dia(r.data)+' às '+hh(r.hora)+'</div>'+
+      (r.status!=='livre'?'<div class="d">'+esc(r.nome)+(r.servico?' · '+esc(r.servico):'')+(r.telefone?' · ('+r.telefone.slice(0,2)+') '+r.telefone.slice(2,-4)+'-'+r.telefone.slice(-4):'')+'</div>':'')+
+      (passou(r)?'<div class="d" style="color:var(--bad)">Esse horário já passou.</div>':'')+'</div>';
+    var dis=ocupado?' disabled':'';
+    if(pergunta==='recusar')h+='<div class="pergunta">Recusar o pedido de '+esc(primeiro(r.nome))+'? O horário volta a ficar livre no site.</div><button class="btn bad-solid" data-a="recusar" type="button"'+dis+'>Sim, recusar</button><button class="btn ghost" data-a="voltar" type="button">Voltar</button>';
+    else if(pergunta==='cancelar')h+='<div class="pergunta">Cancelar o horário confirmado de '+esc(primeiro(r.nome))+'? Ele volta a ficar livre no site.</div><button class="btn bad-solid" data-a="cancelar" type="button"'+dis+'>Sim, cancelar</button><button class="btn ghost" data-a="voltar" type="button">Voltar</button>';
+    else if(pergunta==='remover')h+='<div class="pergunta">Remover este horário da agenda? Ele some do site.</div><button class="btn bad-solid" data-a="remover" type="button"'+dis+'>Sim, remover</button><button class="btn ghost" data-a="voltar" type="button">Voltar</button>';
+    else if(pergunta==='ocupar')h+='<label for="nomeFora">Nome da cliente (opcional)</label><input type="text" id="nomeFora" maxlength="60" placeholder="Marcado por fora"><button class="btn main" data-a="ocupar" type="button"'+dis+'>Marcar como ocupado</button><button class="btn ghost" data-a="voltar" type="button">Voltar</button>';
+    else{
+      if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')+'<button class="btn bad" data-a="perg-recusar" type="button">Recusar…</button>'}
+      if(r.status==='confirmado'){var z2=zapUrl(r,'confirmar');h+=(z2?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z2)+'">Mandar confirmação no WhatsApp</a>':'')+'<button class="btn bad" data-a="perg-cancelar" type="button">Cancelar e liberar…</button>'}
+      if(r.status==='livre')h+='<button class="btn main" data-a="perg-ocupar" type="button">Marcar como ocupado (marquei por fora)</button><button class="btn bad" data-a="perg-remover" type="button">Remover horário…</button>';
+      h+='<button class="btn ghost" data-a="fechar" type="button">Fechar</button>';
+    }
+    s.innerHTML=h;s.hidden=false;$('veu').hidden=false;
+    var f=pergunta==='ocupar'?$('nomeFora'):null;if(f)f.focus();
   }
 
-  var TXT_MUDOU='Esse horário mudou enquanto você olhava (talvez uma cliente tenha pedido agora). Atualizei a tela, confira e tente de novo.';
-  // Só altera se o horário ainda estiver no estado em que ela viu. Se mudou, não faz nada.
-  function mudar(id,esperado,campos){
-    return api('PATCH','horarios?id=eq.'+id+'&status=in.('+esperado+')',campos,{Prefer:'return=representation'})
-      .then(function(j){if(!j||!j.length)say('mApp',TXT_MUDOU)}).then(carregar)
-      .catch(function(e){if(e!==0){say('mApp','Não deu certo. Confira a internet e tente de novo.');return carregar()}});
+  // ---------- ações (só valem se o horário ainda estiver como ela viu) ----------
+  var MUDOU='Esse horário mudou enquanto você olhava (talvez uma cliente tenha pedido agora). Atualizei a tela: confira e tente de novo.';
+  function falha(e){if(e!=='sessao')toast(e==='rede'?'Sem conexão. Nada foi alterado. Tente de novo quando a internet voltar.':'Não deu certo. Nada foi alterado. Tente de novo.',true)}
+  function mudar(r,esperado,campos){
+    return api('PATCH','horarios?id=eq.'+r.id+'&status=in.('+esperado+')',campos,{Prefer:'return=representation'})
+      .then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}return true});
   }
-  function remover(id){
-    return api('DELETE','horarios?id=eq.'+id+'&status=eq.livre',null,{Prefer:'return=representation'})
-      .then(function(j){if(!j||!j.length)say('mApp',TXT_MUDOU)}).then(carregar)
-      .catch(function(e){if(e!==0){say('mApp','Não deu certo. Confira a internet e tente de novo.');return carregar()}});
+  function executar(acao,r){
+    if(ocupado)return;ocupado=true;
+    var antes={id:r.id,data:r.data,hora:r.hora,nome:r.nome,servico:r.servico,telefone:r.telefone},quando=dia(r.data)+' às '+hh(r.hora),p;
+    if(acao==='confirmar')p=mudar(r,'pedido',{status:'confirmado'}).then(function(ok){if(ok){var z=zapUrl(antes,'confirmar');toast('Confirmado: '+primeiro(antes.nome)+', '+quando+'.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
+    else if(acao==='recusar')p=mudar(r,'pedido',{status:'livre',nome:null,servico:null,telefone:null,pedido_em:null}).then(function(ok){if(ok){var z=zapUrl(antes,'recusar');toast('Pedido recusado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
+    else if(acao==='cancelar')p=mudar(r,'confirmado',{status:'livre',nome:null,servico:null,telefone:null,pedido_em:null}).then(function(ok){if(ok){var z=zapUrl(antes,'cancelar');toast('Horário cancelado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
+    else if(acao==='ocupar'){var nm=(($('nomeFora')||{}).value||'').trim();p=mudar(r,'livre',{status:'confirmado',nome:nm.length>1?nm.slice(0,60):'Marcado por fora',servico:'Combinado por fora',pedido_em:new Date().toISOString()}).then(function(ok){if(ok)toast(quando+' marcado como ocupado.');return ok})}
+    else if(acao==='remover')p=api('DELETE','horarios?id=eq.'+r.id+'&status=eq.livre',undefined,{Prefer:'return=representation'}).then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}toast(quando+' removido da agenda.');return true});
+    if(aberto)desenharSheet();
+    p.then(function(ok){if(ok)fecharSheet();else pergunta=null},falha)
+     .then(function(){ocupado=false;return carregar()}).then(function(){if(aberto)desenharSheet()});
   }
   document.addEventListener('click',function(e){
-    var b=e.target.closest('button[data-a],button.s');if(!b||ocupado)return;
-    var id=b.getAttribute('data-id'),a=b.getAttribute('data-a');
-    if(!a){sel=(sel===id?null:id);desenhar();return}
-    ocupado=true;[].forEach.call(document.querySelectorAll('button[data-a]'),function(x){x.disabled=true});
-    var fim=function(){ocupado=false};
-    if(a==='confirmar')mudar(id,'pedido',{status:'confirmado'}).then(fim);
-    if(a==='liberar'){sel=null;mudar(id,'pedido,confirmado',{status:'livre',nome:null,servico:null,telefone:null,pedido_em:null}).then(fim)}
-    if(a==='ocupar')mudar(id,'livre',{status:'confirmado',nome:'Marcado por fora',servico:'Manual',pedido_em:new Date().toISOString()}).then(fim);
-    if(a==='remover'){sel=null;remover(id).then(fim)}
+    var t=e.target;
+    if(t.closest('[data-fechar]')){$('toast').hidden=true;return}
+    if(t===$('veu')){fecharSheet();return}
+    var ab=t.closest('[data-abrir]');if(ab){abrirSheet(ab.getAttribute('data-abrir'));return}
+    var b=t.closest('button[data-a]');if(!b)return;
+    var a=b.getAttribute('data-a'),id=b.getAttribute('data-id')||aberto,r=linha(id);
+    if(a==='fechar'){fecharSheet();return}
+    if(a==='voltar'){pergunta=null;desenharSheet();return}
+    if(!r)return;
+    if(a.indexOf('perg-')===0){aberto=r.id;pergunta=a.slice(5);desenharSheet();return}
+    executar(a,r);
   });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&aberto)fecharSheet()});
 
-  // abrir horários
-  $('horas').innerHTML=HORAS.map(function(h){return '<button class="chip" type="button" data-h="'+h+'" aria-pressed="'+(!!escolhidas[h])+'">'+hh(h)+'</button>'}).join('');
-  $('horas').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;var h=b.getAttribute('data-h');escolhidas[h]=!escolhidas[h];b.setAttribute('aria-pressed',!!escolhidas[h])};
-  $('novaData').min=hojeSP();
+  // ---------- abrir horários ----------
+  function todasHoras(){var m={};PADRAO.concat(extras).forEach(function(h){m[h]=1});return Object.keys(m).sort()}
+  function desenharHoras(){$('horas').innerHTML=todasHoras().map(function(h){return '<button class="chip" type="button" data-h="'+h+'" aria-pressed="'+(!!escolhidas[h])+'">'+hh(h)+'</button>'}).join('');previa()}
+  function planoAbertura(){
+    var d=$('novaData').value,n=+$('repetir').value||1,hs=todasHoras().filter(function(h){return escolhidas[h]}),datas=[];
+    if(!/^\d{4}-\d\d-\d\d$/.test(d))return null;
+    for(var i=0;i<n;i++)datas.push(somaDias(d,7*i));
+    return {datas:datas,horas:hs};
+  }
+  function previa(){
+    var p=planoAbertura(),el=$('previa');
+    if(!p){el.textContent='Escolha o dia.';return}
+    if(p.datas[0]<hojeSP()){el.innerHTML='<b>Esse dia já passou.</b> Escolha outro.';return}
+    if(!p.horas.length){el.textContent='Escolha pelo menos um horário.';return}
+    el.innerHTML='Vai abrir <b>'+p.horas.map(hh).join(', ')+'</b><br>em <b>'+p.datas.length+' '+(p.datas.length>1?'dias':'dia')+'</b>: '+p.datas.map(function(d){return semana(d)+' '+curta(d)}).join(', ')+'.';
+  }
+  $('horas').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;var h=b.getAttribute('data-h');escolhidas[h]=!escolhidas[h];b.setAttribute('aria-pressed',!!escolhidas[h]);previa()};
+  $('bExtra').onclick=function(){var v=$('horaExtra').value;if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)){toast('Escolha um horário válido, por exemplo 13:30.',true);return}
+    if(extras.indexOf(v)<0)extras.push(v);escolhidas[v]=1;$('horaExtra').value='';desenharHoras()};
+  $('novaData').onchange=$('novaData').oninput=previa;$('repetir').onchange=previa;
   $('bAbrir').onclick=function(){
-    var d=$('novaData').value,hs=HORAS.filter(function(h){return escolhidas[h]});
-    if(!d){say('mApp','Escolha o dia primeiro.');window.scrollTo(0,0);return}
-    if(!hs.length){say('mApp','Escolha pelo menos um horário.');return}
-    $('bAbrir').disabled=true;
-    api('POST','horarios?on_conflict=data,hora',hs.map(function(h){return {data:d,hora:h}}),{Prefer:'resolution=ignore-duplicates,return=representation'})
-      .then(function(j){var n=(j||[]).length,f=hs.length-n;
-        if(!n)say('mApp','Nenhum horário novo. Esses horários já estavam abertos ou já passaram.');
-        else say('mApp',dia(d)+': '+n+' horário'+(n>1?'s':'')+' aberto'+(n>1?'s':'')+(f?' ('+f+' já existia'+(f>1?'m':'')+' ou já passou'+(f>1?'ram':'')+')':'')+'.',true);
-        return carregar()})
-      .catch(function(e){if(e!==0)say('mApp','Não consegui abrir. Confira se o dia e os horários ainda não passaram.')})
-      .then(function(){$('bAbrir').disabled=false});
+    var p=planoAbertura();
+    if(!p){toast('Escolha o dia primeiro.',true);return}
+    if(p.datas[0]<hojeSP()){toast('Esse dia já passou. Escolha outro.',true);return}
+    if(!p.horas.length){toast('Escolha pelo menos um horário.',true);return}
+    var pedidos=[];p.datas.forEach(function(d){p.horas.forEach(function(h){pedidos.push({data:d,hora:h})})});
+    $('bAbrir').disabled=true;$('bAbrir').textContent='Abrindo…';
+    api('POST','horarios?on_conflict=data,hora',pedidos,{Prefer:'resolution=ignore-duplicates,return=representation'})
+      .then(function(j){var n=(j||[]).length,f=pedidos.length-n;
+        if(!n)toast('Nenhum horário novo: esses horários já estavam abertos ou já passaram.',true);
+        else toast(n+(n>1?' horários abertos':' horário aberto')+(p.datas.length>1?' em '+p.datas.length+' dias':'')+'.'+(f?' '+f+(f>1?' já estavam abertos ou já passaram.':' já estava aberto ou já passou.'):''));
+        return carregar()},falha)
+      .then(function(){$('bAbrir').disabled=false;$('bAbrir').textContent='Abrir horários'});
   };
 
-  show();
+  desenharHoras();
+  $('novaData').min=hojeSP();
+  mostrar();
 })();
 </script>
 </body>

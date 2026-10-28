@@ -1,0 +1,15 @@
+{
+  "name": "amanda-rocha-testes",
+  "private": true,
+  "type": "module",
+  "description": "Testes da agenda: regras do banco e fluxo completo (site + painel) contra PostgreSQL real.",
+  "scripts": {
+    "test": "node banco.test.mjs && node ponta-a-ponta.test.mjs",
+    "test:banco": "node banco.test.mjs",
+    "test:site": "node ponta-a-ponta.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.13",
+    "playwright": "1.63.0"
+  }
+}

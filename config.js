@@ -1,10 +1,17 @@
 /*
-  Ligação com o Supabase. Preencha depois de criar o projeto:
-  Supabase > Project Settings > API > "Project URL" e "anon public key".
-  A chave "anon" é pública por natureza e pode ficar aqui.
-  NUNCA coloque a chave "service_role" neste arquivo.
+  Ligação com o Supabase. Preencha depois de criar o projeto
+  (passo a passo no README):
 
-  Enquanto estiver vazio, o site usa os horários de exemplo do agenda.js.
+  Supabase > botão "Connect" do projeto (ou Project Settings > Data API / API Keys)
+    - url: o "Project URL" (algo como https://abcdefgh.supabase.co)
+    - anonKey: a chave pública, chamada "Publishable key" (começa com
+      sb_publishable_) ou, em projetos antigos, "anon public".
+
+  Essa chave é pública por natureza e pode ficar aqui.
+  NUNCA coloque aqui a "Secret key" nem a "service_role".
+
+  Enquanto estiver vazio, o site funciona só pelo WhatsApp, com os
+  horários do agenda.js, e o painel fica desligado.
 */
 window.SUPABASE = {
   url: "",

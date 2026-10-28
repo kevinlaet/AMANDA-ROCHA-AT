@@ -1,19 +1,78 @@
+-- =====================================================================
 -- Agenda da Amanda Rocha
--- Cole este arquivo inteiro em: Supabase > SQL Editor > New query > Run
--- ANTES de rodar, troque SEU_EMAIL_AQUI pelo e-mail da Amanda (aparece 2 vezes).
 --
--- Todas as regras de horário ficam aqui no banco, e não no site, para que nenhum
--- celular com relógio errado ou tela desatualizada consiga causar erro.
+-- Como usar: Supabase > SQL Editor > New query > cole este arquivo > Run
+--
+-- ANTES de rodar, troque SEU_EMAIL_AQUI (uma vez só, logo abaixo)
+-- pelo e-mail que a Amanda vai usar para entrar no painel.
+--
+-- Todas as regras de horário ficam aqui no banco, e não no site, para que
+-- nenhum celular com relógio errado ou tela desatualizada cause erro.
 -- Fuso usado em tudo: America/Sao_Paulo.
+-- Pode rodar de novo sem perder dados.
+-- =====================================================================
 
+do $$
+begin
+  if position('@' in 'SEU_EMAIL_AQUI') = 0 then
+    raise exception 'Troque SEU_EMAIL_AQUI pelo e-mail da Amanda antes de rodar.';
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- Quem administra a agenda
+-- ---------------------------------------------------------------------
+create table if not exists public.admins (
+  email text primary key check (email = lower(email))
+);
+alter table public.admins enable row level security;
+revoke all on public.admins from anon, authenticated;
+
+insert into public.admins (email) values (lower('SEU_EMAIL_AQUI'))
+on conflict do nothing;
+
+create or replace function public.sou_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.admins a
+    where a.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+  )
+$$;
+
+-- ---------------------------------------------------------------------
+-- Relógio e antecedência mínima (um lugar só para mudar)
+-- ---------------------------------------------------------------------
+create or replace function public.agora_sp()
+returns timestamp
+language sql
+stable
+set search_path = ''
+as $$ select now() at time zone 'America/Sao_Paulo' $$;
+
+-- Horários que começam em menos que isso somem do site.
+create or replace function public.antecedencia()
+returns interval
+language sql
+immutable
+set search_path = ''
+as $$ select interval '1 hour' $$;
+
+-- ---------------------------------------------------------------------
+-- Horários
+-- ---------------------------------------------------------------------
 create table if not exists public.horarios (
   id uuid primary key default gen_random_uuid(),
   data date not null,
   hora text not null check (hora ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
   status text not null default 'livre' check (status in ('livre', 'pedido', 'confirmado')),
-  servico text,
-  nome text,
-  telefone text,
+  servico text check (length(servico) <= 40),
+  nome text check (length(nome) <= 60),
+  telefone text check (telefone ~ '^[0-9]{10,11}$'),
   pedido_em timestamptz,
   unique (data, hora),
   -- horário livre nunca guarda dados de cliente; pedido e confirmado sempre têm nome
@@ -23,18 +82,12 @@ create table if not exists public.horarios (
   )
 );
 
--- Agora, em horário de Brasília.
-create or replace function public.agora_sp()
-returns timestamp
-language sql
-stable
-as $$ select now() at time zone 'America/Sao_Paulo' $$;
-
--- Horário que já passou nunca é aberto: é descartado em silêncio e os demais
--- da mesma lista entram normalmente (o painel avisa quantos ficaram de fora).
+-- Horário que já passou nunca é aberto: é descartado e os demais da mesma
+-- lista entram normalmente (o painel avisa quantos ficaram de fora).
 create or replace function public.bloqueia_horario_passado()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   if (new.data + new.hora::time) <= public.agora_sp() then
@@ -50,68 +103,137 @@ create trigger trg_horario_passado
   for each row execute function public.bloqueia_horario_passado();
 
 alter table public.horarios enable row level security;
-
--- A tabela só é acessível por quem está logado como a Amanda.
 revoke all on public.horarios from anon;
 grant select, insert, update, delete on public.horarios to authenticated;
 
 drop policy if exists "amanda_total" on public.horarios;
-create policy "amanda_total" on public.horarios
+drop policy if exists "admin_total" on public.horarios;
+create policy "admin_total" on public.horarios
   for all to authenticated
-  using (auth.jwt() ->> 'email' = 'SEU_EMAIL_AQUI')
-  with check (auth.jwt() ->> 'email' = 'SEU_EMAIL_AQUI');
+  using (public.sou_admin())
+  with check (public.sou_admin());
 
--- O site público enxerga só dia, hora e status. Nunca nomes ou telefones.
--- Some quem já passou ou começa em menos de 1 hora (para mudar, troque o '1 hour').
-create or replace view public.horarios_publicos as
-  select id, data, hora, status
-  from public.horarios
-  where (data + hora::time) > public.agora_sp() + interval '1 hour';
+-- ---------------------------------------------------------------------
+-- Histórico: toda mudança fica registrada (quem, quando, de onde para onde)
+-- ---------------------------------------------------------------------
+create table if not exists public.historico (
+  id bigint generated always as identity primary key,
+  em timestamptz not null default now(),
+  horario_id uuid,
+  data date,
+  hora text,
+  de text,
+  para text,
+  nome text,
+  quem text
+);
+alter table public.historico enable row level security;
+revoke all on public.historico from anon, authenticated;
+grant select on public.historico to authenticated;
 
-grant select on public.horarios_publicos to anon, authenticated;
+drop policy if exists "admin_le" on public.historico;
+create policy "admin_le" on public.historico
+  for select to authenticated
+  using (public.sou_admin());
 
+create or replace function public.registra_historico()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  quem text := coalesce(auth.jwt() ->> 'email', 'site');
+begin
+  if tg_op = 'INSERT' then
+    insert into public.historico (horario_id, data, hora, de, para, nome, quem)
+    values (new.id, new.data, new.hora, null, new.status, new.nome, quem);
+  elsif tg_op = 'UPDATE' then
+    if old.status is distinct from new.status or old.nome is distinct from new.nome then
+      insert into public.historico (horario_id, data, hora, de, para, nome, quem)
+      values (new.id, new.data, new.hora, old.status, new.status, coalesce(new.nome, old.nome), quem);
+    end if;
+  elsif tg_op = 'DELETE' then
+    insert into public.historico (horario_id, data, hora, de, para, nome, quem)
+    values (old.id, old.data, old.hora, old.status, 'removido', old.nome, quem);
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists trg_historico on public.horarios;
+create trigger trg_historico
+  after insert or update or delete on public.horarios
+  for each row execute function public.registra_historico();
+
+-- ---------------------------------------------------------------------
+-- O que o site público pode ver: só dia, hora e se está livre.
+-- Nunca nomes ou telefones.
+-- ---------------------------------------------------------------------
+drop view if exists public.horarios_publicos;
+
+create or replace function public.agenda_publica()
+returns table (id uuid, data date, hora text, status text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select h.id, h.data, h.hora,
+         case when h.status = 'livre' then 'livre' else 'ocupado' end
+    from public.horarios h
+   where (h.data + h.hora::time) > public.agora_sp() + public.antecedencia()
+   order by h.data, h.hora
+$$;
+
+-- ---------------------------------------------------------------------
 -- A cliente pede um horário. A checagem e a reserva acontecem numa única
 -- instrução, então duas clientes nunca pegam o mesmo horário.
 -- Resposta: 'ok' | 'indisponivel' | 'dados' | 'limite'
+-- ---------------------------------------------------------------------
+drop function if exists public.pedir_horario(uuid, text, text);
+
 create or replace function public.pedir_horario(p_id uuid, p_servico text, p_nome text, p_telefone text)
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   tel text;
   ativos integer;
   n integer;
 begin
-  tel := regexp_replace(coalesce(p_telefone, ''), '\D', '', 'g');
+  tel := regexp_replace(coalesce(p_telefone, ''), '[^0-9]', '', 'g');
   if tel like '55%' and length(tel) in (12, 13) then
     tel := substr(tel, 3);
   end if;
 
-  if length(trim(coalesce(p_nome, ''))) < 2 or length(tel) not in (10, 11) then
+  if length(trim(coalesce(p_nome, ''))) < 2
+     or length(trim(coalesce(p_servico, ''))) < 2
+     or length(tel) not in (10, 11) then
     return 'dados';
   end if;
 
-  -- no máximo 2 horários ativos por telefone (evita robô reservando a agenda toda)
+  -- no máximo 2 horários ativos por telefone (evita alguém ocupar a agenda toda)
   select count(*) into ativos
-    from public.horarios
-   where telefone = tel
-     and status in ('pedido', 'confirmado')
-     and (data + hora::time) > public.agora_sp();
+    from public.horarios h
+   where h.telefone = tel
+     and h.status in ('pedido', 'confirmado')
+     and (h.data + h.hora::time) > public.agora_sp();
   if ativos >= 2 then
     return 'limite';
   end if;
 
-  update public.horarios
+  update public.horarios h
      set status = 'pedido',
-         servico = left(trim(coalesce(p_servico, '')), 40),
+         servico = left(trim(p_servico), 40),
          nome = left(trim(p_nome), 60),
          telefone = tel,
          pedido_em = now()
-   where id = p_id
-     and status = 'livre'
-     and (data + hora::time) > public.agora_sp() + interval '1 hour';
+   where h.id = p_id
+     and h.status = 'livre'
+     and (h.data + h.hora::time) > public.agora_sp() + public.antecedencia();
 
   get diagnostics n = row_count;
   if n = 1 then
@@ -121,5 +243,19 @@ begin
 end;
 $$;
 
-revoke all on function public.pedir_horario(uuid, text, text, text) from public;
+-- ---------------------------------------------------------------------
+-- Permissões das funções
+-- ---------------------------------------------------------------------
+-- (o Supabase dá acesso automático a funções novas; aqui tudo é fechado e
+-- depois liberado só para quem precisa)
+revoke all on function public.agenda_publica() from public, anon, authenticated;
+revoke all on function public.pedir_horario(uuid, text, text, text) from public, anon, authenticated;
+revoke all on function public.sou_admin() from public, anon, authenticated;
+revoke all on function public.agora_sp() from public, anon, authenticated;
+revoke all on function public.registra_historico() from public, anon, authenticated;
+revoke all on function public.bloqueia_horario_passado() from public, anon, authenticated;
+
+grant execute on function public.agenda_publica() to anon, authenticated;
 grant execute on function public.pedir_horario(uuid, text, text, text) to anon, authenticated;
+grant execute on function public.agora_sp() to anon, authenticated;
+grant execute on function public.sou_admin() to authenticated;
