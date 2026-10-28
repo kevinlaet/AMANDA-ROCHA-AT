@@ -219,18 +219,29 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
 
 <a class="fab off js-wa" href="https://wa.me/5511948907302" aria-label="Falar no WhatsApp"><svg viewBox="0 0 32 32"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#1FAF5A" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg></a>
 
+<script src="config.js"></script>
 <script src="agenda.js"></script>
 <script>
 (function(){
-  var A=window.AGENDA, S={servico:null,dia:null,hora:null};
+  var A=window.AGENDA, C=window.SUPABASE||{}, live=!!(C.url&&C.anonKey);
+  var S={servico:null,dia:null,hora:null}, slots=[], falhou=false, aviso='';
   var SEM=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
   var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   var $=function(id){return document.getElementById(id)};
   function parse(d){var p=d.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
   function dd(n){return (n<10?'0':'')+n}
   function curta(d){var x=parse(d);return dd(x.getDate())+'/'+dd(x.getMonth()+1)}
+  function hh(h){var m=/^(\d\d):(\d\d)$/.exec(h);return m?(+m[1])+(m[2]==='00'?'h':'h'+m[2]):h}
   var hoje=new Date();hoje.setHours(0,0,0,0);
-  var dias=A.dias.filter(function(d){return parse(d.data)>=hoje});
+
+  function load(){
+    if(!live){slots=[];A.dias.forEach(function(d){d.horarios.forEach(function(h){
+      slots.push({id:d.data+h,data:d.data,hora:h,status:(A.ocupados[d.data]||[]).indexOf(h)<0?'livre':'ocupado'})})});return Promise.resolve()}
+    return fetch(C.url+'/rest/v1/horarios_publicos?select=id,data,hora,status&order=data,hora',{headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey}})
+      .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j;falhou=false}).catch(function(){falhou=true});
+  }
+  function dias(){var m={},out=[];slots.forEach(function(x){if(parse(x.data)<hoje)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
+    return out.map(function(d){return {data:d,slots:m[d]}})}
 
   function opt(a,b,pill,on,dis){var el=document.createElement('button');el.type='button';el.className='opt';el.setAttribute('aria-pressed',on?'true':'false');if(dis)el.disabled=true;
     el.innerHTML=(pill?'<span class="pill">'+pill+'</span>':'')+'<span class="a">'+a+'</span>'+(b?'<span class="b">'+b+'</span>':'');return el}
@@ -239,36 +250,50 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
     var o=$('o-servico');o.innerHTML='';
     A.servicos.forEach(function(s){var el=opt(s.nome,s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;render()};o.appendChild(el)});
 
-    o=$('o-dia');o.innerHTML='';
-    if(!dias.length)o.innerHTML='<p class="empty">Novas datas em breve. Me chame no WhatsApp!</p>';
-    dias.forEach(function(d){var x=parse(d.data),livres=d.horarios.filter(function(h){return (A.ocupados[d.data]||[]).indexOf(h)<0});
+    var ds=dias();o=$('o-dia');o.innerHTML='';
+    if(falhou)o.innerHTML='<p class="empty">Não consegui carregar a agenda agora. Chame a Amanda no WhatsApp.</p>';
+    else if(!ds.length)o.innerHTML='<p class="empty">Novas datas em breve. Me chame no WhatsApp!</p>';
+    ds.forEach(function(d){var x=parse(d.data),livres=d.slots.filter(function(q){return q.status==='livre'});
       var el=opt(dd(x.getDate())+' '+MES[x.getMonth()],livres.length?SEM[x.getDay()].toLowerCase():'lotado','',S.dia===d.data,!livres.length);
       el.onclick=function(){S.dia=d.data;S.hora=null;render()};o.appendChild(el)});
 
     o=$('o-hora');
-    if(S.dia){o.innerHTML='';var d=dias.filter(function(x){return x.data===S.dia})[0],oc=A.ocupados[S.dia]||[];
-      d.horarios.forEach(function(h){var ocupado=oc.indexOf(h)>=0;var el=opt(h,'','',S.hora===h,ocupado);el.onclick=function(){S.hora=h;render()};o.appendChild(el)})}
+    if(S.dia){o.innerHTML='';var d=ds.filter(function(x){return x.data===S.dia})[0];
+      if(d)d.slots.forEach(function(q){var el=opt(hh(q.hora),'','',S.hora===q.id,q.status!=='livre');el.onclick=function(){S.hora=q.id;render()};o.appendChild(el)})}
+    else o.innerHTML='<p class="empty">Escolha um dia primeiro.</p>';
 
     var ok=S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1;
     $('go').disabled=!ok;
-    var r=$('resumo');
-    if(S.servico&&S.dia&&S.hora){var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
-      r.innerHTML='<b>'+sv.nome+'</b><br>'+SEM[x.getDay()]+', '+curta(S.dia)+' às '+S.hora;r.className='resumo on'}
+    var r=$('resumo'),sl=S.hora&&slots.filter(function(q){return q.id===S.hora})[0];
+    if(S.servico&&S.dia&&sl){var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
+      r.innerHTML='<b>'+sv.nome+'</b><br>'+SEM[x.getDay()]+', '+curta(S.dia)+' às '+hh(sl.hora);r.className='resumo on'}
+    else if(aviso){r.innerHTML=aviso;r.className='resumo on'}
     else r.className='resumo';
   }
-  $('nome').oninput=render;
+
+  $('nome').oninput=function(){aviso='';render()};
   $('go').onclick=function(){
-    var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
-    var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+SEM[x.getDay()]+', '+curta(S.dia)+' às '+S.hora+'\n\nMeu nome é '+$('nome').value.trim()+'.';
-    location.href='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
+    var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia),sl=slots.filter(function(q){return q.id===S.hora})[0];
+    var nome=$('nome').value.trim();
+    var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+SEM[x.getDay()]+', '+curta(S.dia)+' às '+hh(sl.hora)+'\n\nMeu nome é '+nome+'.';
+    var abrir=function(){location.href='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg)};
+    if(!live){abrir();return}
+    $('go').disabled=true;
+    fetch(C.url+'/rest/v1/rpc/pedir_horario',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey,'Content-Type':'application/json'},
+      body:JSON.stringify({p_id:sl.id,p_servico:sv.nome,p_nome:nome})})
+      .then(function(r){if(!r.ok)throw 0;return r.json()})
+      .then(function(ok){
+        if(ok){abrir();return}
+        S.hora=null;aviso='<b>Esse horário acabou de ser pego.</b><br>Escolha outro, por favor.';return load().then(render)})
+      .catch(function(){aviso='<b>Não consegui reservar agora.</b><br>Toque em “Fale comigo” abaixo e chame a Amanda.';render()});
   };
   var hi=encodeURIComponent('Olá Amanda! Vim pelo site e queria tirar uma dúvida.');
   [].forEach.call(document.querySelectorAll('.js-wa'),function(a){a.href='https://wa.me/'+A.whatsapp+'?text='+hi});
-  render();
-  // botão flutuante só aparece fora do topo e da agenda (para não cobrir botões)
+  load().then(render);
+
   var fab=document.querySelector('.fab'),vis={};
   if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){vis[e.target.id]=e.isIntersecting});fab.classList.toggle('off',!!(vis.topo||vis.agendar))},{rootMargin:'0px 0px -35% 0px'});
-    io.observe(document.getElementById('topo'));io.observe(document.getElementById('agendar'))}else fab.classList.remove('off');
+    io.observe($('topo'));io.observe($('agendar'))}else fab.classList.remove('off');
 })();
 </script>
 </body>
