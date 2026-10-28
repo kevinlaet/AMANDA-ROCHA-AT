@@ -275,6 +275,46 @@ ok(true, 'continua logada depois de recarregar');
 await P.click('#bSair');
 ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
 
+// ===== 4b. Página de diagnóstico =====
+{
+  const rotulos = async (p) => p.locator('#lista .item').evaluateAll((els) => els.map((e) => ({ ok: e.classList.contains('ok'), t: e.querySelector('.t').textContent, d: e.querySelector('.d').textContent })));
+  const c = await contexto(IPHONE);
+  const p = await c.newPage();
+  await p.goto(BASE + 'admin/diagnostico.html');
+  await p.waitForSelector('#fim:not([hidden])');
+  const itens = await rotulos(p);
+  ok(itens.length === 6 && itens.every((i) => i.ok), 'diagnóstico: os 6 itens públicos passam com o banco correto');
+  ok(/Tudo certo/.test(await p.locator('#fim').innerText()), 'diagnóstico: mostra "Tudo certo até aqui"');
+  await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', 'certa'); await p.click('#bt');
+  await p.waitForFunction(() => document.querySelectorAll('#lista .item').length === 10 && [...document.querySelectorAll('#lista .item')].every((e) => !e.classList.contains('esp')));
+  const todos = await rotulos(p);
+  ok(todos.length === 10 && todos.every((i) => i.ok), 'diagnóstico: com o login da Amanda, os 10 itens passam');
+  ok(/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(todos[todos.length - 1].d), 'diagnóstico: mostra o relógio de Brasília (' + todos[todos.length - 1].d + ')');
+  await p.fill('#email', 'outra@pessoa.com'); await p.click('#bt');
+  await p.waitForFunction(() => document.querySelectorAll('#lista .item').length === 10 && [...document.querySelectorAll('#lista .item')].every((e) => !e.classList.contains('esp')));
+  const outra = await rotulos(p);
+  ok(outra.find((i) => /tem acesso/.test(i.t)).ok === false && /insert into public\.admins/.test(outra.find((i) => /tem acesso/.test(i.t)).d), 'diagnóstico: e-mail que não é admin é apontado, com o comando para corrigir');
+  await p.close(); await c.close();
+
+  // cadastro aberto deve ser apontado
+  const api2 = criarApi({ ...banco, opcoes: { cadastroAberto: true } });
+  const c2 = await navegador.newContext({ ...IPHONE });
+  await c2.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: `window.SUPABASE={url:${JSON.stringify(SUPABASE_URL)},anonKey:${JSON.stringify(ANON_KEY)}};` }));
+  await c2.route(SUPABASE_URL + '/**', api2.tratar);
+  const p2 = await c2.newPage();
+  await p2.goto(BASE + 'admin/diagnostico.html'); await p2.waitForSelector('#fim:not([hidden])');
+  const aberto = (await rotulos(p2)).find((i) => /Cadastro aberto/.test(i.t));
+  ok(aberto.ok === false && /Allow new users/.test(aberto.d), 'diagnóstico: cadastro aberto no Supabase é apontado');
+  await c2.close();
+
+  // sem configuração
+  const c3 = await contexto(IPHONE, { ligado: false });
+  const p3 = await c3.newPage();
+  await p3.goto(BASE + 'admin/diagnostico.html'); await p3.waitForSelector('#fim:not([hidden])');
+  ok((await rotulos(p3))[0].ok === false && /config\.js/.test((await rotulos(p3))[0].d), 'diagnóstico: config.js vazio é apontado');
+  await c3.close();
+}
+
 // ===== 5. Privacidade e erros =====
 const publico = await (await fetch(BASE)).text();
 ok(!/Joana|Maria Silva|Rita Lima|Edilva|988887777|912345678|955554444/.test(publico), 'o HTML público não tem nome nem telefone de cliente');

@@ -53,6 +53,7 @@ Se um dia usarem domínio próprio, troquem o endereço nas tags `og:` e `canoni
 4. Abra `supabase/schema.sql` e troque `SEU_EMAIL_AQUI` pelo e-mail da Amanda. Ele aparece uma vez só; se esquecer, o próprio arquivo avisa e não roda. Cole o arquivo inteiro em SQL Editor > New query > Run.
 5. Copie para o `config.js` o **Project URL** e a chave pública (**Publishable key**, que começa com `sb_publishable_`, ou "anon public" em projetos antigos). Os dois ficam no botão **Connect** do projeto e em Project Settings > Data API / API Keys. Nunca coloque ali a Secret key nem a service_role.
 6. Envie o `config.js` para o GitHub. Em poucos minutos, o site e o painel passam a usar o banco.
+7. Abra `…/admin/diagnostico.html` no celular. A página confere sozinha, com ✓ e ✗, se o banco, as permissões e o cadastro estão certos, e o login da Amanda também se você digitar o e-mail e a senha dela. Ela não cria nem altera nenhum dado.
 
 ### 3. Painel no celular da Amanda
 

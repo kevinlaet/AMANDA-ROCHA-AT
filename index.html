@@ -257,6 +257,9 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
   function sem(d){return SEM[utc(d).getUTCDay()]}
   function hh(h){var m=/^(\d\d):(\d\d)$/.exec(h);return m?(+m[1])+(m[2]==='00'?'h':'h'+m[2]):h}
   function hojeLocal(){var n=new Date();return n.getFullYear()+'-'+dd(n.getMonth()+1)+'-'+dd(n.getDate())}
+  // A chave pública vai só no cabeçalho "apikey". Chaves no formato novo (sb_publishable_...)
+  // não podem ir como "Authorization", e nas chaves antigas isso não é necessário.
+  function cab(){return {apikey:C.anonKey,'Content-Type':'application/json'}}
   function servico(){return A.servicos.filter(function(s){return s.id===S.servico})[0]}
   function slot(){return slots.filter(function(q){return q.id===S.hora})[0]}
   function cedoDemais(d){var s=servico();return !!(s&&s.desde&&d<s.desde)}
@@ -266,7 +269,7 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
   function load(){
     if(!live){slots=[];var h=hojeLocal();A.dias.forEach(function(d){if(d.data<h)return;d.horarios.forEach(function(x){
       slots.push({id:d.data+' '+x,data:d.data,hora:x,status:(A.ocupados[d.data]||[]).indexOf(x)<0?'livre':'ocupado'})})});return Promise.resolve()}
-    return fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey,'Content-Type':'application/json'},body:'{}'})
+    return fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:cab(),body:'{}'})
       .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j||[];falhou=false}).catch(function(){falhou=true});
   }
   function dias(){var m={},out=[];slots.forEach(function(x){if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
@@ -325,7 +328,7 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
     var url='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
     if(!live){location.href=url;return}
     enviando=true;$('goTxt').textContent='Reservando…';render();
-    fetch(C.url+'/rest/v1/rpc/pedir_horario',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey,'Content-Type':'application/json'},
+    fetch(C.url+'/rest/v1/rpc/pedir_horario',{method:'POST',headers:cab(),
       body:JSON.stringify({p_id:sl.id,p_servico:sv.nome,p_nome:nome,p_telefone:digitos()})})
       .then(function(r){if(!r.ok)throw 0;return r.json()})
       .then(function(res){

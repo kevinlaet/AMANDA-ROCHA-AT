@@ -4,13 +4,13 @@
 import { EMAIL_ADMIN } from './banco.mjs';
 
 export const SUPABASE_URL = 'https://teste.supabase.co';
-export const ANON_KEY = 'chave-anon-de-teste';
+export const ANON_KEY = 'sb_publishable_chave_de_teste';
 export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa' };
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
 const COLUNAS = new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em']);
 
-export function criarApi({ db, como }) {
+export function criarApi({ db, como, opcoes = {} }) {
   let fila = Promise.resolve();
   const emSerie = (fn) => { const r = fila.then(fn); fila = r.catch(() => {}); return r; };
   const json = (route, corpo, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(corpo) });
@@ -34,6 +34,7 @@ export function criarApi({ db, como }) {
     if (req.headers()['apikey'] !== ANON_KEY) return json(route, { message: 'No API key found in request' }, 401);
     estat.pedidos++;
 
+    if (caminho === '/auth/v1/settings') return json(route, { disable_signup: opcoes.cadastroAberto ? false : true, external: { email: true } });
     if (caminho === '/auth/v1/token') {
       const b = req.postDataJSON() || {};
       if (url.searchParams.get('grant_type') === 'password') {
@@ -48,6 +49,8 @@ export function criarApi({ db, como }) {
     }
 
     const autorizacao = req.headers()['authorization'] || '';
+    // o gateway do Supabase recusa chaves sb_publishable_ enviadas como Bearer
+    if (autorizacao === 'Bearer ' + ANON_KEY) return json(route, { message: 'Invalid JWT' }, 401);
     const email = autorizacao.startsWith('Bearer tok:') ? autorizacao.slice('Bearer tok:'.length) : null;
     const papel = email ? 'authenticated' : 'anon';
     const prefer = req.headers()['prefer'] || '';
@@ -61,9 +64,10 @@ export function criarApi({ db, como }) {
           const b = req.postDataJSON();
           return json(route, (await db.query('select public.pedir_horario($1, $2, $3, $4) j', [b.p_id, b.p_servico, b.p_nome, b.p_telefone])).rows[0].j);
         }
+        if (caminho === '/rest/v1/historico' || caminho === '/rest/v1/admins') return json(route, await lista(`select * from public.${caminho.split('/').pop()}`));
         if (caminho === '/rest/v1/horarios') {
           const params = [];
-          if (metodo === 'GET') return json(route, await lista(`select * from public.horarios${filtros(url, params)} order by data, hora`, params));
+          if (metodo === 'GET') return json(route, await lista(`select * from public.horarios${filtros(url, params)} order by data, hora${url.searchParams.get('limit') ? ' limit ' + Number(url.searchParams.get('limit')) : ''}`, params));
           if (metodo === 'POST') {
             const novos = req.postDataJSON();
             const ignorar = prefer.includes('resolution=ignore-duplicates') ? ' on conflict (data, hora) do nothing' : '';
