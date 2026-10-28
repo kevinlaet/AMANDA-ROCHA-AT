@@ -14,6 +14,6 @@
   horários do agenda.js, e o painel fica desligado.
 */
 window.SUPABASE = {
-  url: "",
-  anonKey: ""
+  url: "https://qumfluviiqjxlqzjcfly.supabase.co",
+  anonKey: "sb_publishable_VzXwyl7KzD3EXx0QtHT9ww_BRCm-KW-"
 };
