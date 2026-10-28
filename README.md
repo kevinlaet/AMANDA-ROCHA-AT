@@ -40,4 +40,3 @@ Abra `folders/folder.html` no navegador com:
 
 - `?v=novidade`, `?v=agenda` ou `?v=aluguel`
 - `&f=feed` para o formato 4:5 (sem isso, sai no formato story 9:16)
-- `&tel=(11)%2099999-9999` no folder de aluguel, para colocar o WhatsApp da Sandra

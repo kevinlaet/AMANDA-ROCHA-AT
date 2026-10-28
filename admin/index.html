@@ -146,16 +146,23 @@ input:focus{border-color:var(--teal)}
       .then(function(){$('bLogin').disabled=false})};
   $('bSair').onclick=function(){save(null);rows=[];sel=null;show()};
 
+  function hojeSP(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'})}
+  var ocupado=false,semNet=false;
   function carregar(){
-    var hoje=new Date();hoje=hoje.getFullYear()+'-'+dd(hoje.getMonth()+1)+'-'+dd(hoje.getDate());
-    api('GET','horarios?select=*&data=gte.'+hoje+'&order=data,hora').then(function(j){rows=j||[];say('mApp','');desenhar()})
-      .catch(function(){say('mApp','Não consegui carregar a agenda. Confira a internet e tente de novo.')});
+    return api('GET','horarios?select=*&data=gte.'+hojeSP()+'&order=data,hora').then(function(j){rows=j||[];if(semNet){semNet=false;say('mApp','')}desenhar()})
+      .catch(function(e){if(e!==0){semNet=true;say('mApp','Sem conexão. O que você vê pode estar desatualizado. Confira a internet.')}});
   }
+  function idade(iso){if(!iso)return '';var m=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000));
+    return m<1?'agora':m<60?'há '+m+' min':m<1440?'há '+Math.floor(m/60)+' h':'há '+Math.floor(m/1440)+' d'}
+  function zap(r){return r.telefone?'<a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/55'+r.telefone+'">Chamar no WhatsApp</a>':''}
+  // atualiza sozinho: a cada 30 s e quando ela volta para a tela
+  setInterval(function(){if(sess&&!document.hidden&&!ocupado)carregar()},30000);
+  document.addEventListener('visibilitychange',function(){if(sess&&!document.hidden)carregar()});
 
   function desenhar(){
     var ped=rows.filter(function(r){return r.status==='pedido'});
-    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;
-    $('pedidos').innerHTML=ped.length?ped.map(function(r){return '<div class="card pedido" style="margin-bottom:10px"><b>'+esc(r.nome)+'</b><div class="qd">'+esc(r.servico)+'<br>'+dia(r.data)+' às '+hh(r.hora)+'</div>'+
+    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+'Painel da Amanda';
+    $('pedidos').innerHTML=ped.length?ped.map(function(r){return '<div class="card pedido" style="margin-bottom:10px"><b>'+esc(r.nome)+'</b><div class="qd">'+esc(r.servico)+'<br>'+dia(r.data)+' às '+hh(r.hora)+'<br>Pedido '+idade(r.pedido_em)+'</div>'+zap(r)+
       '<div class="row"><button class="btn ok" data-a="confirmar" data-id="'+r.id+'" type="button">Confirmar</button><button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Recusar</button></div></div>'}).join(''):'<p class="vazio">Nenhum pedido por enquanto.</p>';
 
     var por={},ordem=[];rows.forEach(function(r){if(!por[r.data]){por[r.data]=[];ordem.push(r.data)}por[r.data].push(r)});
@@ -168,39 +175,53 @@ input:focus{border-color:var(--teal)}
     var box=$('acoes'),r=rows.filter(function(x){return x.id===sel})[0];
     if(!r){box.hidden=true;return}
     var h='<p>'+dia(r.data)+' às '+hh(r.hora)+'</p>';
-    if(r.status==='pedido')h+='<div>'+esc(r.nome)+' · '+esc(r.servico)+'</div><button class="btn ok" data-a="confirmar" data-id="'+r.id+'" type="button">Confirmar</button><button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Recusar e liberar</button>';
-    if(r.status==='confirmado')h+='<div>'+esc(r.nome)+' · '+esc(r.servico)+'</div><button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Cancelar e liberar horário</button>';
+    if(r.status==='pedido')h+='<div>'+esc(r.nome)+' · '+esc(r.servico)+'</div>'+zap(r)+'<button class="btn ok" data-a="confirmar" data-id="'+r.id+'" type="button">Confirmar</button><button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Recusar e liberar</button>';
+    if(r.status==='confirmado')h+='<div>'+esc(r.nome)+' · '+esc(r.servico)+'</div>'+zap(r)+'<button class="btn bad" data-a="liberar" data-id="'+r.id+'" type="button">Cancelar e liberar horário</button>';
     if(r.status==='livre')h+='<button class="btn ghost" data-a="ocupar" data-id="'+r.id+'" type="button">Marcar como ocupado (marquei por fora)</button>';
-    h+='<button class="btn ghost" data-a="remover" data-id="'+r.id+'" type="button">Remover este horário</button>';
+    if(r.status==='livre')h+='<button class="btn ghost" data-a="remover" data-id="'+r.id+'" type="button">Remover este horário</button>';
+    else h+='<p style="font-weight:500;font-size:14px;color:var(--muted)">Para remover este horário, primeiro cancele e libere.</p>';
     box.innerHTML=h;box.hidden=false;
   }
 
-  function mudar(id,campos){
-    return api('PATCH','horarios?id=eq.'+id,campos,{Prefer:'return=minimal'}).then(carregar).catch(function(e){if(e!==0)say('mApp','Não deu certo. Tente de novo.')});
+  var TXT_MUDOU='Esse horário mudou enquanto você olhava (talvez uma cliente tenha pedido agora). Atualizei a tela, confira e tente de novo.';
+  // Só altera se o horário ainda estiver no estado em que ela viu. Se mudou, não faz nada.
+  function mudar(id,esperado,campos){
+    return api('PATCH','horarios?id=eq.'+id+'&status=in.('+esperado+')',campos,{Prefer:'return=representation'})
+      .then(function(j){if(!j||!j.length)say('mApp',TXT_MUDOU)}).then(carregar)
+      .catch(function(e){if(e!==0){say('mApp','Não deu certo. Confira a internet e tente de novo.');return carregar()}});
+  }
+  function remover(id){
+    return api('DELETE','horarios?id=eq.'+id+'&status=eq.livre',null,{Prefer:'return=representation'})
+      .then(function(j){if(!j||!j.length)say('mApp',TXT_MUDOU)}).then(carregar)
+      .catch(function(e){if(e!==0){say('mApp','Não deu certo. Confira a internet e tente de novo.');return carregar()}});
   }
   document.addEventListener('click',function(e){
-    var b=e.target.closest('button[data-a],button.s');if(!b)return;
+    var b=e.target.closest('button[data-a],button.s');if(!b||ocupado)return;
     var id=b.getAttribute('data-id'),a=b.getAttribute('data-a');
     if(!a){sel=(sel===id?null:id);desenhar();return}
-    b.disabled=true;
-    if(a==='confirmar')mudar(id,{status:'confirmado'});
-    if(a==='liberar'){sel=null;mudar(id,{status:'livre',nome:null,servico:null,pedido_em:null})}
-    if(a==='ocupar')mudar(id,{status:'confirmado',nome:'Marcado por fora',servico:'Manual'});
-    if(a==='remover'){sel=null;api('DELETE','horarios?id=eq.'+id,null,{Prefer:'return=minimal'}).then(carregar).catch(function(e){if(e!==0)say('mApp','Não deu certo. Tente de novo.')})}
+    ocupado=true;[].forEach.call(document.querySelectorAll('button[data-a]'),function(x){x.disabled=true});
+    var fim=function(){ocupado=false};
+    if(a==='confirmar')mudar(id,'pedido',{status:'confirmado'}).then(fim);
+    if(a==='liberar'){sel=null;mudar(id,'pedido,confirmado',{status:'livre',nome:null,servico:null,telefone:null,pedido_em:null}).then(fim)}
+    if(a==='ocupar')mudar(id,'livre',{status:'confirmado',nome:'Marcado por fora',servico:'Manual',pedido_em:new Date().toISOString()}).then(fim);
+    if(a==='remover'){sel=null;remover(id).then(fim)}
   });
 
   // abrir horários
   $('horas').innerHTML=HORAS.map(function(h){return '<button class="chip" type="button" data-h="'+h+'" aria-pressed="'+(!!escolhidas[h])+'">'+hh(h)+'</button>'}).join('');
   $('horas').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;var h=b.getAttribute('data-h');escolhidas[h]=!escolhidas[h];b.setAttribute('aria-pressed',!!escolhidas[h])};
-  var hj=new Date();$('novaData').min=hj.getFullYear()+'-'+dd(hj.getMonth()+1)+'-'+dd(hj.getDate());
+  $('novaData').min=hojeSP();
   $('bAbrir').onclick=function(){
     var d=$('novaData').value,hs=HORAS.filter(function(h){return escolhidas[h]});
     if(!d){say('mApp','Escolha o dia primeiro.');window.scrollTo(0,0);return}
     if(!hs.length){say('mApp','Escolha pelo menos um horário.');return}
     $('bAbrir').disabled=true;
-    api('POST','horarios?on_conflict=data,hora',hs.map(function(h){return {data:d,hora:h}}),{Prefer:'resolution=ignore-duplicates,return=minimal'})
-      .then(function(){say('mApp',dia(d)+' aberto com '+hs.length+' horário'+(hs.length>1?'s':'')+'.',true);return carregar()})
-      .catch(function(e){if(e!==0)say('mApp','Não deu certo. Tente de novo.')})
+    api('POST','horarios?on_conflict=data,hora',hs.map(function(h){return {data:d,hora:h}}),{Prefer:'resolution=ignore-duplicates,return=representation'})
+      .then(function(j){var n=(j||[]).length,f=hs.length-n;
+        if(!n)say('mApp','Nenhum horário novo. Esses horários já estavam abertos ou já passaram.');
+        else say('mApp',dia(d)+': '+n+' horário'+(n>1?'s':'')+' aberto'+(n>1?'s':'')+(f?' ('+f+' já existia'+(f>1?'m':'')+' ou já passou'+(f>1?'ram':'')+')':'')+'.',true);
+        return carregar()})
+      .catch(function(e){if(e!==0)say('mApp','Não consegui abrir. Confira se o dia e os horários ainda não passaram.')})
       .then(function(){$('bAbrir').disabled=false});
   };
 

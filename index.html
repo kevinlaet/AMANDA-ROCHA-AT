@@ -155,7 +155,11 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
   </div>
   <div class="step">
     <label class="step-t" for="nome"><span class="n">4</span>Seu nome</label>
-    <input type="text" id="nome" autocomplete="given-name" placeholder="Como você se chama?" maxlength="60">
+    <input type="text" id="nome" autocomplete="name" placeholder="Como você se chama?" maxlength="60">
+  </div>
+  <div class="step" id="stTel">
+    <label class="step-t" for="tel"><span class="n">5</span>Seu WhatsApp</label>
+    <input type="text" id="tel" inputmode="tel" autocomplete="tel-national" placeholder="(11) 90000-0000" maxlength="16">
   </div>
 
   <div class="resumo" id="resumo" aria-live="polite"></div>
@@ -224,6 +228,7 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
 <script>
 (function(){
   var A=window.AGENDA, C=window.SUPABASE||{}, live=!!(C.url&&C.anonKey);
+  var GO_HTML=document.getElementById('go').innerHTML;
   var S={servico:null,dia:null,hora:null}, slots=[], falhou=false, aviso='';
   var SEM=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
   var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -240,7 +245,7 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
     return fetch(C.url+'/rest/v1/horarios_publicos?select=id,data,hora,status&order=data,hora',{headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey}})
       .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j;falhou=false}).catch(function(){falhou=true});
   }
-  function dias(){var m={},out=[];slots.forEach(function(x){if(parse(x.data)<hoje)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
+  function dias(){var m={},out=[];slots.forEach(function(x){if(!live&&parse(x.data)<hoje)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
     return out.map(function(d){return {data:d,slots:m[d]}})}
 
   function opt(a,b,pill,on,dis){var el=document.createElement('button');el.type='button';el.className='opt';el.setAttribute('aria-pressed',on?'true':'false');if(dis)el.disabled=true;
@@ -262,7 +267,7 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
       if(d)d.slots.forEach(function(q){var el=opt(hh(q.hora),'','',S.hora===q.id,q.status!=='livre');el.onclick=function(){S.hora=q.id;render()};o.appendChild(el)})}
     else o.innerHTML='<p class="empty">Escolha um dia primeiro.</p>';
 
-    var ok=S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1;
+    var ok=S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1&&(!live||telOk());
     $('go').disabled=!ok;
     var r=$('resumo'),sl=S.hora&&slots.filter(function(q){return q.id===S.hora})[0];
     if(S.servico&&S.dia&&sl){var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
@@ -271,21 +276,33 @@ footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
     else r.className='resumo';
   }
 
+  function digitos(){var t=$('tel').value.replace(/\D/g,'');if(t.indexOf('55')===0&&(t.length===12||t.length===13))t=t.slice(2);return t}
+  function telOk(){var t=digitos();return t.length===10||t.length===11}
+  $('stTel').hidden=!live;
   $('nome').oninput=function(){aviso='';render()};
+  $('tel').oninput=function(){aviso='';render()};
   $('go').onclick=function(){
     var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia),sl=slots.filter(function(q){return q.id===S.hora})[0];
     var nome=$('nome').value.trim();
     var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+SEM[x.getDay()]+', '+curta(S.dia)+' às '+hh(sl.hora)+'\n\nMeu nome é '+nome+'.';
     var abrir=function(){location.href='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg)};
     if(!live){abrir();return}
-    $('go').disabled=true;
+    $('go').disabled=true;$('go').textContent='Reservando…';
+    var volta=function(){$('go').innerHTML=GO_HTML;render()};
     fetch(C.url+'/rest/v1/rpc/pedir_horario',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+C.anonKey,'Content-Type':'application/json'},
-      body:JSON.stringify({p_id:sl.id,p_servico:sv.nome,p_nome:nome})})
+      body:JSON.stringify({p_id:sl.id,p_servico:sv.nome,p_nome:nome,p_telefone:digitos()})})
       .then(function(r){if(!r.ok)throw 0;return r.json()})
-      .then(function(ok){
-        if(ok){abrir();return}
-        S.hora=null;aviso='<b>Esse horário acabou de ser pego.</b><br>Escolha outro, por favor.';return load().then(render)})
-      .catch(function(){aviso='<b>Não consegui reservar agora.</b><br>Toque em “Fale comigo” abaixo e chame a Amanda.';render()});
+      .then(function(res){
+        if(res==='ok'){
+          var url='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
+          $('resumo').innerHTML='<b>Horário reservado!</b><br>Agora envie a mensagem no WhatsApp para a Amanda confirmar.<br><a href="'+url+'" style="color:#F5C59D;font-weight:800">Abrir o WhatsApp</a>';
+          $('resumo').className='resumo on';$('go').innerHTML=GO_HTML;$('go').disabled=true;abrir();return}
+        S.hora=null;
+        aviso=res==='limite'?'<b>Você já tem 2 horários reservados.</b><br>Para marcar mais, fale com a Amanda no WhatsApp.':
+              res==='dados'?'<b>Confira seu nome e WhatsApp.</b><br>Use o número com DDD.':
+              '<b>Esse horário acabou de ser pego.</b><br>Escolha outro, por favor.';
+        return load().then(function(){$('go').innerHTML=GO_HTML;render()})})
+      .catch(function(){aviso='<b>Não consegui reservar agora.</b><br>Toque em “Fale comigo” abaixo e chame a Amanda.';volta()});
   };
   var hi=encodeURIComponent('Olá Amanda! Vim pelo site e queria tirar uma dúvida.');
   [].forEach.call(document.querySelectorAll('.js-wa'),function(a){a.href='https://wa.me/'+A.whatsapp+'?text='+hi});
