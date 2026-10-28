@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Amanda Rocha · Auriculoterapia e Estética</title>
+<meta name="description" content="Auriculoterapia e limpeza de pele com o cuidado de uma enfermeira. Agende seu horário pelo WhatsApp.">
+<meta name="theme-color" content="#0B5F59">
+<meta property="og:title" content="Amanda Rocha · Auriculoterapia e Estética">
+<meta property="og:description" content="Novidade: limpeza de pele a partir de 14/11. Agende seu horário pelo WhatsApp.">
+<meta property="og:image" content="img/og.jpg">
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/montserrat-sub.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'Great Vibes';src:url(fonts/greatvibes-sub.woff2) format('woff2');font-display:swap}
+@font-face{font-family:'Cormorant';src:url(fonts/cormorant-sub.woff2) format('woff2');font-weight:500 600;font-display:swap}
+@font-face{font-family:'Montserrat';src:url(fonts/montserrat-sub.woff2) format('woff2');font-weight:400 800;font-display:swap}
+:root{--teal:#0B5F59;--teal-d:#053F3A;--teal-l:#167469;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;--wa:#1FAF5A;color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:17px;line-height:1.55;color:var(--ink);background:var(--teal-d)}
+img,svg{display:block}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:520px;margin:0 auto;background:var(--cream);min-height:100vh;box-shadow:0 0 80px rgba(0,0,0,.35);overflow:hidden}
+.script{font-family:'Great Vibes',cursive;font-weight:400;line-height:1.05}
+.serif{font-family:Cormorant,Georgia,serif}
+
+/* topo */
+.hero{position:relative;background:radial-gradient(420px 360px at 90% 0%,#1d7d71 0%,transparent 70%),radial-gradient(400px 400px at 0% 100%,#04342f 0%,transparent 70%),var(--teal);color:var(--cream);text-align:center;padding:44px 22px 30px}
+.hero:before{content:"";position:absolute;width:560px;height:560px;right:-330px;top:-200px;border:2px solid rgba(245,197,157,.2);border-radius:50%;pointer-events:none}
+.logo{width:104px;height:104px;margin:0 auto;filter:drop-shadow(0 8px 20px rgba(0,0,0,.25))}
+.hero h1{font-size:clamp(50px,16vw,66px);color:var(--peach);margin-top:10px}
+.role{font-family:Cormorant,Georgia,serif;font-weight:600;font-size:clamp(12px,3.6vw,15px);letter-spacing:clamp(2px,1vw,5px);text-transform:uppercase;color:var(--peach-l)}
+.tag{font-family:Cormorant,Georgia,serif;font-style:italic;font-size:22px;line-height:1.3;color:var(--peach-l);margin:18px auto 24px;max-width:22ch}
+.btns{display:grid;gap:12px;position:relative}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:14px 20px;border-radius:16px;font-weight:700;font-size:17px;text-decoration:none;border:2px solid transparent;transition:transform .15s}
+.btn:active{transform:scale(.98)}
+.btn svg{width:22px;height:22px;flex:none}
+.btn-main{background:var(--peach);color:var(--teal-d);box-shadow:0 10px 24px rgba(0,0,0,.22)}
+.btn-ghost{border-color:rgba(245,197,157,.55);color:var(--cream);background:rgba(255,248,241,.06)}
+.novo{display:flex;align-items:center;gap:12px;margin-top:22px;padding:12px 16px;border-radius:16px;background:rgba(255,248,241,.1);text-align:left;font-size:15px;text-decoration:none}
+.novo b{color:var(--peach)}
+.novo .pill{flex:none;background:#fff;color:var(--teal);font-weight:800;font-size:11px;letter-spacing:2px;padding:6px 10px;border-radius:99px}
+
+/* seções */
+section{padding:40px 22px}
+.h2{font-size:46px;color:var(--teal);text-align:center}
+.sub{text-align:center;color:var(--muted);margin:4px auto 22px;max-width:30ch;font-size:16px}
+.alt{background:var(--sand)}
+
+/* agenda */
+.step{margin-top:22px}
+.step-t{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;margin-bottom:10px}
+.n{width:28px;height:28px;border-radius:50%;background:var(--teal);color:var(--cream);display:grid;place-items:center;font-size:14px;flex:none}
+.opts{display:grid;gap:10px}
+.opts.cols{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}
+.opt{position:relative;display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-height:56px;padding:13px 16px;border-radius:16px;background:#fff;border:2px solid var(--line);transition:border-color .15s,background .15s}
+.opt .a{font-weight:700;font-size:17px;line-height:1.25}
+.opt .b{font-size:14px;color:var(--muted)}
+.opt .pill{position:absolute;top:-9px;right:12px;background:var(--peach);color:var(--teal-d);font-weight:800;font-size:10px;letter-spacing:1.5px;padding:3px 9px;border-radius:99px}
+.opts.cols .opt{align-items:center;text-align:center;padding:12px 8px}
+.opt[aria-pressed=true]{border-color:var(--teal);background:#E9F4F1;box-shadow:inset 0 0 0 1px var(--teal)}
+.opt:disabled{opacity:.4;text-decoration:line-through;cursor:not-allowed}
+.empty{color:var(--muted);font-size:15px;padding:12px 2px}
+input[type=text]{width:100%;min-height:56px;font:inherit;font-size:17px;padding:14px 16px;border-radius:16px;border:2px solid var(--line);background:#fff;color:var(--ink);outline:none}
+input[type=text]:focus{border-color:var(--teal)}
+.resumo{margin-top:22px;padding:16px;border-radius:16px;background:var(--teal);color:var(--cream);font-size:15px;display:none}
+.resumo.on{display:block}
+.resumo b{color:var(--peach)}
+.go{width:100%;margin-top:14px;background:var(--wa);color:#fff;box-shadow:0 10px 24px rgba(31,175,90,.3)}
+.go:disabled{background:#B9C7C3;box-shadow:none;cursor:not-allowed}
+.hint{font-size:14px;color:var(--muted);text-align:center;margin-top:10px}
+.hint a{font-weight:700;color:var(--teal)}
+
+/* serviços */
+.svc{background:#fff;border-radius:22px;padding:22px;border:1px solid var(--line);margin-top:14px;position:relative}
+.svc h3{font-size:21px;font-weight:800;color:var(--teal);display:flex;align-items:center;gap:10px}
+.svc h3 svg{width:34px;height:34px;flex:none}
+.svc p{margin-top:8px;color:#3B524E}
+.svc ul{list-style:none;margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+.svc li{background:var(--sand);color:var(--teal-d);font-weight:600;font-size:14px;padding:6px 12px;border-radius:99px}
+.svc .pill{position:absolute;top:-11px;right:18px;background:var(--peach);color:var(--teal-d);font-weight:800;font-size:11px;letter-spacing:2px;padding:5px 11px;border-radius:99px}
+
+/* como cuido */
+.care{display:grid;gap:12px}
+.care div{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:18px;padding:16px;border:1px solid var(--line)}
+.care svg{width:40px;height:40px;flex:none}
+.care b{display:block;font-size:16px}
+.care span{font-size:15px;color:var(--muted)}
+
+/* sobre */
+.about{background:var(--teal);color:var(--cream);text-align:center;position:relative}
+.about .h2{color:var(--peach)}
+.about p{max-width:34ch;margin:14px auto 0;color:#EAF2EF}
+.quote{font-family:Cormorant,Georgia,serif;font-style:italic;font-size:24px;line-height:1.3;color:var(--peach-l);margin:22px auto 0;max-width:24ch}
+.vals{display:flex;justify-content:center;gap:8px;margin-top:22px;flex-wrap:wrap}
+.vals span{border:1.5px solid var(--peach);color:var(--peach);font-weight:700;font-size:14px;padding:7px 14px;border-radius:99px}
+
+/* dúvidas */
+details{background:#fff;border:1px solid var(--line);border-radius:16px;margin-top:10px}
+summary{list-style:none;cursor:pointer;padding:16px 46px 16px 18px;font-weight:700;position:relative;min-height:56px}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:600;color:var(--teal)}
+details[open] summary:after{content:"–"}
+details p{padding:0 18px 18px;color:#3B524E;font-size:16px}
+
+/* rodapé */
+footer{background:var(--teal-d);color:var(--peach-l);text-align:center;padding:34px 22px 110px;font-size:14px}
+footer .script{font-size:40px;color:var(--peach)}
+footer .links{display:flex;justify-content:center;gap:18px;margin:14px 0;flex-wrap:wrap}
+footer .links a{font-weight:700;text-decoration:none;color:var(--cream)}
+.band{letter-spacing:3px;font-weight:700;font-size:12px;color:var(--peach);margin-top:14px}
+
+/* botão flutuante */
+.fab{transition:opacity .2s,transform .2s;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:60px;height:60px;border-radius:50%;background:var(--wa);display:grid;place-items:center;box-shadow:0 10px 26px rgba(0,0,0,.3);z-index:9}
+.fab svg{width:32px;height:32px}
+.fab.off{opacity:0;transform:scale(.6);pointer-events:none}
+@media (min-width:560px){body{padding:0}.wrap{margin:0 auto}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero" id="topo">
+  <svg class="logo" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="100" fill="#F5C59D"/><g fill="none" stroke="#2C5A50" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M80 134C76 104 86 76 100 54C114 76 124 104 120 134"/><path d="M82 128C70 116 64 98 66 78C76 84 84 92 88 102"/><path d="M118 128C130 116 136 98 134 78C124 84 116 92 112 102"/><path d="M80 132C60 128 46 116 38 98C54 98 68 104 78 114"/><path d="M120 132C140 128 154 116 162 98C146 98 132 104 122 114"/><path d="M82 138C62 142 46 138 34 126C48 120 64 122 76 128"/><path d="M118 138C138 142 154 138 166 126C152 120 136 122 124 128"/><path d="M84 146C70 150 56 148 46 140"/><path d="M116 146C130 150 144 148 154 140"/><circle cx="100" cy="88" r="5.5"/><path d="M91 127C90 112 94 101 100 98C106 101 110 112 109 127"/><path d="M100 133C93 125 79 126 80 134C81 142 94 140 100 133C106 126 120 126 120 134C121 142 107 141 100 133Z"/></g></svg>
+  <h1 class="script">Amanda Rocha</h1>
+  <div class="role">Auriculoterapia · Estética</div>
+  <p class="tag">Um tempo só seu, com cuidado de verdade.</p>
+  <div class="btns">
+    <a class="btn btn-main" href="#agendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agendar meu horário</a>
+    <a class="btn btn-ghost js-wa" href="https://wa.me/5511948907302"><svg viewBox="0 0 32 32"><path fill="#25D366" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#fff" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg>Conversar no WhatsApp</a>
+    <a class="btn btn-ghost" href="https://instagram.com/amandarochaat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>@amandarochaat</a>
+  </div>
+  <a class="novo" href="#agendar"><span class="pill">NOVIDADE</span><span><b>Limpeza de pele</b> no salão a partir de <b>14/11</b>. Vagas limitadas.</span></a>
+</header>
+
+<main>
+<section id="agendar">
+  <h2 class="h2 script">Agende seu horário</h2>
+  <p class="sub">Escolha abaixo e envie pelo WhatsApp. É rapidinho.</p>
+
+  <div class="step">
+    <div class="step-t"><span class="n">1</span>O que você quer fazer?</div>
+    <div class="opts" id="o-servico"></div>
+  </div>
+  <div class="step">
+    <div class="step-t"><span class="n">2</span>Qual dia?</div>
+    <div class="opts cols" id="o-dia"></div>
+  </div>
+  <div class="step">
+    <div class="step-t"><span class="n">3</span>Qual horário?</div>
+    <div class="opts cols" id="o-hora"><p class="empty">Escolha um dia primeiro.</p></div>
+  </div>
+  <div class="step">
+    <label class="step-t" for="nome"><span class="n">4</span>Seu nome</label>
+    <input type="text" id="nome" autocomplete="given-name" placeholder="Como você se chama?" maxlength="60">
+  </div>
+
+  <div class="resumo" id="resumo" aria-live="polite"></div>
+  <button class="btn go" id="go" disabled><svg viewBox="0 0 32 32"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#1FAF5A" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg>Confirmar pelo WhatsApp</button>
+  <p class="hint">O WhatsApp abre com a mensagem pronta. A Amanda confirma seu horário por lá.<br>Não achou um horário bom? <a class="js-wa" href="https://wa.me/5511948907302">Fale comigo</a>.</p>
+</section>
+
+<section class="alt" id="servicos">
+  <h2 class="h2 script">Serviços</h2>
+  <p class="sub">Cuidado para o corpo, a pele e a mente.</p>
+  <div class="svc">
+    <h3><svg viewBox="0 0 40 40" fill="none" stroke="#0B5F59" stroke-width="2.2" stroke-linecap="round"><path d="M14 30c-3-3-5-7-5-12a11 11 0 0 1 22 0c0 5-4 7-6 10s-2 6-6 6c-2 0-4-1-5-4z"/><path d="M15 18a5 5 0 0 1 10 0c0 3-3 4-3 6"/><circle cx="26" cy="13" r="1.6" fill="#F5C59D" stroke="none"/><circle cx="19" cy="24" r="1.6" fill="#F5C59D" stroke="none"/><circle cx="14" cy="15" r="1.6" fill="#F5C59D" stroke="none"/></svg>Auriculoterapia</h3>
+    <p>Técnica da medicina chinesa que estimula pontos da orelha. Cada ponto está ligado a uma parte do corpo. Assim, ajudamos o corpo a se equilibrar e relaxar.</p>
+    <ul><li>Ansiedade</li><li>Sono</li><li>Humor</li><li>Estresse</li></ul>
+  </div>
+  <div class="svc">
+    <span class="pill">NOVIDADE</span>
+    <h3><svg viewBox="0 0 40 40" fill="none" stroke="#0B5F59" stroke-width="2.2" stroke-linecap="round"><path d="M20 5c-7 0-12 6-12 14 0 9 6 16 12 16s12-7 12-16c0-8-5-14-12-14z"/><path d="M15 19h.01M25 19h.01M16 27c2 1.5 6 1.5 8 0"/><path d="M33 7l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" fill="#F5C59D" stroke="none"/></svg>Limpeza de pele</h3>
+    <p>Remove impurezas, cravos e células mortas. A pele fica mais limpa, leve e com viço. Um momento de relaxamento só seu.</p>
+    <ul><li>Cravos</li><li>Oleosidade</li><li>Pele renovada</li></ul>
+  </div>
+</section>
+
+<section id="cuidado">
+  <h2 class="h2 script">Como cuido de você</h2>
+  <p class="sub">Do jeito que eu gostaria de ser atendida.</p>
+  <div class="care">
+    <div><svg viewBox="0 0 40 40" fill="none" stroke="#0B5F59" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h18a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-9l-7 6v-6H8a4 4 0 0 1-4-4v-8a4 4 0 0 1 4-4z"/><path d="M12 18h.01M17 18h.01M22 18h.01"/></svg><p><b>Você escolhe</b><span>Quer conversar? Ótimo. Prefere relaxar em silêncio? Também respeito.</span></p></div>
+    <div><svg viewBox="0 0 40 40" fill="none" stroke="#0B5F59" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="20" r="14"/><path d="M20 13v8M20 26h.01"/></svg><p><b>Sem sustos</b><span>Explico cada passo antes de fazer. Você sabe tudo o que está acontecendo.</span></p></div>
+    <div><svg viewBox="0 0 40 40" fill="none" stroke="#0B5F59" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 34s-12-7-12-16a7 7 0 0 1 12-5 7 7 0 0 1 12 5c0 9-12 16-12 16z"/></svg><p><b>Mesmo carinho para todas</b><span>De chinelo ou de salto, você é recebida do mesmo jeito.</span></p></div>
+    <div><svg viewBox="0 0 40 40" fill="none" stroke="#0B5F59" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h12M16 4v8l-6 18a3 3 0 0 0 3 4h14a3 3 0 0 0 3-4l-6-18V4"/><path d="M12 24h16"/></svg><p><b>Olhar de enfermeira</b><span>Higiene, segurança e responsabilidade em cada atendimento.</span></p></div>
+  </div>
+</section>
+
+<section class="about" id="sobre">
+  <h2 class="h2 script">Sobre mim</h2>
+  <p>Oi, eu sou a Amanda. Sou enfermeira e trabalho com saúde mental.</p>
+  <p>Conheci a auriculoterapia num momento de muita ansiedade. Naquele mesmo dia, consegui dormir bem. Foi aí que decidi aprender e levar esse cuidado para outras mulheres.</p>
+  <p>Hoje uno a enfermagem com a beleza e o bem-estar, para você sair daqui melhor por dentro e por fora.</p>
+  <p class="quote">“Cuidar também é dar um tempo para você se sentir bem.”</p>
+  <div class="vals"><span>Afeto</span><span>Organização</span><span>Vínculo</span></div>
+</section>
+
+<section class="alt" id="duvidas">
+  <h2 class="h2 script">Dúvidas</h2>
+  <p class="sub">As perguntas que mais recebo.</p>
+  <details><summary>A auriculoterapia dói?</summary><p>Não costuma doer. Você pode sentir uma leve pressão nos pontos. Eu explico tudo antes e vou perguntando como você está.</p></details>
+  <details><summary>Como ela funciona?</summary><p>A orelha tem pontos ligados ao corpo todo. Estimulando esses pontos, ajudamos o corpo a se equilibrar. É a mesma ideia da acupuntura, só que na orelha.</p></details>
+  <details><summary>Quando vou sentir diferença?</summary><p>Cada pessoa é de um jeito. Muitas clientes sentem diferença no sono e na ansiedade nas primeiras semanas. O melhor resultado vem com constância. A auriculoterapia complementa, mas não substitui, o acompanhamento médico.</p></details>
+  <details><summary>Quanto tempo dura o atendimento?</summary><p>Mais ou menos 1 hora. Na primeira vez a gente conversa um pouco mais para eu te conhecer.</p></details>
+  <details><summary>Como faço para agendar?</summary><p>Escolha o serviço, o dia e o horário lá em cima e toque em “Confirmar pelo WhatsApp”. Se preferir, é só me chamar no (11) 94890-7302.</p></details>
+</section>
+</main>
+
+<footer>
+  <div class="script">Amanda Rocha</div>
+  <div class="links"><a class="js-wa" href="https://wa.me/5511948907302">WhatsApp (11) 94890-7302</a><a href="https://instagram.com/amandarochaat">Instagram</a></div>
+  <div class="band">EQUILÍBRIO • BEM-ESTAR • SAÚDE</div>
+</footer>
+</div>
+
+<a class="fab off js-wa" href="https://wa.me/5511948907302" aria-label="Falar no WhatsApp"><svg viewBox="0 0 32 32"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#1FAF5A" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg></a>
+
+<script src="agenda.js"></script>
+<script>
+(function(){
+  var A=window.AGENDA, S={servico:null,dia:null,hora:null};
+  var SEM=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  var $=function(id){return document.getElementById(id)};
+  function parse(d){var p=d.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function dd(n){return (n<10?'0':'')+n}
+  function curta(d){var x=parse(d);return dd(x.getDate())+'/'+dd(x.getMonth()+1)}
+  var hoje=new Date();hoje.setHours(0,0,0,0);
+  var dias=A.dias.filter(function(d){return parse(d.data)>=hoje});
+
+  function opt(a,b,pill,on,dis){var el=document.createElement('button');el.type='button';el.className='opt';el.setAttribute('aria-pressed',on?'true':'false');if(dis)el.disabled=true;
+    el.innerHTML=(pill?'<span class="pill">'+pill+'</span>':'')+'<span class="a">'+a+'</span>'+(b?'<span class="b">'+b+'</span>':'');return el}
+
+  function render(){
+    var o=$('o-servico');o.innerHTML='';
+    A.servicos.forEach(function(s){var el=opt(s.nome,s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;render()};o.appendChild(el)});
+
+    o=$('o-dia');o.innerHTML='';
+    if(!dias.length)o.innerHTML='<p class="empty">Novas datas em breve. Me chame no WhatsApp!</p>';
+    dias.forEach(function(d){var x=parse(d.data),livres=d.horarios.filter(function(h){return (A.ocupados[d.data]||[]).indexOf(h)<0});
+      var el=opt(dd(x.getDate())+' '+MES[x.getMonth()],livres.length?SEM[x.getDay()].toLowerCase():'lotado','',S.dia===d.data,!livres.length);
+      el.onclick=function(){S.dia=d.data;S.hora=null;render()};o.appendChild(el)});
+
+    o=$('o-hora');
+    if(S.dia){o.innerHTML='';var d=dias.filter(function(x){return x.data===S.dia})[0],oc=A.ocupados[S.dia]||[];
+      d.horarios.forEach(function(h){var ocupado=oc.indexOf(h)>=0;var el=opt(h,'','',S.hora===h,ocupado);el.onclick=function(){S.hora=h;render()};o.appendChild(el)})}
+
+    var ok=S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1;
+    $('go').disabled=!ok;
+    var r=$('resumo');
+    if(S.servico&&S.dia&&S.hora){var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
+      r.innerHTML='<b>'+sv.nome+'</b><br>'+SEM[x.getDay()]+', '+curta(S.dia)+' às '+S.hora;r.className='resumo on'}
+    else r.className='resumo';
+  }
+  $('nome').oninput=render;
+  $('go').onclick=function(){
+    var sv=A.servicos.filter(function(s){return s.id===S.servico})[0],x=parse(S.dia);
+    var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+SEM[x.getDay()]+', '+curta(S.dia)+' às '+S.hora+'\n\nMeu nome é '+$('nome').value.trim()+'.';
+    location.href='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
+  };
+  var hi=encodeURIComponent('Olá Amanda! Vim pelo site e queria tirar uma dúvida.');
+  [].forEach.call(document.querySelectorAll('.js-wa'),function(a){a.href='https://wa.me/'+A.whatsapp+'?text='+hi});
+  render();
+  // botão flutuante só aparece fora do topo e da agenda (para não cobrir botões)
+  var fab=document.querySelector('.fab'),vis={};
+  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){vis[e.target.id]=e.isIntersecting});fab.classList.toggle('off',!!(vis.topo||vis.agendar))},{rootMargin:'0px 0px -35% 0px'});
+    io.observe(document.getElementById('topo'));io.observe(document.getElementById('agendar'))}else fab.classList.remove('off');
+})();
+</script>
+</body>
+</html>
