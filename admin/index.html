@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Agenda">
 <style>
 @font-face{font-family:'Great Vibes';src:url(../fonts/greatvibes-sub.woff2) format('woff2');font-display:swap}
+@font-face{font-family:'Cormorant';src:url(../fonts/cormorant-sub.woff2) format('woff2');font-weight:500 600;font-display:swap}
 @font-face{font-family:'Montserrat';src:url(../fonts/montserrat-sub.woff2) format('woff2');font-weight:400 800;font-display:swap}
 /* Painel de uso diário, no celular: uma coluna, ações grandes, cores de estado (livre, pedido, confirmado). */
 :root{--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;
@@ -88,6 +89,8 @@ input:focus,select:focus{border-color:var(--teal)}
 .toast .acoes{display:flex;gap:10px}
 .toast .acoes>*{flex:1;min-height:44px}
 .toast .fechar{background:rgba(255,255,255,.15);border:0;color:inherit;border-radius:12px;font-weight:700;padding:0 14px;flex:0 0 auto}
+.credito{font-family:Cormorant,Georgia,'Times New Roman',serif;font-weight:600;font-size:12px;letter-spacing:3px;text-transform:uppercase;text-align:center;opacity:.7;color:var(--muted);padding:0 16px calc(110px + env(safe-area-inset-bottom));margin-top:-80px}
+.credito:before{content:"";display:block;width:36px;height:1px;background:currentColor;opacity:.5;margin:0 auto 10px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -142,6 +145,8 @@ input:focus,select:focus{border-color:var(--teal)}
     <div id="agenda"></div>
   </div>
 </section>
+
+<footer class="credito">Desenvolvido por Kevin Laet</footer>
 
 <div class="veu" id="veu" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" hidden></div>

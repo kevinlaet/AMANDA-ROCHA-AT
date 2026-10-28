@@ -68,7 +68,7 @@ const ANDROID = devices['Galaxy S9+'], IPHONE = devices['iPhone 13'];
   await p.goto(BASE);
   await p.waitForSelector('#o-dia .opt');
   ok(await p.locator('#stTel').isHidden(), 'sem Supabase: não pede telefone');
-  ok((await p.locator('#goTxt').innerText()) === 'Enviar pelo WhatsApp', 'sem Supabase: botão diz "Enviar pelo WhatsApp"');
+  ok((await p.locator('#goTxt').innerText()) === 'Confirmar pelo WhatsApp' && /toque no botão abaixo/.test(await p.locator('#hint').innerText()), 'sem Supabase: instrução acima do botão "Confirmar pelo WhatsApp"');
   await p.click('#o-servico .opt >> nth=0'); await p.click('#o-dia .opt >> nth=0'); await p.click('#o-hora .opt >> nth=1'); await p.fill('#nome', 'Maria');
   await Promise.all([p.waitForURL(/wa\.me/), p.click('#go')]);
   ok(/Auriculoterapia/.test(decodeURIComponent(p.url())) && /Meu nome é Maria/.test(decodeURIComponent(p.url())), 'sem Supabase: abre o WhatsApp com a mensagem pronta');
@@ -99,7 +99,7 @@ await A.fill('#tel', '11912345678');
 await A.locator('#tel').blur();
 ok((await A.inputValue('#tel')) === '(11) 91234-5678', 'telefone é formatado: (11) 91234-5678');
 ok(!(await A.locator('#go').isDisabled()), 'com telefone válido, o botão libera');
-ok((await A.locator('#goTxt').innerText()) === 'Reservar meu horário', 'com Supabase: botão diz "Reservar meu horário"');
+ok((await A.locator('#goTxt').innerText()) === 'Confirmar pelo WhatsApp' && /garantir o horário/.test(await A.locator('#hint').innerText()), 'com Supabase: instrução e botão "Confirmar pelo WhatsApp"');
 if (CAPTURAS) await A.locator('#agendar').screenshot({ path: path.join(CAPTURAS, 'site-agenda-preenchida.png') });
 
 // outra cliente pega o mesmo horário antes
