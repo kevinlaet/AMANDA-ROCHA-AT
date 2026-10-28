@@ -51,7 +51,7 @@ const navegador = await chromium.launch();
 const erros = [];
 const agendaJs = fs.readFileSync(path.join(RAIZ, 'agenda.js'), 'utf8').replace(/desde: "\d{4}-\d\d-\d\d"/, `desde: "${D5}"`);
 async function contexto(dispositivo, { ligado = true } = {}) {
-  const c = await navegador.newContext({ ...dispositivo });
+  const c = await navegador.newContext({ ...dispositivo, reducedMotion: 'reduce' });
   await c.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: ligado ? `window.SUPABASE={url:${JSON.stringify(SUPABASE_URL)},anonKey:${JSON.stringify(ANON_KEY)}};` : 'window.SUPABASE={url:"",anonKey:""};' }));
   await c.route('**/agenda.js', (r) => r.fulfill({ contentType: 'text/javascript', body: agendaJs }));
   await c.route(SUPABASE_URL + '/**', api.tratar);
