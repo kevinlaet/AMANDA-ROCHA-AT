@@ -507,6 +507,49 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await P2.click(`[data-acao=serv-editar][data-serv="${idMass}"]`);
   await P2.click('[data-acao=serv-remover-perg]'); await P2.click('[data-acao=serv-remover]');
   ok(await espera(async () => (await q(`select count(*)::int n from servicos where id = $1`, [idMass]))[0].n === 0), 'serviços: remover');
+
+  // preço, preço antes (riscado), observação, texto do site e 3 benefícios
+  await P2.waitForSelector('[data-acao=serv-editar][data-serv="limpeza"]');
+  await P2.click('[data-acao=serv-editar][data-serv="limpeza"]');
+  ok((await P2.inputValue('#sPreco')) === '75' && (await P2.inputValue('#sPObs')) === 'valor de inauguração' && (await P2.inputValue('#sBen0')) === 'Menos cravos', 'serviços: preço, observação e benefícios vêm preenchidos');
+  ok(await P2.locator('#sDesdeBox').isVisible() === true && (await P2.isChecked('#sTemDesde')), 'serviços: com data de estreia, a caixinha "Só a partir de uma data" vem marcada');
+  await P2.fill('#sPreco', 'abc'); await P2.click('[data-acao=serv-salvar]');
+  await P2.waitForFunction(() => /Confira o preço/.test(document.getElementById('toast').innerText));
+  ok(true, 'serviços: preço inválido é recusado com explicação');
+  await P2.fill('#sPreco', '80'); await P2.fill('#sAntes', '70'); await P2.click('[data-acao=serv-salvar]');
+  await P2.waitForFunction(() => /precisa ser maior/.test(document.getElementById('toast').innerText));
+  ok(true, 'serviços: preço "antes" menor que o atual é recusado');
+  await P2.fill('#sAntes', '100'); await P2.fill('#sPObs', 'por sessão');
+  await P2.fill('#sDesc', 'Limpeza profunda com extração e máscara calmante.');
+  await P2.fill('#sBen0', 'Poros limpos'); await P2.fill('#sBen1', 'Pele macia'); await P2.fill('#sBen2', '');
+  await P2.click('[data-acao=serv-salvar]');
+  await P2.waitForFunction(() => /Serviço atualizado/.test(document.getElementById('toast').innerText));
+  const lp = (await q(`select preco, preco_antes, preco_obs, descricao, beneficios from servicos where id = 'limpeza'`))[0];
+  ok(lp.preco == 80 && lp.preco_antes == 100 && lp.preco_obs === 'por sessão' && lp.beneficios.join() === 'Poros limpos,Pele macia' && /extração/.test(lp.descricao), 'serviços: preço, texto e benefícios salvos no banco (benefício vazio é ignorado)');
+  ok(await espera(async () => { const t = await P2.locator('#servicos .serv', { hasText: 'Limpeza de pele' }).innerText(); return /R\$ 100/.test(t) && /✓ Poros limpos/.test(t); }), 'serviços: a lista mostra preço e benefícios');
+  // o site mostra na hora
+  const site2 = await (await contexto(ANDROID)).newPage();
+  await site2.goto(BASE); await site2.waitForSelector('#svcs .svc');
+  const card = site2.locator('#svcs .svc', { hasText: 'Limpeza de pele' });
+  ok(/R\$ 80/.test(await card.innerText()) && (await card.locator('.preco-svc s').innerText()) === 'R$ 100' && /extração/.test(await card.innerText()) && (await card.locator('li').allInnerTexts()).join() === 'Poros limpos,Pele macia', 'site: o cartão da limpeza mostra o preço riscado, o texto e os benefícios do painel');
+  ok(/Dores, ansiedade e sono|Alívio de dores/.test(await site2.locator('#svcs .svc', { hasText: 'Auriculoterapia' }).innerText()), 'site: o cartão da auriculoterapia fala de dores');
+  ok(/Limpeza de pele.*R\$ 80, por sessão/.test(await site2.locator('#novo').innerText()), 'site: a faixa de novidade usa o preço do painel (' + (await site2.locator('#novo').innerText()).replace(/\s+/g, ' ') + ')');
+  await card.locator('a.ir').click();
+  ok((await site2.locator('#o-servico .opt[aria-pressed=true]').innerText()).includes('Limpeza de pele') && /R\$ 80/.test(await site2.locator('#o-servico .opt[aria-pressed=true]').innerText()), 'site: "Agendar limpeza de pele" já escolhe o serviço, com o preço');
+  ok(/Seu nome e WhatsApp ficam só com a Amanda/.test(await site2.locator('#agendar').innerText()), 'site: aviso de privacidade junto do agendamento');
+  // a data de estreia some ao desmarcar a caixinha
+  await P2.click('[data-acao=serv-editar][data-serv="limpeza"]');
+  await P2.uncheck('#sTemDesde');
+  ok(await P2.locator('#sDesdeBox').isHidden(), 'serviços: desmarcar "Só a partir de uma data" esconde a data');
+  await P2.click('[data-acao=serv-salvar]');
+  ok(await espera(async () => (await q(`select desde from servicos where id = 'limpeza'`))[0].desde === null), 'serviços: e o serviço passa a poder ser marcado desde já');
+  await P2.click('[data-acao=serv-editar][data-serv="limpeza"]');
+  await P2.check('#sTemDesde'); await P2.click('[data-acao=serv-salvar]');
+  await P2.waitForFunction(() => /Escolha a partir de qual dia/.test(document.getElementById('toast').innerText));
+  ok(true, 'serviços: marcar a caixinha sem escolher a data pede a data');
+  await P2.fill('#sDesde', D5); await P2.click('[data-acao=serv-salvar]');
+  ok(await espera(async () => (await q(`select desde::text d from servicos where id = 'limpeza'`))[0].d === D5), 'serviços: data de estreia salva de novo');
+  await db.exec(`update servicos set preco = 75, preco_antes = null, preco_obs = 'valor de inauguração' where id = 'limpeza'`);
   await foto(P2, 'painel-autonomia');
   // a assinatura fica acima da barra de abas, sem nada por cima (fechando o aviso passageiro)
   if (await P2.locator('#toast').isVisible()) await P2.click('#toast [data-fechar]');

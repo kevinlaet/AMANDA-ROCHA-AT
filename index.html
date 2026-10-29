@@ -161,6 +161,8 @@ input[type=text]:focus,input[type=tel]:focus{border-color:var(--teal);box-shadow
 .resumo.ok:before{background:#1B8A4B;opacity:.7}
 .resumo a{color:var(--teal);font-weight:800}
 .instrucao{margin-top:18px;text-align:center;font-weight:600;font-size:15px;color:var(--teal-d)}
+.priv{margin-top:10px;text-align:center;font-size:12.5px;line-height:1.4;color:var(--muted)}
+.preco-svc s{font-weight:600;font-size:15px;opacity:.55;margin-right:6px}
 .go{width:100%;margin-top:12px;min-height:60px;font-size:17px;background:linear-gradient(180deg,#2BC56C,var(--wa));color:#fff;box-shadow:0 12px 30px rgba(31,175,90,.32),inset 0 1px 0 rgba(255,255,255,.3)}
 .go:disabled{background:#B9C7C3;color:#fff;box-shadow:none;cursor:not-allowed}
 .go:disabled svg{opacity:.6}
@@ -238,6 +240,7 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
 /* entrada suave ao rolar (só com JavaScript e sem "reduzir movimento") */
 .js .rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease-out,transform .6s ease-out}
 .js .rv.in{opacity:1;transform:none}
+[hidden]{display:none!important}
 @keyframes pulso{70%{box-shadow:0 0 0 9px rgba(123,224,204,0)}100%{box-shadow:0 0 0 0 rgba(123,224,204,0)}}
 @keyframes gira{to{transform:rotate(360deg)}}
 @keyframes corre{to{transform:translateX(-50%)}}
@@ -282,7 +285,7 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
         <a class="btn btn-glass" href="https://instagram.com/amandarochaat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Instagram</a>
       </div>
     </div>
-    <a class="novo" href="#agendar"><span class="pill">NOVIDADE</span><span><b>Limpeza de pele</b> a partir de <b>14/11</b> por <b>R$ 75</b>, valor de inauguração.</span><span class="seta" aria-hidden="true">→</span></a>
+    <a class="novo" id="novo" href="#agendar"><span class="pill">NOVIDADE</span><span><b>Limpeza de pele</b> a partir de <b>14/11</b> por <b>R$ 75</b>, valor de inauguração.</span><span class="seta" aria-hidden="true">→</span></a>
     <div class="chips"><span>Enfermeira</span><span>Saúde mental</span><span>Atendimento individual</span></div>
   </div>
 </header>
@@ -327,6 +330,7 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
       <div class="resumo" id="resumo" aria-live="polite"></div>
       <p class="instrucao" id="hint">Para confirmar o horário, toque no botão abaixo e envie a mensagem de confirmação pelo WhatsApp.</p>
       <button class="btn go" id="go" type="button" disabled><svg viewBox="0 0 32 32"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#1FAF5A" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg><span id="goTxt">Confirmar pelo WhatsApp</span></button>
+      <p class="priv">Seu nome e WhatsApp ficam só com a Amanda e são usados apenas para o agendamento.</p>
     </div>
     <p class="hint">Não achou um horário bom? <a class="js-wa" href="https://wa.me/5511948907302">Fale comigo</a>.</p>
   </div>
@@ -337,7 +341,7 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
     <div class="eyebrow rv">Serviços</div>
     <h2 class="script rv">Cuidado completo</h2>
     <p class="sub rv">Para o corpo, a pele e a mente.</p>
-    <div class="svcs">
+    <div class="svcs" id="svcs">
       <article class="svc rv">
         <div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 30c-3-3-5-7-5-12a11 11 0 0 1 22 0c0 5-4 7-6 10s-2 6-6 6c-2 0-4-1-5-4z"/><path d="M15 18a5 5 0 0 1 10 0c0 3-3 4-3 6"/></svg></div>
         <h3>Auriculoterapia</h3>

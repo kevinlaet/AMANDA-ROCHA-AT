@@ -177,6 +177,9 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok((await velho.como('anon', null, async () => (await velho.db.query('select * from public.servicos_publicos()')).rows)).length === 2, `depois da atualização, o site recebe os serviços (${rotulo})`);
   ok((await velho.como('anon', null, async () => (await velho.db.query('select public.guardiao_publico() g')).rows[0].g)).versao >= 3, `depois da atualização, o guardião está ativo (${rotulo})`);
   ok((await velho.db.query(`select duracao from servicos order by id`)).rows.map((r) => r.duracao).join() === '60,90', `depois da atualização, os serviços ganham duração: auriculoterapia 1h e limpeza 1h30 (${rotulo})`);
+  const pv = (await velho.como('anon', null, async () => (await velho.db.query(`select * from public.servicos_publicos() order by id`)).rows));
+  ok(pv[1].preco == 75 && pv[1].preco_obs === 'valor de inauguração' && pv[1].beneficios.length === 3 && pv[0].beneficios[0] === 'Alívio de dores' && /aliviar dores/.test(pv[0].descricao), `depois da atualização, os serviços ganham preço, texto e 3 benefícios (${rotulo})`);
+  ok(pv[1].detalhe === 'Pele limpa, renovada e com viço', `a descrição curta da limpeza deixa de repetir o preço (${rotulo})`);
 }
 
 // 9. Guardião do banco
@@ -309,10 +312,10 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   const env = await q(`select body from net.enviados order by id`);
   const corpos = env.map((e) => e.body), topico = (await q('select ntfy_topico t from guardiao'))[0].t;
   ok(/^amanda-[0-9a-f]{20}$/.test(topico) && corpos.length && corpos.every((b) => b.topic === topico), 'notificações vão só para o canal secreto da Amanda');
-  ok(corpos.some((b) => b.title === 'Novo pedido de horário' && /^(domingo|segunda|terça|quarta|quinta|sexta|sábado), \d\d\/\d\d às \d+h/.test(b.message)), 'pedido novo vira notificação com dia e hora');
+  ok(corpos.some((b) => b.title === 'Novo pedido de horário' && /^Bruna pediu (domingo|segunda|terça|quarta|quinta|sexta|sábado), \d\d\/\d\d às \d+h · Auriculoterapia/.test(b.message)), 'pedido novo vira notificação com o primeiro nome, o dia, a hora e o serviço');
   ok(corpos.some((b) => b.title === 'Proteção ligada automaticamente' && b.priority === 5), 'proteção automática vira notificação urgente');
   ok(corpos.some((b) => b.title === 'Novo acesso ao painel'), 'acesso novo ao painel vira notificação');
-  ok(!corpos.some((b) => /Helena|Bruna|Enxurrada|119\d{8}/.test(JSON.stringify(b))), 'nenhuma notificação leva nome ou telefone de cliente');
+  ok(!corpos.some((b) => /Alves|Prado|119\d{8}|1196\d{7}/.test(JSON.stringify(b))), 'nenhuma notificação leva telefone nem sobrenome de cliente');
   ok((await como('authenticated', EMAIL_ADMIN, () => q('select public.testar_notificacao() r')))[0].r === true, 'botão de teste da Amanda envia uma notificação');
   ok((await como('authenticated', 'outra@pessoa.com', () => q('select public.testar_notificacao() r')))[0].r === false && !!(await como('anon', null, () => tenta(q(`select public.notificar('x', 'y', 5, 'z')`)))).erro, 'ninguém mais consegue mandar notificação para ela');
   // duração dos procedimentos: a cliente nunca marca colado em outro atendimento
@@ -343,6 +346,18 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok((await q(`select detalhe from servicos where id = 'auriculo'`))[0].detalhe === 'Dores, ansiedade e sono', 'auriculoterapia aparece com "Dores, ansiedade e sono"');
   await db.exec(`update servicos set duracao = 90 where id = 'limpeza'`);
 
+  // personalização dos serviços pelo painel
+  await como('authenticated', EMAIL_ADMIN, () => q(`update servicos set preco = 90, preco_antes = 120, preco_obs = 'por sessão', beneficios = array['Um', 'Dois', 'Três'] where id = 'auriculo'`));
+  const au = (await como('anon', null, () => q(`select * from public.servicos_publicos() where id = 'auriculo'`)))[0];
+  ok(au.preco == 90 && au.preco_antes == 120 && au.preco_obs === 'por sessão' && au.beneficios.join() === 'Um,Dois,Três', 'a Amanda muda preço, preço antes da promoção, observação e benefícios, e o site recebe');
+  ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`update servicos set beneficios = array['1', '2', '3', '4'] where id = 'auriculo'`)))).erro, 'no máximo 3 benefícios');
+  ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`update servicos set beneficios = array[repeat('x', 41)] where id = 'auriculo'`)))).erro, 'benefício com mais de 40 letras é recusado');
+  ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`update servicos set preco = -1 where id = 'auriculo'`)))).erro, 'preço negativo é recusado');
+  await db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8'));
+  ok((await q(`select preco from servicos where id = 'auriculo'`))[0].preco == 90, 'rodar a atualização de novo mantém os preços e textos da Amanda');
+  ok(!!(await como('authenticated', 'outra@pessoa.com', () => tenta(q(`update servicos set preco = 1 where id = 'auriculo' returning id`)))).linhas?.length === false || (await q(`select preco from servicos where id = 'auriculo'`))[0].preco == 90, 'outra conta não muda preço');
+  await db.exec(`update servicos set preco = null, preco_antes = null, preco_obs = null where id = 'auriculo'`);
+
   // resumo das 6h
   const job = (await q(`select schedule, command from cron.job where jobname = 'amanda-resumo-do-dia'`))[0];
   ok(job && job.schedule === '0 9 * * *' && /resumo_do_dia/.test(job.command), 'resumo agendado todo dia às 9h UTC (6h em Brasília)');
@@ -358,8 +373,9 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   await db.exec(`alter table horarios enable trigger trg_horario_passado`);
   ok((await q('select public.resumo_do_dia() r'))[0].r === 'enviado', 'dia com agendamentos: o resumo é enviado');
   const res = (await q('select body from net.enviados order by id desc limit 1'))[0].body;
-  ok(res.title === 'Bom dia! Sua agenda de hoje' && res.message === 'Você tem 3 agendamentos para hoje: 13h, 15h30 e 17h. 1 ainda espera a sua confirmação.', 'resumo: ' + res.message);
-  ok(!/Hoje Um|1192/.test(JSON.stringify(res)), 'o resumo não leva nome nem telefone');
+  const esperado = 'Você tem 3 agendamentos para hoje:\n• 13h Hoje · Auriculoterapia\n• 15h30 Hoje · Auriculoterapia\n• 17h Hoje · Auriculoterapia (falta confirmar)';
+  ok(res.title === 'Bom dia! Sua agenda de hoje' && res.message === esperado, 'resumo com hora, primeiro nome e procedimento de cada cliente: ' + res.message.replace(/\n/g, ' / '));
+  ok(!/ Um|Dois|Tres|1192/.test(JSON.stringify(res)), 'o resumo leva só o primeiro nome, nunca o sobrenome nem o telefone');
   ok((await como('authenticated', EMAIL_ADMIN, () => q('select public.enviar_resumo_agora() r')))[0].r === 'enviado' && (await como('authenticated', 'outra@pessoa.com', () => q('select public.enviar_resumo_agora() r')))[0].r === 'sem_acesso', 'a Amanda pode pedir o resumo na hora; outra conta não');
   ok(!!(await como('anon', null, () => tenta(q('select public.resumo_do_dia()')))).erro, 'visitante não dispara o resumo');
   ok((await como('authenticated', EMAIL_ADMIN, () => q('select public.situacao_guardiao() s')))[0].s.resumo === true, 'o painel sabe que o resumo das 6h está ligado');

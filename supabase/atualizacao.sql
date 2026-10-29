@@ -54,16 +54,56 @@ begin
   end if;
 end $$;
 
+-- Personalização de cada serviço no site: preço, preço antes da promoção (aparece riscado),
+-- observação do preço, texto do serviço e até 3 benefícios principais.
+create or replace function public.beneficios_ok(p text[])
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select p is null
+      or (coalesce(array_length(p, 1), 0) <= 3
+          and not exists (select 1 from unnest(p) b where b is null or length(b) > 40))
+$$;
+
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'servicos' and column_name = 'preco') then
+    alter table public.servicos
+      add column preco numeric(8,2) check (preco >= 0 and preco < 100000),
+      add column preco_antes numeric(8,2) check (preco_antes >= 0 and preco_antes < 100000),
+      add column preco_obs text check (length(preco_obs) <= 40),
+      add column descricao text check (length(descricao) <= 500),
+      add column beneficios text[] check (public.beneficios_ok(beneficios));
+    -- textos iniciais (os mesmos do site); a Amanda muda tudo no painel
+    update public.servicos set
+      descricao = 'Técnica da medicina chinesa que estimula pontos da orelha. Cada ponto está ligado a uma parte do corpo. Assim, ajudamos o corpo a se equilibrar, relaxar e aliviar dores.',
+      beneficios = array['Alívio de dores', 'Menos ansiedade', 'Sono mais tranquilo']
+     where id = 'auriculo';
+    update public.servicos set
+      preco = 75,
+      preco_obs = 'valor de inauguração',
+      detalhe = case when detalhe = 'R$ 75 na inauguração' then 'Pele limpa, renovada e com viço' else detalhe end,
+      descricao = 'Remove impurezas, cravos e células mortas. A pele fica mais limpa, leve e com viço. Um momento de relaxamento só seu.',
+      beneficios = array['Menos cravos', 'Controle da oleosidade', 'Pele renovada']
+     where id = 'limpeza';
+  end if;
+end $$;
+
 -- O site vê só os serviços visíveis.
 drop function if exists public.servicos_publicos();
 create or replace function public.servicos_publicos()
-returns table (id text, nome text, detalhe text, novidade boolean, desde date, duracao integer)
+returns table (id text, nome text, detalhe text, novidade boolean, desde date, duracao integer,
+               preco numeric, preco_antes numeric, preco_obs text, descricao text, beneficios text[])
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select s.id, s.nome, s.detalhe, s.novidade, s.desde, s.duracao
+  select s.id, s.nome, s.detalhe, s.novidade, s.desde, s.duracao,
+         s.preco, s.preco_antes, s.preco_obs, s.descricao, s.beneficios
     from public.servicos s
    where s.ativo
    order by s.ordem, s.nome
@@ -484,7 +524,7 @@ begin
     perform public.vigia();
     -- avisa a Amanda no celular (sem o nome da cliente)
     perform public.notificar('Novo pedido de horário',
-      public.quando_texto(v_data, v_hora) || ' · ' || v_serv || '. Abra o painel para confirmar.', 4, 'calendar');
+      split_part(v_nome, ' ', 1) || ' pediu ' || public.quando_texto(v_data, v_hora) || ' · ' || v_serv || '. Abra o painel para confirmar.', 4, 'calendar');
     return 'ok';
   end if;
   if not exists (select 1 from public.horarios h where h.id = p_id) then
@@ -766,7 +806,7 @@ as $$
          || ', ' || to_char(p_data, 'DD/MM') || ' às ' || public.hora_texto(p_hora)
 $$;
 
--- Bom dia: "Você tem 4 agendamentos para hoje: 13h, 14h, 15h30 e 17h."
+-- Bom dia: "Você tem 2 agendamentos para hoje:" e uma linha por cliente ("• 13h Maria · Auriculoterapia").
 -- Só manda se houver agendamento no dia. Resposta: 'enviado' | 'vazio' | 'falhou'
 create or replace function public.resumo_do_dia()
 returns text
@@ -776,25 +816,23 @@ set search_path = ''
 as $$
 declare
   v_hoje date := public.agora_sp()::date;
-  n_conf integer;
-  n_ped integer;
-  v_horas text;
+  v_lista text;
   n integer;
 begin
-  select count(*) filter (where h.status = 'confirmado'), count(*) filter (where h.status = 'pedido'),
-         string_agg(public.hora_texto(h.hora), ', ' order by h.hora)
-    into n_conf, n_ped, v_horas
+  select count(*),
+         string_agg('• ' || public.hora_texto(h.hora) || ' '
+                    || case when h.nome = 'Marcado por fora' then 'marcado por fora' else split_part(btrim(h.nome), ' ', 1) end
+                    || case when h.servico is null or h.servico in ('Combinado por fora', 'Manual') then '' else ' · ' || h.servico end
+                    || case when h.status = 'pedido' then ' (falta confirmar)' else '' end,
+                    chr(10) order by h.hora)
+    into n, v_lista
     from public.horarios h
    where h.data = v_hoje and h.status in ('confirmado', 'pedido');
-  n := coalesce(n_conf, 0) + coalesce(n_ped, 0);
-  if n = 0 then
+  if coalesce(n, 0) = 0 then
     return 'vazio';
   end if;
-  v_horas := regexp_replace(v_horas, ', ([^,]*)$', ' e \1');
   if public.notificar('Bom dia! Sua agenda de hoje',
-       'Você tem ' || n || case when n = 1 then ' agendamento' else ' agendamentos' end || ' para hoje: ' || v_horas || '.'
-       || case when n_ped = 1 then ' 1 ainda espera a sua confirmação.'
-               when n_ped > 1 then ' ' || n_ped || ' ainda esperam a sua confirmação.' else '' end,
+       'Você tem ' || n || case when n = 1 then ' agendamento' else ' agendamentos' end || ' para hoje:' || chr(10) || v_lista,
        3, 'sunny') then
     return 'enviado';
   end if;
@@ -963,6 +1001,7 @@ revoke all on function public.notificacoes_disponiveis() from public, anon, auth
 revoke all on function public.quando_texto(date, text) from public, anon, authenticated;
 revoke all on function public.testar_notificacao() from public, anon, authenticated;
 revoke all on function public.duracao_de(text) from public, anon, authenticated;
+revoke all on function public.beneficios_ok(text[]) from public, anon, authenticated;
 revoke all on function public.trava_dia() from public, anon, authenticated;
 revoke all on function public.hora_texto(text) from public, anon, authenticated;
 revoke all on function public.resumo_do_dia() from public, anon, authenticated;
@@ -983,4 +1022,6 @@ grant execute on function public.marcar_alertas_vistos() to authenticated;
 grant execute on function public.clientes_resumo() to authenticated;
 grant execute on function public.testar_notificacao() to authenticated;
 grant execute on function public.enviar_resumo_agora() to authenticated;
+-- a regra dos benefícios roda quando a Amanda salva um serviço
+grant execute on function public.beneficios_ok(text[]) to authenticated;
 grant execute on function public.salvar_cliente(text, text) to authenticated;

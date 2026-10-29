@@ -41,7 +41,10 @@
     // serviços: os que a Amanda cadastrou no painel; se o banco ainda não tiver a tabela, ficam os do agenda.js
     var serv=fetch(C.url+'/rest/v1/rpc/servicos_publicos',{method:'POST',headers:cab(),body:'{}'})
       .then(function(r){if(!r.ok)throw 0;return r.json()})
-      .then(function(j){if(Array.isArray(j))A.servicos=j.map(function(x){return {id:x.id,nome:x.nome,detalhe:x.detalhe||'',novidade:!!x.novidade,desde:x.desde||null,duracao:+x.duracao||0}})})
+      .then(function(j){if(Array.isArray(j)){A.servicos=j.map(function(x){return {id:x.id,nome:x.nome,detalhe:x.detalhe||'',novidade:!!x.novidade,desde:x.desde||null,duracao:+x.duracao||0,
+        preco:x.preco==null?null:+x.preco,preco_antes:x.preco_antes==null?null:+x.preco_antes,preco_obs:x.preco_obs||'',descricao:x.descricao||'',beneficios:x.beneficios||[]}});
+        // banco com a personalização (preço, texto e benefícios): os cartões e a faixa de novidade vêm dele
+        if(j.length&&('descricao' in j[0]))vitrine()}})
       .catch(function(){});
     var ag=fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:cab(),body:'{}'})
       .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j||[];falhou=false}).catch(function(){falhou=true});
@@ -56,6 +59,31 @@
     if(S.dia&&(!d||cedoDemais(S.dia))){S.dia=null;S.hora=null}
     var q=slot();if(S.hora&&!cabe(q))S.hora=null;
   }
+
+  // ---------- vitrine: cartões dos serviços e faixa de novidade, do jeito que a Amanda deixou no painel ----------
+  function reais(v){return 'R$ '+(v%1?v.toFixed(2).replace('.',','):String(v))}
+  function precoCurto(s){return s.preco==null?'':reais(s.preco)}
+  var ICONES={auriculo:'<path d="M14 30c-3-3-5-7-5-12a11 11 0 0 1 22 0c0 5-4 7-6 10s-2 6-6 6c-2 0-4-1-5-4z"/><path d="M15 18a5 5 0 0 1 10 0c0 3-3 4-3 6"/>',
+    limpeza:'<path d="M20 5c-7 0-12 6-12 14 0 9 6 16 12 16s12-7 12-16c0-8-5-14-12-14z"/><path d="M15 19h.01M25 19h.01M16 27c2 1.5 6 1.5 8 0"/>',
+    outro:'<path d="M20 34c-7-4-12-10-12-17 6 0 10 2 12 6 2-4 6-6 12-6 0 7-5 13-12 17z"/><path d="M20 23v11"/>'};
+  function icone(s){var n=String(s.id+' '+s.nome).toLowerCase(),k=n.indexOf('auricul')>=0?'auriculo':n.indexOf('limpeza')>=0||n.indexOf('pele')>=0?'limpeza':'outro';
+    return '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">'+ICONES[k]+'</svg>'}
+  function vitrine(){
+    var box=$('svcs');
+    if(box&&A.servicos.length)box.innerHTML=A.servicos.map(function(s){
+      return '<article class="svc rv in">'+(s.novidade?'<span class="pill">NOVIDADE</span>':'')+'<div class="ic">'+icone(s)+'</div><h3>'+escH(s.nome)+'</h3>'+
+        (s.descricao?'<p>'+escH(s.descricao)+'</p>':s.detalhe?'<p>'+escH(s.detalhe)+'</p>':'')+
+        (s.preco!=null?'<div class="preco-svc"><span>'+escH(s.preco_obs||'Valor')+'</span><b>'+(s.preco_antes!=null?'<s>'+reais(s.preco_antes)+'</s>':'')+reais(s.preco)+'</b></div>':'')+
+        (s.beneficios.length?'<ul>'+s.beneficios.map(function(b){return '<li>'+escH(b)+'</li>'}).join('')+'</ul>':'')+
+        '<a class="ir" href="#agendar" data-servico="'+escH(s.id)+'">Agendar '+escH(s.nome.toLowerCase())+'</a></article>'}).join('');
+    var nv=$('novo'),s=A.servicos.filter(function(x){return x.novidade})[0];
+    if(nv){nv.hidden=!s;if(s)nv.innerHTML='<span class="pill">NOVIDADE</span><span><b>'+escH(s.nome)+'</b>'+(s.desde&&s.desde>hojeLocal()?' a partir de <b>'+curta(s.desde)+'</b>':'')+
+      (s.preco!=null?' por <b>'+reais(s.preco)+'</b>'+(s.preco_obs?', '+escH(s.preco_obs):''):'')+'.</span><span class="seta" aria-hidden="true">→</span>';
+      if(s)nv.setAttribute('data-servico',s.id)}
+  }
+  // "Agendar ..." já deixa o serviço escolhido
+  document.addEventListener('click',function(e){var a=e.target.closest('[data-servico]');if(!a)return;var id=a.getAttribute('data-servico');
+    if(A.servicos.some(function(x){return x.id===id})){S.servico=id;aviso='';render()}});
 
   function opt(a,b,pill,on,dis){var el=document.createElement('button');el.type='button';el.className='opt';el.setAttribute('aria-pressed',on?'true':'false');if(dis)el.disabled=true;
     el.innerHTML=(pill?'<span class="pill">'+escH(pill)+'</span>':'')+'<span class="a">'+escH(a)+'</span>'+(b?'<span class="b">'+escH(b)+'</span>':'');return el}
@@ -72,7 +100,7 @@
     conferir();convite();
     var o=$('o-servico');o.innerHTML='';
     if(!A.servicos.length)o.innerHTML='<p class="empty">'+CAL+'<span>Os serviços estão sendo atualizados. <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Chame a Amanda no WhatsApp</a>.</span></p>';
-    A.servicos.forEach(function(s){var el=opt(s.nome,s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;aviso='';render()};o.appendChild(el)});
+    A.servicos.forEach(function(s){var el=opt(s.nome,(precoCurto(s)?precoCurto(s)+' · ':'')+s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;aviso='';render()};o.appendChild(el)});
 
     var ds=dias();o=$('o-dia');o.innerHTML='';
     if(falhou)o.innerHTML='<p class="empty">'+CAL+'<span>Não consegui carregar a agenda agora. <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Chame a Amanda no WhatsApp</a>.</span></p>';
@@ -92,7 +120,7 @@
     var r=$('resumo'),sl=slot(),sv=servico();
     if(reservado)return;
     if(aviso){r.innerHTML=aviso;r.className='resumo on warn'}
-    else if(sv&&S.dia&&sl){r.innerHTML='<span class="tk-l">SEU HORÁRIO</span><b class="tk-s">'+escH(sv.nome)+'</b><span class="tk-d">'+sem(S.dia)+', '+curta(S.dia)+' às '+hh(sl.hora)+'</span>';r.className='resumo on'}
+    else if(sv&&S.dia&&sl){r.innerHTML='<span class="tk-l">SEU HORÁRIO</span><b class="tk-s">'+escH(sv.nome)+(precoCurto(sv)?' · '+precoCurto(sv):'')+'</b><span class="tk-d">'+sem(S.dia)+', '+curta(S.dia)+' às '+hh(sl.hora)+'</span>';r.className='resumo on'}
     else r.className='resumo';
     progresso();
   }

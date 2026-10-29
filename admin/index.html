@@ -238,6 +238,17 @@ textarea:focus{border-color:var(--teal)}
 .aviso-dur.forte{background:var(--bad-bg);color:var(--bad)}
 .resumo-6h{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;font-size:15px}
 .resumo-6h span{color:var(--muted)}
+/* serviços: preço, benefícios e grupos do formulário */
+.serv .pr{font-weight:700;color:var(--teal-d)!important}
+.serv s,.dica s{opacity:.6}
+.serv .bens-l{font-size:13px!important;color:var(--ok)!important;line-height:1.5}
+.grupo{margin-top:14px;padding:4px 14px 14px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.g-t{display:block;font-weight:800;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--cobre,#B5651D);margin-top:10px}
+.grupo .row{margin-top:0}.grupo .row>div{min-width:0}
+.bens{display:grid;gap:8px}
+/* iPhone: campos de data e hora não passam da borda */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>

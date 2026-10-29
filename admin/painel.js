@@ -566,12 +566,21 @@
     $('bNovoServ').hidden=false;var l=servs||[];
     el.innerHTML=l.length?l.map(function(x){
       var tags=(x.duracao?'<span class="tag">Leva '+durTxt(+x.duracao)+'</span>':'')+(x.ativo?'':'<span class="tag off">Escondido do site</span>')+(x.novidade?'<span class="tag nov">Novidade</span>':'')+(x.desde?'<span class="tag">A partir de '+curta(x.desde)+'</span>':'');
-      return '<div class="card serv"><div><b>'+esc(x.nome)+'</b><span>'+esc(x.detalhe||'')+'</span>'+(tags?'<div class="tags">'+tags+'</div>':'')+'</div><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Editar</button></div>'}).join(''):
+      var pr=precoTexto(x),ben=(x.beneficios||[]).filter(Boolean);
+      return '<div class="card serv"><div><b>'+esc(x.nome)+'</b>'+(pr?'<span class="pr">'+pr+'</span>':'')+'<span>'+esc(x.detalhe||'')+'</span>'+
+        (ben.length?'<span class="bens-l">'+ben.map(function(t){return '✓ '+esc(t)}).join('<br>')+'</span>':'')+
+        (tags?'<div class="tags">'+tags+'</div>':'')+'</div><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Editar</button></div>'}).join(''):
       '<p class="vazio">Nenhum serviço. Adicione o primeiro.</p>';
   }
   function servPorId(id){return (servs||[]).filter(function(x){return x.id===id})[0]}
-  // o banco só tem a coluna de duração depois da atualização
+  // o banco só tem a coluna de duração (e preço, texto e benefícios) depois da atualização
   function temDuracao(){return !!(servs&&servs.length&&('duracao' in servs[0]))}
+  function temPersonalizacao(){return !!(servs&&servs.length&&('preco' in servs[0]))}
+  // preço: mostra "75" ou "89,90"; lê "75", "R$ 75", "89,90" ou "89.90"
+  function fmtPreco(v){if(v===null||v===undefined||v==='')return '';var n=+v;return n%1?n.toFixed(2).replace('.',','):String(n)}
+  function lerPreco(t){t=String(t||'').replace(/R\$|\s/gi,'').replace(',','.');if(!t)return null;return /^\d{1,5}(\.\d{1,2})?$/.test(t)?+t:NaN}
+  function precoTexto(x){if(x.preco===null||x.preco===undefined)return '';
+    return (x.preco_antes!=null?'<s>R$ '+fmtPreco(x.preco_antes)+'</s> ':'')+'R$ '+fmtPreco(x.preco)+(x.preco_obs?' · '+esc(x.preco_obs):'')}
   var DURACOES=[15,20,30,40,45,50,60,75,90,105,120,150,180];
   function opcoesDuracao(atual){var l=DURACOES.slice();if(l.indexOf(atual)<0)l.push(atual);l.sort(function(a,b){return a-b});
     return l.map(function(m){return '<option value="'+m+'"'+(m===atual?' selected':'')+'>'+durTxt(m)+'</option>'}).join('')}
@@ -579,25 +588,46 @@
     var x=id?servPorId(id):null;if(id&&!x){toast(MUDOU,true);return}
     var h='<div><span class="estado livre">Serviço</span><div class="t" id="envT">'+(x?esc(x.nome):'Novo serviço')+'</div></div>';
     if(perguntar)h+='<div class="pergunta">Remover o serviço '+esc(x.nome)+'? Ele some do site. Os horários já marcados com ele continuam.</div><button class="btn bad-solid" data-acao="serv-remover" data-serv="'+esc(x.id)+'" type="button">Sim, remover</button><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Voltar</button>';
-    else h+='<label for="sNome">Nome</label><input type="text" id="sNome" maxlength="40" value="'+esc(x?x.nome:'')+'" placeholder="Ex.: Massagem relaxante">'+
-      '<label for="sDet">Descrição curta (opcional)</label><input type="text" id="sDet" maxlength="60" value="'+esc(x&&x.detalhe||'')+'" placeholder="Ex.: R$ 75 na inauguração">'+
-      '<label class="check"><input type="checkbox" id="sAtivo"'+(!x||x.ativo?' checked':'')+'> Aparece no site</label>'+
-      '<label class="check"><input type="checkbox" id="sNov"'+(x&&x.novidade?' checked':'')+'> Mostrar o selo “Novidade”</label>'+
+    else{var pers=temPersonalizacao(),ben=(x&&x.beneficios)||[],EX=['Ex.: Alívio de dores','Ex.: Menos ansiedade','Ex.: Sono mais tranquilo'];
+      h+='<label for="sNome">Nome</label><input type="text" id="sNome" maxlength="40" value="'+esc(x?x.nome:'')+'" placeholder="Ex.: Massagem relaxante">'+
+      (pers?'<div class="grupo"><span class="g-t">Preço</span>'+
+        '<div class="row"><div><label for="sPreco">Preço (R$)</label><input type="text" inputmode="decimal" id="sPreco" maxlength="9" value="'+esc(fmtPreco(x&&x.preco))+'" placeholder="Ex.: 90"></div>'+
+        '<div><label for="sAntes">Antes (riscado)</label><input type="text" inputmode="decimal" id="sAntes" maxlength="9" value="'+esc(fmtPreco(x&&x.preco_antes))+'" placeholder="Opcional"></div></div>'+
+        '<label for="sPObs">Observação do preço (opcional)</label><input type="text" id="sPObs" maxlength="40" value="'+esc(x&&x.preco_obs||'')+'" placeholder="Ex.: valor de inauguração, por sessão">'+
+        '<p class="dica">Sem preço, o site não mostra valor. Com o "Antes", aparece assim: <s>R$ 120</s> R$ 90.</p></div>':'')+
+      '<label for="sDet">Frase curta (aparece na hora de agendar)</label><input type="text" id="sDet" maxlength="60" value="'+esc(x&&x.detalhe||'')+'" placeholder="Ex.: Dores, ansiedade e sono">'+
+      (pers?'<label for="sDesc">Texto do serviço no site</label><textarea id="sDesc" maxlength="500" placeholder="Em 2 ou 3 frases: o que é e como ajuda.">'+esc(x&&x.descricao||'')+'</textarea>'+
+        '<span class="label">3 benefícios principais</span><div class="bens">'+[0,1,2].map(function(i){return '<input type="text" id="sBen'+i+'" maxlength="40" value="'+esc(ben[i]||'')+'" placeholder="'+EX[i]+'" aria-label="Benefício '+(i+1)+'">'}).join('')+'</div>'+
+        '<p class="dica">Frases curtas, com "alivia" ou "ajuda a". Aparecem no site, embaixo do texto.</p>':'')+
       (temDuracao()?'<label for="sDur">Quanto tempo leva</label><select id="sDur">'+opcoesDuracao(x&&+x.duracao||60)+'</select>'+
         '<p class="dica">Conte também o tempo de arrumar para a próxima cliente. O site não deixa marcar outra cliente antes de terminar.</p>':'')+
-      '<label for="sDesde">Pode ser marcado a partir de (opcional)</label><input type="date" id="sDesde" value="'+esc(x&&x.desde||'')+'">'+
+      '<label class="check"><input type="checkbox" id="sAtivo"'+(!x||x.ativo?' checked':'')+'> Aparece no site</label>'+
+      '<label class="check"><input type="checkbox" id="sNov"'+(x&&x.novidade?' checked':'')+'> Mostrar o selo “Novidade”</label>'+
+      '<label class="check"><input type="checkbox" id="sTemDesde"'+(x&&x.desde?' checked':'')+'> Só pode ser marcado a partir de uma data</label>'+
+      '<div id="sDesdeBox"'+(x&&x.desde?'':' hidden')+'><input type="date" id="sDesde" value="'+esc(x&&x.desde||'')+'" min="'+hojeSP()+'" aria-label="A partir de qual dia"></div>'+
       '<button class="btn main" data-acao="serv-salvar" data-serv="'+esc(x?x.id:'')+'" type="button">Salvar</button>'+
       (x?'<button class="btn bad" data-acao="serv-remover-perg" data-serv="'+esc(x.id)+'" type="button">Remover serviço…</button>':'')+
-      '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>';
+      '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>';}
     abrirEnvio(h);
   }
+  document.addEventListener('change',function(e){if(e.target&&e.target.id==='sTemDesde'){$('sDesdeBox').hidden=!e.target.checked;if(!e.target.checked)$('sDesde').value=''}});
   function slug(t){var b=String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,26)||'servico';
     if(b.length<2)b+='-s';var id=b,i=2;while(servPorId(id))id=b+'-'+(i++);return id}
   function salvarServ(id,b){
-    var nome=$('sNome').value.trim(),det=$('sDet').value.trim(),desde=$('sDesde').value||null;
+    var nome=$('sNome').value.trim(),det=$('sDet').value.trim(),desde=$('sTemDesde').checked?($('sDesde').value||''):null;
     if(nome.length<2){toast('Escreva o nome do serviço.',true);return}
+    if(desde===''){toast('Escolha a partir de qual dia o serviço pode ser marcado, ou desmarque a caixinha.',true);return}
     var dados={nome:nome.slice(0,40),detalhe:det?det.slice(0,60):null,ativo:$('sAtivo').checked,novidade:$('sNov').checked,desde:desde};
     if($('sDur'))dados.duracao=+$('sDur').value;
+    if($('sPreco')){
+      var pr=lerPreco($('sPreco').value),an=lerPreco($('sAntes').value);
+      if(isNaN(pr)||isNaN(an)){toast('Confira o preço: use só números, como 75 ou 89,90.',true);return}
+      if(an!==null&&pr===null){toast('Para mostrar o preço riscado, preencha também o preço atual.',true);return}
+      if(an!==null&&an<=pr){toast('O preço "Antes" precisa ser maior que o preço atual.',true);return}
+      var bens=[0,1,2].map(function(i){return $('sBen'+i).value.trim().slice(0,40)}).filter(Boolean);
+      dados.preco=pr;dados.preco_antes=an;dados.preco_obs=$('sPObs').value.trim().slice(0,40)||null;
+      dados.descricao=$('sDesc').value.trim().slice(0,500)||null;dados.beneficios=bens.length?bens:null;
+    }
     b.disabled=true;
     var req=id?api('PATCH','servicos?id=eq.'+encodeURIComponent(id),dados,{Prefer:'return=representation'})
               :api('POST','servicos',(dados.id=slug(nome),dados.ordem=(servs||[]).reduce(function(m,x){return Math.max(m,x.ordem||0)},0)+1,dados),{Prefer:'return=representation'});
