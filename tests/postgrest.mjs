@@ -145,7 +145,8 @@ export function criarApi({ db, como, opcoes = {} }) {
         return json(route, { message: 'não encontrado' }, 404);
       } catch (e) {
         if (process.env.DEPURAR) console.log('   [api]', metodo, caminho + url.search, e.message);
-        const status = e.code === '42501' ? (email ? 403 : 401) : e.code === '23505' ? 409 : 400;
+        // função ou tabela que ainda não existe no banco: o PostgREST responde 404
+        const status = e.code === '42501' ? (email ? 403 : 401) : e.code === '23505' ? 409 : (e.code === '42883' || e.code === '42P01') ? 404 : 400;
         return json(route, { code: e.code, message: e.message }, status);
       }
     }, { sessao: sessao ? sessao.id : undefined, cabecalhos }));

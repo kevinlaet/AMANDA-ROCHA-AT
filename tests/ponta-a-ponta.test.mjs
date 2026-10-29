@@ -60,11 +60,11 @@ const caixaDoPainel = async (pagina) => { await pagina.locator('#sheet').evaluat
 const navegador = await chromium.launch();
 const erros = [];
 const agendaJs = fs.readFileSync(path.join(RAIZ, 'agenda.js'), 'utf8').replace(/desde: "\d{4}-\d\d-\d\d"/, `desde: "${D5}"`);
-async function contexto(dispositivo, { ligado = true } = {}) {
+async function contexto(dispositivo, { ligado = true, apiDoBanco = api } = {}) {
   const c = await navegador.newContext({ ...dispositivo, reducedMotion: 'reduce' });
   await c.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: ligado ? `window.SUPABASE={url:${JSON.stringify(SUPABASE_URL)},anonKey:${JSON.stringify(ANON_KEY)}};` : 'window.SUPABASE={url:"",anonKey:""};' }));
   await c.route('**/agenda.js', (r) => r.fulfill({ contentType: 'text/javascript', body: agendaJs }));
-  await c.route(SUPABASE_URL + '/**', api.tratar);
+  await c.route(SUPABASE_URL + '/**', apiDoBanco.tratar);
   await c.route('https://wa.me/**', (r) => r.fulfill({ contentType: 'text/html', body: 'whatsapp' }));
   c.on('page', (p) => p.on('pageerror', (e) => erros.push(p.url() + ': ' + e.message)));
   return c;
@@ -551,6 +551,66 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await p3.goto(BASE + 'admin/diagnostico.html'); await p3.waitForSelector('#fim:not([hidden])');
   ok((await rotulos(p3))[0].ok === false && /config\.js/.test((await rotulos(p3))[0].d), 'diagnóstico: config.js vazio é apontado');
   await c3.close();
+}
+
+// ===== 4f. Painel com o banco ainda na versão antiga (sem a atualização): nada pode dar erro =====
+{
+  const velho = await criarBanco({ schema: path.join(RAIZ, 'tests/fixtures/schema-antes-da-atualizacao-2.sql') });
+  const apiVelha = criarApi(velho);
+  const qv = async (sql, p) => (await velho.db.query(sql, p)).rows;
+  const DV = (await qv(`select (public.agora_sp() + interval '3 days')::date::text d`))[0].d;
+  await velho.db.exec(`insert into horarios (data, hora) select '${DV}'::date, h from unnest(array['10:00','11:00','12:00','13:00','14:00']) h`);
+  const idV = async (h) => (await qv(`select id from horarios where data = $1 and hora = $2`, [DV, h]))[0].id;
+  for (const [h, nome, tel] of [['10:00', 'Xuxu Teste', '11911110001'], ['11:00', 'Ana Velha', '11911110002'], ['12:00', 'Bia Velha', '11911110003']]) { const id = await idV(h); await velho.como('anon', null, () => velho.db.query(`select public.pedir_horario($1, 'Auriculoterapia', $2, $3)`, [id, nome, tel])); }
+  const c = await contexto(IPHONE, { apiDoBanco: apiVelha });
+  const V = await c.newPage();
+  const errosV = [];
+  V.on('console', (m) => { if (m.type() === 'error') errosV.push(m.text()); });
+  await V.goto(BASE + 'admin/');
+  await V.fill('#email', EMAIL_ADMIN); await V.fill('#senha', 'certa'); await V.click('#bLogin');
+  await V.waitForSelector('#pedidos .ped');
+  ok(await V.locator('#bancoVelho').isVisible(), 'banco antigo: o aviso de atualização aparece');
+  const semErro = async (rotulo) => { const t = V.locator('#toast'); const erro = (await t.isVisible()) && (await t.getAttribute('class')).includes('erro'); ok(!erro, 'banco antigo: ' + rotulo + ' sem erro' + (erro ? ' (' + (await t.innerText()) + ')' : '')); };
+  // confirmar e depois cancelar e apagar (o caso da Xuxu)
+  await V.locator('#pedidos .ped', { hasText: 'Xuxu' }).locator('[data-a=confirmar]').click();
+  await V.waitForFunction(() => /Confirmado/.test(document.getElementById('toast').innerText)); await semErro('confirmar');
+  await aba(V, 'agenda');
+  await V.click(`#agenda [data-abrir="${await idV('10:00')}"]`);
+  await V.click('#sheet [data-a=perg-excluir]'); await V.click('#sheet [data-a=excluir]');
+  await V.waitForFunction(() => !document.getElementById('toast').hidden);
+  await semErro('cancelar e apagar o horário da Xuxu');
+  ok((await qv(`select count(*)::int n from horarios where nome = 'Xuxu Teste'`))[0].n === 0, 'banco antigo: o horário da Xuxu foi apagado de verdade');
+  // recusar, cancelar e liberar, marcar por fora, editar, mudar horário, abrir horários
+  await aba(V, 'inicio');
+  await V.locator('#pedidos .ped', { hasText: 'Ana Velha' }).locator('[data-a=perg-recusar]').click(); await V.click('#sheet [data-a=recusar]');
+  await V.waitForFunction(() => !document.getElementById('toast').hidden); await semErro('recusar');
+  ok((await qv(`select status from horarios where id = $1`, [await idV('11:00')]))[0].status === 'livre', 'banco antigo: recusar libera o horário');
+  await V.locator('#pedidos .ped', { hasText: 'Bia Velha' }).locator('[data-a=confirmar]').click();
+  await V.waitForFunction(() => /Confirmado/.test(document.getElementById('toast').innerText));
+  await V.click('#toast [data-fechar]');
+  await aba(V, 'agenda');
+  await V.click(`#agenda [data-abrir="${await idV('12:00')}"]`);
+  ok(await V.locator('#sheet [data-a=perg-remarcar]').count() === 0, 'banco antigo: o botão Remarcar fica escondido até atualizar');
+  await V.click('#sheet [data-a=perg-cancelar]'); await V.click('#sheet [data-a=cancelar]');
+  await V.waitForFunction(() => !document.getElementById('toast').hidden); await semErro('cancelar e liberar');
+  await V.click('#toast [data-fechar]');
+  await V.click(`#agenda [data-abrir="${await idV('13:00')}"]`);
+  await V.click('#sheet [data-a=perg-ocupar]'); await V.fill('#fNome', 'Dona Antiga'); await V.click('#sheet [data-a=ocupar]');
+  await V.waitForFunction(() => /marcado como ocupado/.test(document.getElementById('toast').innerText)); await semErro('marcar como ocupado');
+  await V.click(`#agenda [data-abrir="${await idV('13:00')}"]`);
+  await V.click('#sheet [data-a=perg-editar]'); await V.fill('#fTel', '11922223333'); await V.click('#sheet [data-a=editar]');
+  await V.waitForFunction(() => /atualizados/.test(document.getElementById('toast').innerText)); await semErro('editar dados');
+  await V.click(`#agenda [data-abrir="${await idV('14:00')}"]`);
+  await V.click('#sheet [data-a=perg-mover]'); await V.fill('#fHora', '14:30'); await V.click('#sheet [data-a=mover]');
+  await V.waitForFunction(() => /Horário mudado/.test(document.getElementById('toast').innerText)); await semErro('mudar horário');
+  await formAbrir(V); await V.fill('#novaData', await dia(16)); await V.click('#bAbrir');
+  await V.waitForFunction(() => /horários abertos/.test(document.getElementById('toast').innerText)); await semErro('abrir horários');
+  await doMais(V, 'historico'); await V.waitForSelector('#hLista .hrow');
+  ok((await V.locator('#hLista .hrow').count()) > 3, 'banco antigo: o histórico também funciona');
+  await doMais(V, 'seguranca');
+  ok(/atualização do banco/.test(await V.locator('#gStatus').innerText()), 'banco antigo: Segurança explica que falta a atualização');
+  ok(errosV.filter((t) => !/Failed to load resource/.test(t)).length === 0, 'banco antigo: nenhum erro no console' + (errosV.filter((t) => !/Failed to load resource/.test(t)).length ? ' (' + errosV.join(' | ') + ')' : ''));
+  await c.close();
 }
 
 // ===== 4e. Mais: Histórico, Segurança (guardião) e Minha conta =====

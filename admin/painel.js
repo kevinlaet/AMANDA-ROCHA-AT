@@ -200,8 +200,8 @@
     var ate=somaDias(hojeSP(),7),prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
     $('proximos').innerHTML=prox.length?prox.map(function(r){var z=zapUrl(r,'lembrar');
       return '<div class="card prox"><div class="pl"><b>'+esc(r.nome)+'</b><span>'+esc(servRot(r))+'</span><span class="quando">'+dia(r.data)+' às '+hh(r.hora)+'</span>'+
-        (r.lembrete_em?'<span class="lemb ok">✓ Lembrete enviado '+idade(r.lembrete_em)+'</span>':'<span class="lemb">Lembrete ainda não enviado</span>')+'</div>'+
-        (z?'<a class="btn '+(r.lembrete_em?'zap-leve':'zap')+'" target="_blank" rel="noopener" data-lembrete="'+esc(r.id)+'" href="'+esc(z)+'">'+(r.lembrete_em?'Mandar de novo':'Mandar lembrete')+'</a>':
+        (bancoVelho?'':r.lembrete_em?'<span class="lemb ok">✓ Lembrete enviado '+idade(r.lembrete_em)+'</span>':'<span class="lemb">Lembrete ainda não enviado</span>')+'</div>'+
+        (z?'<a class="btn '+(r.lembrete_em?'zap-leve':'zap')+'" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(z)+'">'+(r.lembrete_em?'Mandar de novo':'Mandar lembrete')+'</a>':
            '<button class="btn ghost" type="button" data-abrir="'+esc(r.id)+'">Sem WhatsApp: toque para adicionar</button>')+'</div>'}).join(''):
       '<p class="vazio">Nenhum atendimento confirmado nos próximos 7 dias.</p>';
     desenharServicos();
@@ -247,8 +247,8 @@
     }
     else{
       if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')}
-      if(r.status==='confirmado'){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener" data-lembrete="'+esc(r.id)+'" href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
-      if(r.status!=='livre')h+='<div class="row"><button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button><button class="btn ghost" data-a="perg-remarcar" type="button">Remarcar</button></div>'+
+      if(r.status==='confirmado'){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
+      if(r.status!=='livre')h+=(bancoVelho?'<button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button>':'<div class="row"><button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button><button class="btn ghost" data-a="perg-remarcar" type="button">Remarcar</button></div>')+
         (r.status==='pedido'?'<button class="btn bad" data-a="perg-recusar" type="button">Recusar…</button>':'<button class="btn bad" data-a="perg-cancelar" type="button">Cancelar e liberar…</button>')+
         '<button class="btn bad" data-a="perg-excluir" type="button">Cancelar e apagar este horário…</button>';
       if(r.status==='livre')h+='<button class="btn main" data-a="perg-ocupar" type="button">Marcar como ocupado (marquei por fora)</button><button class="btn ghost" data-a="perg-mover" type="button">Mudar dia ou horário</button><button class="btn bad" data-a="perg-remover" type="button">Remover horário…</button>';
@@ -265,7 +265,9 @@
     return api('PATCH','horarios?id=eq.'+r.id+'&status=in.('+esperado+')',campos,{Prefer:'return=representation'})
       .then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}return true});
   }
-  var LIMPA={status:'livre',nome:null,servico:null,telefone:null,pedido_em:null,lembrete_em:null};
+  // campos que voltam a ficar vazios quando o horário é liberado
+  // (lembrete_em só existe depois da atualização do banco; mandar antes faz o banco recusar tudo)
+  function limpa(){var x={status:'livre',nome:null,servico:null,telefone:null,pedido_em:null};if(!bancoVelho)x.lembrete_em=null;return x}
   function executar(acao,r){
     if(ocupado)return;
     var antes={id:r.id,data:r.data,hora:r.hora,nome:r.nome,servico:r.servico,telefone:r.telefone},quando=dia(r.data)+' às '+hh(r.hora),p,f;
@@ -275,8 +277,8 @@
     if(acao==='remarcar'&&!(destino&&linha(destino))){toast('Escolha o novo horário.',true);return}
     ocupado=true;
     if(acao==='confirmar')p=mudar(r,'pedido',{status:'confirmado'}).then(function(ok){if(ok){var z=zapUrl(antes,'confirmar');toast('Confirmado: '+primeiro(antes.nome)+', '+quando+'.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
-    else if(acao==='recusar')p=mudar(r,'pedido',LIMPA).then(function(ok){if(ok){var z=zapUrl(antes,'recusar');toast('Pedido recusado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
-    else if(acao==='cancelar')p=mudar(r,'confirmado',LIMPA).then(function(ok){if(ok){var z=zapUrl(antes,'cancelar');toast('Horário cancelado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
+    else if(acao==='recusar')p=mudar(r,'pedido',limpa()).then(function(ok){if(ok){var z=zapUrl(antes,'recusar');toast('Pedido recusado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
+    else if(acao==='cancelar')p=mudar(r,'confirmado',limpa()).then(function(ok){if(ok){var z=zapUrl(antes,'cancelar');toast('Horário cancelado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
     else if(acao==='ocupar')p=mudar(r,'livre',{status:'confirmado',nome:f.nome.length>1?f.nome:'Marcado por fora',servico:f.serv||'Combinado por fora',telefone:f.tel||null,pedido_em:new Date().toISOString()}).then(function(ok){if(ok)toast(quando+' marcado como ocupado'+(f.nome.length>1?' para '+primeiro(f.nome):'')+'.');return ok});
     else if(acao==='editar')p=mudar(r,r.status,{nome:f.nome,telefone:f.tel||null,servico:f.serv||'Combinado por fora'}).then(function(ok){if(ok)toast('Dados de '+primeiro(f.nome)+' atualizados.');return ok});
     else if(acao==='mover')p=api('PATCH','horarios?id=eq.'+r.id+'&status=eq.livre',{data:nd,hora:nh},{Prefer:'return=representation'})
