@@ -1,0 +1,29 @@
+name: Guardião do site
+
+# Confere de fora, a cada 15 minutos, se o site e o banco estão como deveriam.
+# Se algo estiver errado, abre um aviso (issue) e o GitHub manda e-mail para o dono do repositório.
+on:
+  schedule:
+    - cron: '4,19,34,49 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: guardiao
+  cancel-in-progress: false
+
+jobs:
+  vigiar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node guardiao/vigia.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

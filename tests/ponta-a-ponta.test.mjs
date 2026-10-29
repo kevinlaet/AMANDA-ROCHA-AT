@@ -15,8 +15,11 @@ const foto = async (pagina, nome, inteira = true) => { if (CAPTURAS) await pagin
 // ---------- servidor estático ----------
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png', '.jpg': 'image/jpeg', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain' };
 const PREFIXO = '/AMANDA-ROCHA-AT';
+// trocas: arquivos servidos com outro conteúdo (para testar o guardião contra alterações)
+const trocas = {};
 const servidor = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  if (trocas[p.slice(PREFIXO.length + 1)]) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(trocas[p.slice(PREFIXO.length + 1)]); }
   if (!p.startsWith(PREFIXO + '/')) { res.writeHead(404); return res.end(); }
   p = path.join(RAIZ, p.slice(PREFIXO.length));
   if (!p.startsWith(RAIZ)) { res.writeHead(403); return res.end(); }
@@ -763,6 +766,39 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/acesso estranho/.test(await E.locator('#mLogin').innerText()), 'acesso de um programa automático: o painel desconecta e pede a senha');
   ok((await q(`select count(*)::int n from auth.sessions s join auth.users u on u.id = s.user_id where u.email = $1`, [EMAIL_ADMIN]))[0].n === 0, 'e todas as sessões, inclusive a do invasor, são encerradas');
   await c4.close();
+}
+
+// ===== 4g. Guardião externo (o robô que confere o site a cada 15 minutos) =====
+{
+  const { execFile } = await import('node:child_process');
+  // o mesmo Supabase de mentira, agora como servidor HTTP de verdade
+  const servApi = http.createServer(async (req, res) => {
+    const partes = []; for await (const c of req) partes.push(c);
+    const corpo = Buffer.concat(partes).toString();
+    await api.tratar({
+      request: () => ({ url: () => SUPABASE_URL + req.url, method: () => req.method, headers: () => req.headers, postDataJSON: () => (corpo ? JSON.parse(corpo) : null) }),
+      fulfill: async ({ status = 200, headers = {}, contentType, body = '' }) => { res.writeHead(status, { ...headers, ...(contentType ? { 'content-type': contentType } : {}) }); res.end(body); },
+    });
+  });
+  await new Promise((r) => servApi.listen(0, r));
+  const vigia = () => new Promise((ok) => execFile(process.execPath, [path.join(RAIZ, 'guardiao/vigia.mjs'), '--json'], { env: { ...process.env, GITHUB_TOKEN: '', GUARDIAO_SITE: BASE, GUARDIAO_SUPABASE: `http://127.0.0.1:${servApi.address().port}`, GUARDIAO_CHAVE: ANON_KEY, GUARDIAO_ESPERA: '0', GUARDIAO_SEM_TOLERANCIA: '1' } }, (e, out) => ok(JSON.parse(out))));
+  await db.exec(`update alertas set visto_em = now() where visto_em is null`);
+  const r1 = await vigia();
+  ok(r1.ok, 'guardião externo: tudo certo com o site e o banco' + (r1.ok ? '' : ': ' + r1.problemas.join(' | ')));
+  trocas['agenda.js'] = fs.readFileSync(path.join(RAIZ, 'agenda.js'), 'utf8').replace('5511948907302', '5511999990000');
+  const r2 = await vigia();
+  ok(!r2.ok && r2.problemas.some((p) => /diferente do que está no GitHub/.test(p)) && r2.problemas.some((p) => /WhatsApp da Amanda/.test(p)), 'guardião externo: percebe quando trocam o WhatsApp no site');
+  delete trocas['agenda.js'];
+  await db.exec(`grant select on horarios to anon; drop policy if exists "vazou" on horarios; create policy "vazou" on horarios for select to anon using (true)`);
+  const r3 = await vigia();
+  ok(!r3.ok && r3.problemas.some((p) => /visitantes conseguem ler a tabela horarios/.test(p)), 'guardião externo: percebe se os dados das clientes ficarem expostos');
+  await db.exec(`drop policy "vazou" on horarios; revoke select on horarios from anon`);
+  await db.exec(`update guardiao set pausado = true`);
+  const r4 = await vigia();
+  ok(!r4.ok && r4.problemas.some((p) => /proteção do guardião está ligada/.test(p)), 'guardião externo: avisa quando a proteção está ligada');
+  await db.exec(`update guardiao set pausado = false`);
+  ok((await vigia()).ok, 'guardião externo: volta a "tudo certo" quando o problema some');
+  servApi.close();
 }
 
 // ===== 5. Privacidade e erros =====
