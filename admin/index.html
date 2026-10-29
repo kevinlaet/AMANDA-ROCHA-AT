@@ -232,6 +232,12 @@ textarea:focus{border-color:var(--teal)}
 .ntfy{display:grid;gap:10px}.ntfy p{font-size:15px}
 .ntfy ol{margin-left:20px;display:grid;gap:6px;font-size:15px}
 .codigo{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:700;letter-spacing:.5px;text-align:center;background:var(--sand);border:2px dashed var(--peach);border-radius:12px;padding:12px;word-break:break-all;user-select:all;-webkit-user-select:all}
+/* duração: horários bloqueados e avisos de horário colado */
+.s.livre.bloq{border-style:dashed;background:#F4F4F1;color:var(--muted);border-color:#CFCFC8}
+.aviso-dur{background:var(--warn-bg);color:var(--warn);border-radius:14px;padding:12px 14px;font-weight:600;font-size:15px}
+.aviso-dur.forte{background:var(--bad-bg);color:var(--bad)}
+.resumo-6h{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;font-size:15px}
+.resumo-6h span{color:var(--muted)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -306,7 +312,7 @@ textarea:focus{border-color:var(--teal)}
     </div>
 
     <h2>Minha agenda</h2>
-    <div class="legenda"><span><i style="background:var(--livre)"></i>livre</span><span><i style="background:var(--warn)"></i>pedido</span><span><i style="background:var(--ok)"></i>confirmado</span></div>
+    <div class="legenda"><span><i style="background:var(--livre)"></i>livre</span><span><i style="background:var(--warn)"></i>pedido</span><span><i style="background:var(--ok)"></i>confirmado</span><span><i style="background:#F4F4F1;border:1.5px dashed #CFCFC8"></i>bloqueado</span></div>
     <div id="agenda"></div>
 
     </section>
@@ -402,10 +408,12 @@ textarea:focus{border-color:var(--teal)}
     <details class="faq"><summary>O site atualiza sozinho?</summary><p>Sim. Tudo o que você muda no painel (abrir ou remover horários, confirmar, recusar, serviços e preços) aparece para as clientes na mesma hora. Não precisa publicar nada nem chamar ninguém.</p></details>
     <details class="faq"><summary>E este painel, atualiza sozinho?</summary><p>Sim, a cada 30 segundos e sempre que você volta para ele. Se quiser ver na hora, toque em <b>Atualizar agora</b>, lá em cima.</p></details>
     <details class="faq"><summary>Como a cliente marca um horário?</summary><p>Ela escolhe o serviço, o dia e o horário no site e envia uma mensagem para o seu WhatsApp. O horário fica guardado para ela e aparece em <b>Início › Pedidos</b> para você confirmar.</p></details>
+    <details class="faq"><summary>Por que alguns horários aparecem como “bloqueado”?</summary><p>Porque o procedimento de antes ainda não terminou, ou porque não dá tempo de nenhum procedimento antes da próxima cliente. As clientes não conseguem marcar esses horários pelo site. Você ainda pode marcar por fora: o painel avisa e você decide. O tempo de cada procedimento fica em <b>Mais › Serviços e preços</b>.</p></details>
     <details class="faq"><summary>Duas clientes podem pegar o mesmo horário?</summary><p>Não. Só uma consegue; a outra é avisada na hora para escolher outro horário.</p></details>
     <details class="faq"><summary>E se o celular da cliente estiver com a hora errada?</summary><p>Não tem problema. Os horários usam sempre a hora de Brasília do servidor, nunca a do celular.</p></details>
     <details class="faq"><summary>Como mando um lembrete?</summary><p>Em <b>Início › Próximos atendimentos</b>, toque em <b>Mandar lembrete</b> um dia antes. A mensagem já vai pronta no WhatsApp.</p></details>
     <details class="faq"><summary>Onde vejo o que já aconteceu?</summary><p>Em <b>Mais › Histórico</b>. Fica registrado quem pediu, quem confirmou, o que foi cancelado ou mudado, com dia e hora.</p></details>
+    <details class="faq"><summary>Que avisos chegam no celular?</summary><p>Com o app ntfy (veja em <b>Mais › Segurança</b>): cada pedido novo, alertas do guardião e, todo dia às 6h, um resumo como “Você tem 4 agendamentos para hoje”. O resumo só chega quando há agendamento.</p></details>
     <details class="faq"><summary>O que é a proteção do guardião?</summary><p>Se chegarem pedidos demais em pouco tempo, o guardião liga a proteção: o site continua mostrando os horários, mas as clientes passam a confirmar direto pelo seu WhatsApp. Quando estiver tudo certo, religue em <b>Mais › Segurança</b>.</p></details>
     <details class="faq"><summary>Como coloco o painel na tela do celular?</summary><p>No iPhone: toque em Compartilhar e depois em <b>Adicionar à Tela de Início</b>. No Android: toque nos três pontinhos e depois em <b>Adicionar à tela inicial</b>.</p></details>
     <details class="faq"><summary>Esqueci minha senha. E agora?</summary><p>Fale com o Kevin: ele cria uma senha nova para você em poucos minutos.</p></details>

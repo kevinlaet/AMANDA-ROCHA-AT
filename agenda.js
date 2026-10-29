@@ -18,9 +18,9 @@ window.AGENDA = {
   whatsapp: "5511948907302",
 
   servicos: [
-    { id: "auriculo", nome: "Auriculoterapia", detalhe: "Ansiedade, sono e bem-estar" },
-    // "desde": primeiro dia em que o serviço pode ser marcado
-    { id: "limpeza", nome: "Limpeza de pele", detalhe: "R$ 75 na inauguração", novidade: true, desde: "2026-11-14" }
+    // "duracao": minutos que o procedimento ocupa; "desde": primeiro dia em que pode ser marcado
+    { id: "auriculo", nome: "Auriculoterapia", detalhe: "Dores, ansiedade e sono", duracao: 60 },
+    { id: "limpeza", nome: "Limpeza de pele", detalhe: "R$ 75 na inauguração", novidade: true, desde: "2026-11-14", duracao: 90 }
   ],
 
   dias: [

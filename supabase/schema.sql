@@ -118,25 +118,7 @@ create policy "admin_le" on public.historico
 
 -- (a função que registra cada mudança fica no bloco de atualizações, abaixo)
 
--- ---------------------------------------------------------------------
--- O que o site público pode ver: só dia, hora e se está livre.
--- Nunca nomes ou telefones.
--- ---------------------------------------------------------------------
 drop view if exists public.horarios_publicos;
-
-create or replace function public.agenda_publica()
-returns table (id uuid, data date, hora text, status text)
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select h.id, h.data, h.hora,
-         case when h.status = 'livre' then 'livre' else 'ocupado' end
-    from public.horarios h
-   where (h.data + h.hora::time) > public.agora_sp() + public.antecedencia()
-   order by h.data, h.hora
-$$;
 
 -- Versão antiga do pedido (3 argumentos), substituída pela do bloco abaixo
 drop function if exists public.pedir_horario(uuid, text, text);
@@ -166,22 +148,49 @@ create policy "admin_servicos" on public.servicos
   with check (public.sou_admin());
 
 insert into public.servicos (id, nome, detalhe, novidade, desde, ordem) values
-  ('auriculo', 'Auriculoterapia', 'Ansiedade, sono e bem-estar', false, null, 1),
+  ('auriculo', 'Auriculoterapia', 'Dores, ansiedade e sono', false, null, 1),
   ('limpeza', 'Limpeza de pele', 'R$ 75 na inauguração', true, '2026-11-14', 2)
 on conflict (id) do nothing;
 
+-- a auriculoterapia também ajuda com dores (só troca se a Amanda não tiver mudado o texto)
+update public.servicos set detalhe = 'Dores, ansiedade e sono'
+ where id = 'auriculo' and detalhe = 'Ansiedade, sono e bem-estar';
+
+-- Duração de cada procedimento, em minutos, já contando o preparo para a próxima cliente.
+-- Valores iniciais prudentes; a Amanda ajusta no painel (Mais › Serviços e preços).
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'servicos' and column_name = 'duracao') then
+    alter table public.servicos add column duracao integer not null default 60 check (duracao between 10 and 480);
+    update public.servicos set duracao = 90 where id = 'limpeza';
+  end if;
+end $$;
+
 -- O site vê só os serviços visíveis.
+drop function if exists public.servicos_publicos();
 create or replace function public.servicos_publicos()
-returns table (id text, nome text, detalhe text, novidade boolean, desde date)
+returns table (id text, nome text, detalhe text, novidade boolean, desde date, duracao integer)
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select s.id, s.nome, s.detalhe, s.novidade, s.desde
+  select s.id, s.nome, s.detalhe, s.novidade, s.desde, s.duracao
     from public.servicos s
    where s.ativo
    order by s.ordem, s.nome
+$$;
+
+-- Quanto tempo um atendimento ocupa (serviço desconhecido ou "combinado por fora": 1 hora).
+create or replace function public.duracao_de(p_servico text)
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((select s.duracao from public.servicos s where lower(s.nome) = lower(btrim(coalesce(p_servico, ''))) limit 1), 60)
 $$;
 
 -- ---------------------------------------------------------------------
@@ -218,6 +227,53 @@ drop trigger if exists trg_horario_passado on public.horarios;
 create trigger trg_horario_passado
   before insert or update of data, hora on public.horarios
   for each row execute function public.bloqueia_horario_passado();
+
+-- ---------------------------------------------------------------------
+-- Um dia de cada vez: enquanto um pedido confere se cabe no dia, nenhuma
+-- outra marcação desse dia passa na frente (evita dois atendimentos colados).
+-- ---------------------------------------------------------------------
+create or replace function public.trava_dia()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('agenda:' || new.data::text));
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_trava_dia on public.horarios;
+create trigger trg_trava_dia
+  before insert or update on public.horarios
+  for each row when (new.status <> 'livre')
+  execute function public.trava_dia();
+
+-- ---------------------------------------------------------------------
+-- O que o site público pode ver: dia, hora, se está livre e, quando
+-- ocupado, até que horas (para não marcar ninguém em cima). Nunca nomes ou telefones.
+-- ---------------------------------------------------------------------
+drop function if exists public.agenda_publica();
+create or replace function public.agenda_publica()
+returns table (id uuid, data date, hora text, status text, ate timestamp)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  -- 'bloqueio': atendimento que já começou (ou começa em menos de 1 hora); não aparece como
+  -- opção no site, mas ainda ocupa o tempo até terminar
+  select h.id, h.data, h.hora,
+         case when h.status = 'livre' then 'livre'
+              when (h.data + h.hora::time) <= public.agora_sp() + public.antecedencia() then 'bloqueio'
+              else 'ocupado' end,
+         case when h.status = 'livre' then null
+              else h.data + h.hora::time + make_interval(mins => public.duracao_de(h.servico)) end
+    from public.horarios h
+   where (h.data + h.hora::time) > public.agora_sp() + public.antecedencia()
+      or (h.status <> 'livre' and h.data + h.hora::time + make_interval(mins => public.duracao_de(h.servico)) > public.agora_sp())
+   order by h.data, h.hora
+$$;
 
 -- ---------------------------------------------------------------------
 -- Guardião: vigia o banco em tempo real e guarda alertas para a Amanda
@@ -431,7 +487,7 @@ create trigger trg_historico
 -- ---------------------------------------------------------------------
 -- A cliente pede um horário. A checagem e a reserva acontecem numa única
 -- instrução, então duas clientes nunca pegam o mesmo horário.
--- Resposta: 'ok' | 'indisponivel' | 'dados' | 'servico' | 'limite' | 'pausado'
+-- Resposta: 'ok' | 'indisponivel' | 'conflito' | 'dados' | 'servico' | 'limite' | 'pausado'
 -- ---------------------------------------------------------------------
 create or replace function public.pedir_horario(p_id uuid, p_servico text, p_nome text, p_telefone text)
 returns text
@@ -448,6 +504,8 @@ declare
   v_desde date;
   v_data date;
   v_hora text;
+  v_ini timestamp;
+  v_fim timestamp;
   ativos integer;
 begin
   -- conferência do diagnóstico e do guardião externo: não reserva nem conta nada
@@ -505,6 +563,21 @@ begin
     insert into public.eventos (tipo, origem) values ('limite', v_origem);
     perform public.vigia();
     return 'limite';
+  end if;
+
+  -- o procedimento precisa caber sem encostar em outro atendimento do dia
+  select h.data, h.hora into v_data, v_hora from public.horarios h where h.id = p_id;
+  if found then
+    perform pg_advisory_xact_lock(hashtext('agenda:' || v_data::text));
+    v_ini := v_data + v_hora::time;
+    v_fim := v_ini + make_interval(mins => public.duracao_de(v_serv));
+    if exists (select 1 from public.horarios o
+                where o.id <> p_id and o.status in ('pedido', 'confirmado')
+                  and o.data between v_data - 1 and v_data + 1
+                  and (o.data + o.hora::time) < v_fim
+                  and (o.data + o.hora::time) + make_interval(mins => public.duracao_de(o.servico)) > v_ini) then
+      return 'conflito';
+    end if;
   end if;
 
   update public.horarios h
@@ -647,7 +720,8 @@ begin
                   from (select a.id, a.em, a.tipo, a.nivel, a.titulo, a.detalhe, a.visto_em
                           from public.alertas a order by a.em desc limit 30) t),
     'aparelhos', v_aparelhos,
-    'ntfy', case when public.notificacoes_disponiveis() then g.ntfy_topico end);
+    'ntfy', case when public.notificacoes_disponiveis() then g.ntfy_topico end,
+    'resumo', public.resumo_ligado());
 end;
 $$;
 
@@ -692,17 +766,22 @@ end;
 $$;
 
 -- Para o guardião externo e o diagnóstico: só números, nada de dados de clientes.
+drop function if exists public.guardiao_publico();
 create or replace function public.guardiao_publico()
 returns json
-language sql
+language plpgsql
 stable
 security definer
 set search_path = ''
 as $$
-  select json_build_object(
-    'versao', 3,
+begin
+  return json_build_object(
+    'versao', 4,
+    'notificacoes', public.notificacoes_disponiveis(),
+    'resumo', public.resumo_ligado(),
     'pausado', coalesce((select g.pausado from public.guardiao g where g.id = 1), false),
-    'graves', (select count(*) from public.alertas a where a.visto_em is null and a.nivel = 'grave'))
+    'graves', (select count(*) from public.alertas a where a.visto_em is null and a.nivel = 'grave'));
+end;
 $$;
 
 -- ---------------------------------------------------------------------
@@ -779,6 +858,16 @@ create trigger trg_notifica_alerta
   after insert on public.alertas
   for each row execute function public.notifica_alerta();
 
+-- Hora curta: "15h", "13h30"
+create or replace function public.hora_texto(p_hora text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select split_part(p_hora, ':', 1)::int::text || 'h' || coalesce(nullif(split_part(p_hora, ':', 2), '00'), '')
+$$;
+
 -- Texto curto do dia e hora: "sábado, 14/11 às 15h"
 create or replace function public.quando_texto(p_data date, p_hora text)
 returns text
@@ -787,8 +876,97 @@ immutable
 set search_path = ''
 as $$
   select (array['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'])[extract(dow from p_data)::int + 1]
-         || ', ' || to_char(p_data, 'DD/MM') || ' às '
-         || split_part(p_hora, ':', 1)::int::text || 'h' || coalesce(nullif(split_part(p_hora, ':', 2), '00'), '')
+         || ', ' || to_char(p_data, 'DD/MM') || ' às ' || public.hora_texto(p_hora)
+$$;
+
+-- Bom dia: "Você tem 4 agendamentos para hoje: 13h, 14h, 15h30 e 17h."
+-- Só manda se houver agendamento no dia. Resposta: 'enviado' | 'vazio' | 'falhou'
+create or replace function public.resumo_do_dia()
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_hoje date := public.agora_sp()::date;
+  n_conf integer;
+  n_ped integer;
+  v_horas text;
+  n integer;
+begin
+  select count(*) filter (where h.status = 'confirmado'), count(*) filter (where h.status = 'pedido'),
+         string_agg(public.hora_texto(h.hora), ', ' order by h.hora)
+    into n_conf, n_ped, v_horas
+    from public.horarios h
+   where h.data = v_hoje and h.status in ('confirmado', 'pedido');
+  n := coalesce(n_conf, 0) + coalesce(n_ped, 0);
+  if n = 0 then
+    return 'vazio';
+  end if;
+  v_horas := regexp_replace(v_horas, ', ([^,]*)$', ' e \1');
+  if public.notificar('Bom dia! Sua agenda de hoje',
+       'Você tem ' || n || case when n = 1 then ' agendamento' else ' agendamentos' end || ' para hoje: ' || v_horas || '.'
+       || case when n_ped = 1 then ' 1 ainda espera a sua confirmação.'
+               when n_ped > 1 then ' ' || n_ped || ' ainda esperam a sua confirmação.' else '' end,
+       3, 'sunny') then
+    return 'enviado';
+  end if;
+  return 'falhou';
+end;
+$$;
+
+-- Todo dia às 6h de Brasília (9h no relógio do servidor, que usa UTC)
+do $$
+begin
+  begin
+    create extension if not exists pg_cron with schema pg_catalog;
+  exception when others then
+    begin
+      create extension if not exists pg_cron;
+    exception when others then
+      raise notice 'pg_cron indisponível: o resumo das 6h fica desligado';
+    end;
+  end;
+  if to_regprocedure('cron.schedule(text,text,text)') is not null then
+    execute $cmd$select cron.schedule('amanda-resumo-do-dia', '0 9 * * *', 'select public.resumo_do_dia()')$cmd$;
+  end if;
+exception when others then
+  raise notice 'não consegui agendar o resumo das 6h: %', sqlerrm;
+end $$;
+
+create or replace function public.resumo_ligado()
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  r boolean := false;
+begin
+  if to_regclass('cron.job') is null then
+    return false;
+  end if;
+  execute 'select exists (select 1 from cron.job where jobname = $1)' into r using 'amanda-resumo-do-dia';
+  return coalesce(r, false);
+exception when others then
+  return false;
+end;
+$$;
+
+-- Botão "Enviar o resumo de hoje agora" do painel
+create or replace function public.enviar_resumo_agora()
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_admin() then
+    return 'sem_acesso';
+  end if;
+  return public.resumo_do_dia();
+end;
 $$;
 
 -- Botão "Enviar teste" do painel
@@ -897,6 +1075,12 @@ revoke all on function public.notifica_alerta() from public, anon, authenticated
 revoke all on function public.notificacoes_disponiveis() from public, anon, authenticated;
 revoke all on function public.quando_texto(date, text) from public, anon, authenticated;
 revoke all on function public.testar_notificacao() from public, anon, authenticated;
+revoke all on function public.duracao_de(text) from public, anon, authenticated;
+revoke all on function public.trava_dia() from public, anon, authenticated;
+revoke all on function public.hora_texto(text) from public, anon, authenticated;
+revoke all on function public.resumo_do_dia() from public, anon, authenticated;
+revoke all on function public.resumo_ligado() from public, anon, authenticated;
+revoke all on function public.enviar_resumo_agora() from public, anon, authenticated;
 revoke all on function public.salvar_cliente(text, text) from public, anon, authenticated;
 
 grant execute on function public.agenda_publica() to anon, authenticated;
@@ -911,4 +1095,5 @@ grant execute on function public.definir_protecao(boolean) to authenticated;
 grant execute on function public.marcar_alertas_vistos() to authenticated;
 grant execute on function public.clientes_resumo() to authenticated;
 grant execute on function public.testar_notificacao() to authenticated;
+grant execute on function public.enviar_resumo_agora() to authenticated;
 grant execute on function public.salvar_cliente(text, text) to authenticated;

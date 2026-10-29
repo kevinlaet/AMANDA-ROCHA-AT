@@ -35,6 +35,12 @@ export async function criarBanco({ schema } = {}) {
     create table net.enviados (id serial primary key, url text, body jsonb, em timestamptz default now());
     create function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds integer default 5000)
     returns bigint language sql as $$ insert into net.enviados (url, body) values (url, body) returning id $$;
+    -- imita o pg_cron do Supabase: guarda as tarefas agendadas
+    create schema cron;
+    create table cron.job (jobid serial primary key, jobname text unique, schedule text, command text);
+    create function cron.schedule(job_name text, schedule text, command text) returns bigint language sql as $$
+      insert into cron.job (jobname, schedule, command) values (job_name, schedule, command)
+      on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command returning jobid $$;
     insert into auth.users (email) values ('${EMAIL_ADMIN}'), ('outra@pessoa.com');
     grant usage on schema auth, public to anon, authenticated;
     -- o Supabase dá estes privilégios por padrão; o schema precisa se proteger mesmo assim

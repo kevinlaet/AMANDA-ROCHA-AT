@@ -8,7 +8,7 @@ export const ANON_KEY = 'sb_publishable_chave_de_teste';
 export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa' };
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem']) };
+const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao']) };
 
 export function criarApi({ db, como, opcoes = {} }) {
   let fila = Promise.resolve();
@@ -93,6 +93,7 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/servicos_publicos') return json(route, await lista('select * from public.servicos_publicos()'));
         const rpc1 = { '/rest/v1/rpc/situacao_guardiao': 'select public.situacao_guardiao() j', '/rest/v1/rpc/marcar_alertas_vistos': 'select public.marcar_alertas_vistos() j', '/rest/v1/rpc/guardiao_publico': 'select public.guardiao_publico() j' };
         if (rpc1[caminho]) return json(route, (await db.query(rpc1[caminho])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/enviar_resumo_agora') return json(route, (await db.query('select public.enviar_resumo_agora() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/testar_notificacao') return json(route, (await db.query('select public.testar_notificacao() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/clientes_resumo') return json(route, (await db.query('select public.clientes_resumo() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/salvar_cliente') { const b = req.postDataJSON() || {}; return json(route, (await db.query('select public.salvar_cliente($1, $2) j', [b.p_chave, b.p_obs])).rows[0].j); }

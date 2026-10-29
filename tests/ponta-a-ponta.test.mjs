@@ -556,6 +556,72 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await c3.close();
 }
 
+// ===== 4h. Duração dos procedimentos =====
+{
+  const D25 = await dia(25);
+  await db.exec(`insert into horarios (data, hora) select '${D25}'::date, h from unnest(array['11:00','12:00','13:00','14:00','14:30','16:00']) h`);
+  const idD = async (h) => (await horario(D25, h)).id;
+  const id13 = await idD('13:00');
+  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Lara Limpeza', '11930001111')`, [id13]));
+  // site: só aparecem os horários em que o procedimento cabe
+  const cs = await contexto(ANDROID);
+  const S = await cs.newPage();
+  await S.goto(BASE); await S.waitForSelector('#o-dia .opt');
+  const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const rotDia = `${D25.slice(8)} ${MES[+D25.slice(5, 7) - 1]}`;
+  const hora = (h) => S.locator(`#o-hora .opt:has(.a:text-is("${h}"))`);
+  await S.click('#o-servico .opt:has-text("Auriculoterapia")'); await S.click(`#o-dia .opt:has-text("${rotDia}")`);
+  ok(await hora('14h').isDisabled() && !(await hora('14h30').isDisabled()) && !(await hora('12h').isDisabled()), 'site: com a limpeza das 13h (1h30), a auriculoterapia das 14h fica bloqueada e a das 14h30 liberada');
+  await S.click('#o-servico .opt:has-text("Limpeza de pele")'); await S.click(`#o-dia .opt:has-text("${rotDia}")`);
+  ok(await hora('12h').isDisabled() && !(await hora('11h').isDisabled()), 'site: limpeza às 12h fica bloqueada (terminaria em cima da das 13h); às 11h pode');
+  // tela desatualizada: alguém marca às 15h antes; a limpeza das 14h30 passa a não caber
+  await S.click(`#o-hora .opt:has(.a:text-is("14h30"))`);
+  await S.fill('#nome', 'Mara Atrasada'); await S.fill('#tel', '11930002222');
+  await db.exec(`insert into horarios (data, hora, status, nome, telefone, servico, pedido_em) values ('${D25}', '15:00', 'confirmado', 'Dona Quinze', '11930003333', 'Auriculoterapia', now())`);
+  await S.click('#go');
+  await S.waitForFunction(() => /ficou apertado/.test(document.getElementById('resumo').innerText));
+  ok((await horario(D25, '14:30')).status === 'livre', 'site: com a tela velha, o banco recusa o horário colado e a cliente é avisada para escolher outro');
+  ok(await hora('14h30').isDisabled(), 'site: depois do aviso, o 14h30 aparece bloqueado para limpeza');
+  await cs.close();
+
+  // painel: horário bloqueado e aviso antes de marcar colado
+  const c = await contexto(IPHONE);
+  const M = await c.newPage();
+  await M.goto(BASE + 'admin/'); await M.fill('#email', EMAIL_ADMIN); await M.fill('#senha', 'certa'); await M.click('#bLogin');
+  await M.waitForSelector('#vApp:not([hidden])');
+  await aba(M, 'agenda');
+  const chip14 = M.locator(`#agenda [data-abrir="${await idD('14:00')}"]`);
+  ok(/bloqueado/.test(await chip14.innerText()), 'painel: o 14h aparece como "bloqueado" (fica dentro da limpeza das 13h)');
+  if (CAPTURAS) await M.locator(`#agenda .dia:has([data-abrir="${await idD('14:00')}"])`).screenshot({ path: path.join(CAPTURAS, 'painel-bloqueado.png') });
+  await chip14.click();
+  ok(/dentro do atendimento de Lara às 13h \(Limpeza de pele, 1h30\)/.test(await M.locator('#sheet').innerText()), 'painel: explica por que as clientes não conseguem marcar o 14h');
+  await M.click('#sheet [data-a=perg-ocupar]');
+  await M.fill('#fNome', 'Encaixe Teste'); await M.selectOption('#fServ', 'Auriculoterapia');
+  await M.click('#sheet [data-a=ocupar]');
+  ok(await M.locator('#avisoConflito').isVisible() && /vai encostar no atendimento de Lara às 13h/.test(await M.locator('#avisoConflito').innerText()), 'painel: ao marcar colado, aparece o aviso');
+  ok((await horario(D25, '14:00')).status === 'livre' && (await M.locator('#sheet [data-a=ocupar]').innerText()) === 'Marcar mesmo assim', 'painel: nada é gravado até ela tocar em "Marcar mesmo assim"');
+  if (CAPTURAS) await M.locator('#sheet').screenshot({ path: path.join(CAPTURAS, 'painel-aviso-colado.png') });
+  await M.click('#sheet [data-a=ocupar]');
+  await M.waitForFunction(() => /marcado como ocupado/.test(document.getElementById('toast').innerText));
+  ok((await horario(D25, '14:00')).nome === 'Encaixe Teste', 'painel: ela decide e consegue encaixar mesmo assim');
+  // serviços: duração editável
+  await doMais(M, 'servicos');
+  ok(/Leva 1h30/.test(await M.locator('#servicos .serv', { hasText: 'Limpeza de pele' }).innerText()), 'serviços: mostra quanto tempo cada procedimento leva');
+  await M.click('[data-acao=serv-editar][data-serv="limpeza"]');
+  ok((await M.inputValue('#sDur')) === '90', 'serviços: a duração vem preenchida (1h30)');
+  await M.selectOption('#sDur', '120'); await M.click('[data-acao=serv-salvar]');
+  await M.waitForFunction(() => /Serviço atualizado/.test(document.getElementById('toast').innerText));
+  ok((await q(`select duracao from servicos where id = 'limpeza'`))[0].duracao === 120, 'serviços: a Amanda muda a duração da limpeza para 2h');
+  await db.exec(`update servicos set duracao = 90 where id = 'limpeza'`);
+  // resumo das 6h: botão de teste
+  await doMais(M, 'seguranca');
+  ok(/Todo dia às 6h/.test(await M.locator('#gNtfy').innerText()), 'segurança: explica o resumo das 6h');
+  await M.click('[data-acao=resumo-agora]');
+  await M.waitForFunction(() => /(Resumo de hoje enviado|não há agendamentos)/.test(document.getElementById('toast').innerText));
+  ok(true, 'segurança: "Mandar o resumo de hoje agora" responde');
+  await c.close();
+}
+
 // ===== 4f. Painel com o banco ainda na versão antiga (sem a atualização): nada pode dar erro =====
 {
   const velho = await criarBanco({ schema: path.join(RAIZ, 'tests/fixtures/schema-antes-da-atualizacao-2.sql') });

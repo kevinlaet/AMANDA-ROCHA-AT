@@ -25,6 +25,13 @@
   function servico(){return A.servicos.filter(function(s){return s.id===S.servico})[0]}
   function slot(){return slots.filter(function(q){return q.id===S.hora})[0]}
   function cedoDemais(d){var s=servico();return !!(s&&s.desde&&d<s.desde)}
+  // duração: o procedimento escolhido precisa caber sem encostar em outro atendimento
+  // (aceita "13:00", "13h" e "13h30")
+  function minDe(h){var m=/^(\d{1,2})(?:[:h](\d{2})?)?/.exec(h||'');return m?(+m[1])*60+(+(m[2]||0)):0}
+  function durServ(){var s=servico();return s&&s.duracao?+s.duracao:60}
+  function fimOcupado(o){if(!o.ate)return minDe(o.hora)+60;var t=String(o.ate).replace(' ','T'),d=t.slice(0,10),m=minDe(t.slice(11,16));return d>o.data?1440+m:m}
+  function cabe(q){if(!q||q.status!=='livre')return false;var a=minDe(q.hora),b=a+durServ();
+    return !slots.some(function(o){if(o.data!==q.data||o.status==='livre')return false;var c=minDe(o.hora);return c<b&&fimOcupado(o)>a})}
 
   // Com o Supabase ligado, o banco decide o que aparece (horário de Brasília).
   // Sem ele, usa a lista do agenda.js.
@@ -34,20 +41,20 @@
     // serviços: os que a Amanda cadastrou no painel; se o banco ainda não tiver a tabela, ficam os do agenda.js
     var serv=fetch(C.url+'/rest/v1/rpc/servicos_publicos',{method:'POST',headers:cab(),body:'{}'})
       .then(function(r){if(!r.ok)throw 0;return r.json()})
-      .then(function(j){if(Array.isArray(j))A.servicos=j.map(function(x){return {id:x.id,nome:x.nome,detalhe:x.detalhe||'',novidade:!!x.novidade,desde:x.desde||null}})})
+      .then(function(j){if(Array.isArray(j))A.servicos=j.map(function(x){return {id:x.id,nome:x.nome,detalhe:x.detalhe||'',novidade:!!x.novidade,desde:x.desde||null,duracao:+x.duracao||0}})})
       .catch(function(){});
     var ag=fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:cab(),body:'{}'})
       .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j||[];falhou=false}).catch(function(){falhou=true});
     return Promise.all([serv,ag]);
   }
-  function dias(){var m={},out=[];slots.forEach(function(x){if(FILTRO&&!verTodos&&FILTRO.indexOf(x.data)<0)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
+  function dias(){var m={},out=[];slots.forEach(function(x){if(x.status==='bloqueio')return;if(FILTRO&&!verTodos&&FILTRO.indexOf(x.data)<0)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
     return out.map(function(d){return {data:d,slots:m[d]}})}
   // depois de recarregar, desfaz escolhas que deixaram de valer
   function conferir(){
     if(S.servico&&!servico())S.servico=null;
     var ds=dias(),d=ds.filter(function(x){return x.data===S.dia})[0];
     if(S.dia&&(!d||cedoDemais(S.dia))){S.dia=null;S.hora=null}
-    var q=slot();if(S.hora&&(!q||q.status!=='livre'))S.hora=null;
+    var q=slot();if(S.hora&&!cabe(q))S.hora=null;
   }
 
   function opt(a,b,pill,on,dis){var el=document.createElement('button');el.type='button';el.className='opt';el.setAttribute('aria-pressed',on?'true':'false');if(dis)el.disabled=true;
@@ -71,14 +78,14 @@
     if(falhou)o.innerHTML='<p class="empty">'+CAL+'<span>Não consegui carregar a agenda agora. <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Chame a Amanda no WhatsApp</a>.</span></p>';
     else if(!ds.length&&FILTRO&&!verTodos&&slots.length)o.innerHTML='<p class="empty">'+CAL+'<span><b>Esses horários já foram preenchidos.</b><br>Toque em “Ver todos os dias” acima ou <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">chame a Amanda no WhatsApp</a>.</span></p>';
     else if(!ds.length)o.innerHTML='<p class="empty">'+CAL+'<span><b>Novas datas em breve.</b><br>Quer um horário antes? <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Chame a Amanda no WhatsApp</a>.</span></p>';
-    ds.forEach(function(d){var x=utc(d.data),livres=d.slots.filter(function(q){return q.status==='livre'}),cedo=cedoDemais(d.data);
+    ds.forEach(function(d){var x=utc(d.data),livres=d.slots.filter(cabe),cedo=cedoDemais(d.data);
       var sub=cedo?'a partir de '+curta(servico().desde):livres.length?sem(d.data).toLowerCase():'lotado';
       var el=opt(dd(x.getUTCDate())+' '+MES[x.getUTCMonth()],sub,'',S.dia===d.data,!livres.length||cedo);
       el.onclick=function(){S.dia=d.data;S.hora=null;aviso='';render()};o.appendChild(el)});
 
     o=$('o-hora');
     if(S.dia){o.innerHTML='';var d=ds.filter(function(x){return x.data===S.dia})[0];
-      if(d)d.slots.forEach(function(q){var el=opt(hh(q.hora),q.status==='livre'?'':'ocupado','',S.hora===q.id,q.status!=='livre');el.onclick=function(){S.hora=q.id;aviso='';render()};o.appendChild(el)})}
+      if(d)d.slots.forEach(function(q){var ok=cabe(q),el=opt(hh(q.hora),ok?'':'ocupado','',S.hora===q.id,!ok);el.onclick=function(){S.hora=q.id;aviso='';render()};o.appendChild(el)})}
     else o.innerHTML='<p class="empty">'+CAL+'<span>Escolha um dia primeiro.</span></p>';
 
     $('go').disabled=enviando||reservado||!(S.servico&&S.dia&&S.hora&&$('nome').value.trim().length>1&&(!live||telOk()));
@@ -137,6 +144,7 @@
           reservado=true;render();
           $('resumo').innerHTML='<b>Quase lá!</b><br>Envie a mensagem no WhatsApp e a Amanda confirma seu horário por lá.<br><a href="'+url+'">Abrir o WhatsApp</a>';
           $('resumo').className='resumo on ok';location.href=url;return}
+        if(res==='conflito'){S.hora=null;aviso='<b>Esse horário ficou apertado para o procedimento.</b><br>Ele encosta em outro atendimento. Escolha outro horário, por favor.';return load().then(render)}
         if(res==='servico'){S.servico=null;S.dia=null;S.hora=null;aviso='<b>Os serviços acabaram de ser atualizados.</b><br>Escolha o serviço de novo, por favor.';return load().then(render)}
         if(res==='limite'){aviso='<b>Você já tem 2 horários reservados.</b><br>Para marcar mais, fale com a Amanda no WhatsApp.';render();return}
         if(res==='dados'){aviso='<b>Confira seu nome e WhatsApp.</b><br>Use o número com DDD.';render();return}

@@ -204,8 +204,8 @@
       var c={livre:0,pedido:0,confirmado:0};por[d].forEach(function(r){c[r.status]++});
       var resumo=[c.livre?c.livre+' livre'+(c.livre>1?'s':''):'',c.pedido?c.pedido+' pedido'+(c.pedido>1?'s':''):'',c.confirmado?c.confirmado+' confirmado'+(c.confirmado>1?'s':''):''].filter(Boolean).join(' · ');
       return '<div class="dia"><h3><span>'+dia(d)+'</span><button class="dia-op" type="button" data-acao="dia" data-dia="'+d+'">Opções do dia</button></h3><div class="resumo">'+resumo+'</div><div class="chips">'+por[d].map(function(r){
-        var rot=r.status==='livre'?'livre':esc(primeiro(r.nome));
-        return '<button class="s '+r.status+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?'livre':r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
+        var bloq=r.status==='livre'&&!cabeEm(r,menorDuracao()),rot=r.status==='livre'?(bloq?'bloqueado':'livre'):esc(primeiro(r.nome));
+        return '<button class="s '+r.status+(bloq?' bloq':'')+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?(bloq?'livre, mas bloqueado por outro atendimento':'livre'):r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
       '<p class="vazio">Nenhum horário aberto ainda. Toque em “Abrir novos horários” acima.</p>';
     if(!rows.length&&$('cardAbrir').hidden)mostrarAbrir(true,true);
     var ate=somaDias(hojeSP(),7),prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
@@ -226,6 +226,20 @@
   // ---------- painel de ações ----------
   function linha(id){return rows.filter(function(r){return r.id===id})[0]}
   function listaServ(){return servs||(window.AGENDA&&AGENDA.servicos)||[]}
+  // ---------- duração dos procedimentos ----------
+  // cada atendimento ocupa a duração do serviço (desconhecido ou "combinado por fora": 1 hora)
+  function duracaoDe(nome){var n=semAcento(nome),x=listaServ().filter(function(v){return semAcento(v.nome)===n})[0];return x&&+x.duracao?+x.duracao:60}
+  function minutos(h){return (+h.slice(0,2))*60+(+h.slice(3,5))}
+  function durTxt(m){var h=Math.floor(m/60),r=m%60;return h?h+'h'+(r?dd(r):''):r+' min'}
+  // atendimentos do mesmo dia que se sobrepõem a [hora, hora + dur), ignorando os ids informados
+  function conflitos(data,hora,dur,ignorar){var a=minutos(hora),b=a+dur;ignorar=ignorar||[];
+    return rows.filter(function(o){if(o.data!==data||o.status==='livre'||ignorar.indexOf(o.id)>=0)return false;var c=minutos(o.hora);return c<b&&c+duracaoDe(o.servico)>a})}
+  // horário livre que fica dentro de um atendimento que já começou (ex.: 14h30 dentro da limpeza das 14h)
+  function dentroDe(r){var a=minutos(r.hora);return rows.filter(function(o){if(o.data!==r.data||o.status==='livre'||o.id===r.id)return false;var c=minutos(o.hora);return c<a&&c+duracaoDe(o.servico)>a})[0]}
+  // um horário livre "cabe" um procedimento de dur minutos sem encostar em ninguém
+  function cabeEm(r,dur){return r.status==='livre'&&!conflitos(r.data,r.hora,dur,[r.id]).length}
+  function menorDuracao(){var d=listaServ().filter(function(x){return x.ativo!==false}).map(function(x){return +x.duracao||60});return d.length?Math.min.apply(null,d):60}
+  function textoConflito(l){return l.map(function(o){return esc(primeiro(o.nome))+' às '+hh(o.hora)+' ('+esc(servRot(o))+', '+durTxt(duracaoDe(o.servico))+')'}).join(' e ')}
   function opcoesServ(sel){var l=listaServ().map(function(x){return x.nome});if(sel&&POR_FORA.indexOf(sel)<0&&l.indexOf(sel)<0)l.unshift(sel);
     return '<option value="">Combinado por fora</option>'+l.map(function(n){return '<option'+(n===sel?' selected':'')+'>'+esc(n)+'</option>'}).join('')}
   function campos(r){r=r||{};return '<label for="fNome">Nome da cliente</label><input type="text" id="fNome" maxlength="60" value="'+esc(r.nome&&r.nome!=='Marcado por fora'?r.nome:'')+'" placeholder="Ex.: Maria Silva">'+
@@ -243,6 +257,9 @@
       (r.status!=='livre'?'<div class="d">'+esc(r.nome)+' · '+esc(servRot(r))+(r.telefone?' · '+fmtTel(r.telefone):'')+'</div>':'')+
       (r.lembrete_em?'<div class="d" style="color:var(--ok)">✓ Lembrete enviado '+idade(r.lembrete_em)+'</div>':'')+
       (passou(r)?'<div class="d" style="color:var(--bad)">Esse horário já passou.</div>':'')+'</div>';
+    if(r.status==='livre'&&!pergunta){var dn=dentroDe(r),cf=dn?null:conflitos(r.data,r.hora,menorDuracao(),[r.id]);
+      if(dn)h+='<div class="aviso-dur">As clientes não conseguem marcar este horário pelo site: ele fica dentro do atendimento de '+textoConflito([dn])+'.</div>';
+      else if(cf.length)h+='<div class="aviso-dur">As clientes não conseguem marcar este horário pelo site: não dá tempo de nenhum procedimento antes do atendimento de '+textoConflito(cf)+'.</div>'}
     var dis=ocupado?' disabled':'',V='<button class="btn ghost" data-a="voltar" type="button">Voltar</button>';
     if(pergunta==='recusar')h+='<div class="pergunta">Recusar o pedido de '+nm+'? O horário volta a ficar livre no site.</div><button class="btn bad-solid" data-a="recusar" type="button"'+dis+'>Sim, recusar</button>'+V;
     else if(pergunta==='cancelar')h+='<div class="pergunta">Cancelar o horário de '+nm+'? Ele volta a ficar livre no site.</div><button class="btn bad-solid" data-a="cancelar" type="button"'+dis+'>Sim, cancelar e liberar</button>'+V;
@@ -253,8 +270,10 @@
     else if(pergunta==='mover')h+='<label for="fData">Dia</label><input type="date" id="fData" value="'+r.data+'" min="'+hojeSP()+'"><label for="fHora">Horário</label><input type="time" id="fHora" value="'+r.hora+'" step="900"><button class="btn main" data-a="mover" type="button"'+dis+'>Salvar novo dia e horário</button>'+V;
     else if(pergunta==='remarcar'){
       var op=livresPara(r),dst=destino&&linha(destino);
+      var cfr=dst?conflitos(dst.data,dst.hora,duracaoDe(r.servico),[r.id,dst.id]):[];
       h+='<div class="destinos"><span class="label">Para qual horário livre?</span>'+(op.length?op.map(function(g){return '<h4>'+dia(g.data)+'</h4><div class="chips">'+g.itens.map(function(x){return '<button class="chip" type="button" data-destino="'+esc(x.id)+'" aria-pressed="'+(destino===x.id)+'">'+hh(x.hora)+'</button>'}).join('')+'</div>'}).join(''):'<p class="vazio">Nenhum horário livre. Abra um horário antes e volte aqui.</p>')+'</div>'+
-        '<button class="btn main" data-a="remarcar" type="button"'+(dst&&!ocupado?'':' disabled')+'>'+(dst?'Remarcar '+nm+' para '+dia(dst.data)+' às '+hh(dst.hora):'Escolha o novo horário')+'</button>'+V;
+        (cfr.length?'<div class="aviso-dur forte"><b>Atenção:</b> '+esc(servRot(r))+' leva '+durTxt(duracaoDe(r.servico))+'. Nesse horário vai encostar no atendimento de '+textoConflito(cfr)+'.</div>':'')+
+        '<button class="btn main" data-a="remarcar" type="button"'+(dst&&!ocupado?'':' disabled')+'>'+(dst?(cfr.length?'Remarcar mesmo assim':'Remarcar '+nm+' para '+dia(dst.data)+' às '+hh(dst.hora)):'Escolha o novo horário')+'</button>'+V;
     }
     else{
       if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')}
@@ -305,6 +324,15 @@
     p.then(function(ok){if(ok)fecharSheet();else if(acao!=='remarcar')pergunta=null},falha)
      .then(function(){ocupado=false;return carregar()}).then(function(){if(aberto)desenharSheet()});
   }
+  // aviso de horário colado: a Amanda pode seguir mesmo assim (ela é quem decide)
+  function avisarConflito(b,lista,serv){
+    var old=$('avisoConflito');if(old)old.remove();
+    var d=document.createElement('div');d.id='avisoConflito';d.className='aviso-dur forte';
+    d.innerHTML='<b>Atenção:</b> '+esc(serv||'Combinado por fora')+' leva '+durTxt(duracaoDe(serv))+'. Nesse horário vai encostar no atendimento de '+textoConflito(lista)+'.';
+    b.parentNode.insertBefore(d,b);b.setAttribute('data-forcar','1');b.textContent=b.getAttribute('data-a')==='ocupar'?'Marcar mesmo assim':'Salvar mesmo assim';
+  }
+  document.addEventListener('change',function(e){if(e.target&&e.target.id==='fServ'){var w=$('avisoConflito');if(w)w.remove();
+    var b=document.querySelector('#sheet [data-forcar]');if(b){b.removeAttribute('data-forcar');b.textContent=b.getAttribute('data-a')==='ocupar'?'Marcar como ocupado':'Salvar alterações'}}});
   function marcarLembrete(id){api('PATCH','horarios?id=eq.'+id+'&status=eq.confirmado',{lembrete_em:new Date().toISOString()},{Prefer:'return=minimal'}).then(function(){return carregar()},function(){})}
   document.addEventListener('click',function(e){
     var t=e.target;
@@ -315,6 +343,11 @@
     var de=t.closest('[data-destino]');if(de){destino=de.getAttribute('data-destino');desenharSheet();return}
     var b=t.closest('button[data-a]');if(!b)return;
     var a=b.getAttribute('data-a'),id=b.getAttribute('data-id')||aberto,r=linha(id);
+    if((a==='ocupar'||a==='editar')&&r&&!b.hasAttribute('data-forcar')){
+      var fs=($('fServ')||{}).value||'',mudouServ=a==='ocupar'||fs!==(r.servico||'');
+      var cfo=mudouServ?conflitos(r.data,r.hora,duracaoDe(fs),[r.id]):[];
+      if(cfo.length){avisarConflito(b,cfo,fs);return}
+    }
     if(a==='fechar'){fecharSheet();return}
     if(a==='voltar'){pergunta=null;destino=null;desenharSheet();return}
     if(!r)return;
@@ -365,7 +398,7 @@
   var envSel={},envImg=null;
   function limiteTxt(){var x=new Date(agoraSP().getTime()+60*60000);return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())+' '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())}
   // só entram horários livres que o site também mostra (começam daqui a mais de 1 hora)
-  function diasLivres(){var m={},o=[],lim=limiteTxt();rows.forEach(function(r){if(r.status!=='livre'||(r.data+' '+r.hora)<=lim)return;if(!m[r.data]){m[r.data]=[];o.push(r.data)}m[r.data].push(r.hora)});
+  function diasLivres(){var m={},o=[],lim=limiteTxt(),sv=servEnv(),dur=sv?duracaoDe(sv.nome):menorDuracao();rows.forEach(function(r){if(r.status!=='livre'||(r.data+' '+r.hora)<=lim||!cabeEm(r,dur))return;if(!m[r.data]){m[r.data]=[];o.push(r.data)}m[r.data].push(r.hora)});
     return o.map(function(d){return {data:d,horas:m[d].sort()}})}
   function selecionados(){return diasLivres().filter(function(d){return envSel[d.data]})}
   function dataLonga(d){var x=utc(d);return SEMLONGA[x.getUTCDay()]+', '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()]}
@@ -390,6 +423,7 @@
     el.innerHTML=sel.length?sel.map(function(d){return '<b>'+esc(cap(dataLonga(d.data)))+'</b><br>'+d.horas.map(hh).join(' · ')}).join('<br><br>'):(ds.length?'Toque nos dias que você quer oferecer.':'Sem horários livres no momento.');
     $('bLink').disabled=$('bImg').disabled=!sel.length;
   }
+  $('envServ').onchange=function(){desenharEnvio()};
   $('envDias').onclick=function(e){var b=e.target.closest('[data-env]');if(!b)return;var d=b.getAttribute('data-env');envSel[d]=!envSel[d];desenharEnvio()};
   var assinaturaServ='';
   function opcoesEnvio(){var l=listaServ(),sig=l.map(function(x){return x.id+'|'+x.nome}).join(',');if(sig===assinaturaServ)return;assinaturaServ=sig;
@@ -438,7 +472,7 @@
       x.textAlign='center';x.textBaseline='alphabetic';
       if(logo)x.drawImage(logo,W/2-80,56,160,160);
       x.fillStyle='#F5C59D';x.font='400 112px "Great Vibes", cursive';x.fillText('Amanda Rocha',W/2,350);
-      x.fillStyle='#FBE3CE';x.font='600 30px Cormorant, Georgia, serif';x.fillText('AURICULOTERAPIA  ·  ESTÉTICA',W/2,400);
+      x.fillStyle='#FBE3CE';x.font='600 30px Cormorant, Georgia, serif';x.fillText('BELEZA  ·  SAÚDE  ·  BEM-ESTAR',W/2,400);
       var y=490;x.fillStyle='#FFF8F1';x.font='800 70px '+F;x.fillText('Horários disponíveis',W/2,y);
       if(nome){y+=64;x.fillStyle='#F5C59D';x.font='700 44px '+F;x.fillText('para '+nome,W/2,y)}
       if(sv){y+=60;x.fillStyle='#FBE3CE';x.font='600 38px '+F;x.fillText(sv.nome,W/2,y)}
@@ -455,7 +489,7 @@
       x.textAlign='center';x.fillStyle='#053F3A';x.font='800 46px '+F;x.fillText('Gostou de um horário?',W/2,ry+76);
       x.font='600 36px '+F;x.fillText('Responda esta mensagem com',W/2,ry+130);x.fillText('o dia e a hora que você prefere.',W/2,ry+176);
       x.font='800 64px '+F;x.fillText(fmtZap(),W/2,ry+246);
-      x.fillStyle='rgba(251,227,206,.8)';x.font='700 24px "JetBrains Mono", monospace';x.fillText('EQUILÍBRIO • BEM-ESTAR • SAÚDE',W/2,H-34);
+      x.fillStyle='rgba(251,227,206,.8)';x.font='700 24px "JetBrains Mono", monospace';x.fillText('COM O CUIDADO DE UMA ENFERMEIRA',W/2,H-34);
       return new Promise(function(res){c.toBlob(res,'image/png')});
     });
   }
@@ -488,6 +522,7 @@
     if(a==='cli-obs')abrirObs(b.getAttribute('data-chave'));
     if(a==='ntfy-copiar')copiarCodigo();
     if(a==='ntfy-teste')testarNtfy(b);
+    if(a==='resumo-agora')resumoAgora(b);
     if(a==='cli-salvar')salvarObs(b.getAttribute('data-chave'),b);
     if(a==='dia')abrirDia(b.getAttribute('data-dia'));
     if(a==='dia-add')diaAdicionar(b.getAttribute('data-dia'),b);
@@ -530,11 +565,16 @@
     if(bancoVelho){el.innerHTML='<p class="vazio">Para editar os serviços por aqui, falta atualizar o banco.</p>';$('bNovoServ').hidden=true;return}
     $('bNovoServ').hidden=false;var l=servs||[];
     el.innerHTML=l.length?l.map(function(x){
-      var tags=(x.ativo?'':'<span class="tag off">Escondido do site</span>')+(x.novidade?'<span class="tag nov">Novidade</span>':'')+(x.desde?'<span class="tag">A partir de '+curta(x.desde)+'</span>':'');
+      var tags=(x.duracao?'<span class="tag">Leva '+durTxt(+x.duracao)+'</span>':'')+(x.ativo?'':'<span class="tag off">Escondido do site</span>')+(x.novidade?'<span class="tag nov">Novidade</span>':'')+(x.desde?'<span class="tag">A partir de '+curta(x.desde)+'</span>':'');
       return '<div class="card serv"><div><b>'+esc(x.nome)+'</b><span>'+esc(x.detalhe||'')+'</span>'+(tags?'<div class="tags">'+tags+'</div>':'')+'</div><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Editar</button></div>'}).join(''):
       '<p class="vazio">Nenhum serviço. Adicione o primeiro.</p>';
   }
   function servPorId(id){return (servs||[]).filter(function(x){return x.id===id})[0]}
+  // o banco só tem a coluna de duração depois da atualização
+  function temDuracao(){return !!(servs&&servs.length&&('duracao' in servs[0]))}
+  var DURACOES=[15,20,30,40,45,50,60,75,90,105,120,150,180];
+  function opcoesDuracao(atual){var l=DURACOES.slice();if(l.indexOf(atual)<0)l.push(atual);l.sort(function(a,b){return a-b});
+    return l.map(function(m){return '<option value="'+m+'"'+(m===atual?' selected':'')+'>'+durTxt(m)+'</option>'}).join('')}
   function abrirServ(id,perguntar){
     var x=id?servPorId(id):null;if(id&&!x){toast(MUDOU,true);return}
     var h='<div><span class="estado livre">Serviço</span><div class="t" id="envT">'+(x?esc(x.nome):'Novo serviço')+'</div></div>';
@@ -543,6 +583,8 @@
       '<label for="sDet">Descrição curta (opcional)</label><input type="text" id="sDet" maxlength="60" value="'+esc(x&&x.detalhe||'')+'" placeholder="Ex.: R$ 75 na inauguração">'+
       '<label class="check"><input type="checkbox" id="sAtivo"'+(!x||x.ativo?' checked':'')+'> Aparece no site</label>'+
       '<label class="check"><input type="checkbox" id="sNov"'+(x&&x.novidade?' checked':'')+'> Mostrar o selo “Novidade”</label>'+
+      (temDuracao()?'<label for="sDur">Quanto tempo leva</label><select id="sDur">'+opcoesDuracao(x&&+x.duracao||60)+'</select>'+
+        '<p class="dica">Conte também o tempo de arrumar para a próxima cliente. O site não deixa marcar outra cliente antes de terminar.</p>':'')+
       '<label for="sDesde">Pode ser marcado a partir de (opcional)</label><input type="date" id="sDesde" value="'+esc(x&&x.desde||'')+'">'+
       '<button class="btn main" data-acao="serv-salvar" data-serv="'+esc(x?x.id:'')+'" type="button">Salvar</button>'+
       (x?'<button class="btn bad" data-acao="serv-remover-perg" data-serv="'+esc(x.id)+'" type="button">Remover serviço…</button>':'')+
@@ -555,6 +597,7 @@
     var nome=$('sNome').value.trim(),det=$('sDet').value.trim(),desde=$('sDesde').value||null;
     if(nome.length<2){toast('Escreva o nome do serviço.',true);return}
     var dados={nome:nome.slice(0,40),detalhe:det?det.slice(0,60):null,ativo:$('sAtivo').checked,novidade:$('sNov').checked,desde:desde};
+    if($('sDur'))dados.duracao=+$('sDur').value;
     b.disabled=true;
     var req=id?api('PATCH','servicos?id=eq.'+encodeURIComponent(id),dados,{Prefer:'return=representation'})
               :api('POST','servicos',(dados.id=slug(nome),dados.ordem=(servs||[]).reduce(function(m,x){return Math.max(m,x.ordem||0)},0)+1,dados),{Prefer:'return=representation'});
@@ -617,7 +660,9 @@
       '<ol><li>Instale o app <b>ntfy</b> (App Store ou Play Store). É grátis.</li><li>Abra o app, toque em <b>+</b> e cole este código:</li></ol>'+
       '<div class="codigo" id="ntfyCodigo">'+esc(guard.ntfy)+'</div>'+
       '<div class="row"><button class="btn ghost" type="button" data-acao="ntfy-copiar">Copiar código</button><button class="btn main" type="button" data-acao="ntfy-teste">Enviar teste</button></div>'+
-      '<p class="dica">Depois toque em Enviar teste: se a notificação chegar no celular, está tudo certo. Não conte este código para ninguém.</p>';
+      '<p class="dica">Depois toque em Enviar teste: se a notificação chegar no celular, está tudo certo. Não conte este código para ninguém.</p>'+
+      '<div class="resumo-6h"><b>Todo dia às 6h</b><span>'+(guard.resumo?'Chega um resumo: “Você tem 4 agendamentos para hoje: 13h, 14h…”. Só quando houver agendamento.':'O resumo das 6h ainda não está ligado no banco.')+'</span>'+
+        (guard.resumo?'<button class="btn ghost" type="button" data-acao="resumo-agora">Mandar o resumo de hoje agora</button>':'')+'</div>';
     var al=guard.alertas||[];
     $('gAlertas').innerHTML=al.length?al.map(function(a){
       var det=a.tipo==='aparelho'?esc(nomeAparelho(a.detalhe))+'. Se foi você, pode ignorar. Se não foi, toque em “Sair dos outros aparelhos” e troque sua senha.':esc(a.detalhe||'');
@@ -650,6 +695,12 @@
   function testarNtfy(b){
     b.disabled=true;
     api('POST','rpc/testar_notificacao',{}).then(function(ok){toast(ok?'Notificação de teste enviada. Ela chega em alguns segundos.':'Não consegui enviar agora. Tente de novo em instantes.',!ok)},falha)
+      .then(function(){b.disabled=false});
+  }
+  function resumoAgora(b){
+    b.disabled=true;
+    api('POST','rpc/enviar_resumo_agora',{}).then(function(r){
+      toast(r==='enviado'?'Resumo de hoje enviado. Ele chega em alguns segundos.':r==='vazio'?'Hoje não há agendamentos, então não há resumo para mandar (de manhã também não chega nada).':'Não consegui enviar agora. Tente de novo em instantes.',r!=='enviado'&&r!=='vazio')},falha)
       .then(function(){b.disabled=false});
   }
   function sairOutros(b){
@@ -761,7 +812,7 @@
   });
   // horários livres que o site também mostra (mais de 1 h à frente), respeitando a estreia do serviço
   function proximosLivres(servNome,n){var sv=listaServ().filter(function(s){return s.nome===servNome})[0],desde=sv&&sv.desde,lim=limiteTxt();
-    var l=rows.filter(function(r){return r.status==='livre'&&(r.data+' '+r.hora)>lim&&(!desde||r.data>=desde)});
+    var dur=duracaoDe(servNome),l=rows.filter(function(r){return r.status==='livre'&&(r.data+' '+r.hora)>lim&&(!desde||r.data>=desde)&&cabeEm(r,dur)});
     // de preferência em dias diferentes, para ela ter escolha de verdade
     var out=[],dias={};l.forEach(function(r){if(out.length<n&&!dias[r.data]){out.push(r);dias[r.data]=1}});
     l.forEach(function(r){if(out.length<n&&out.indexOf(r)<0)out.push(r)});
@@ -769,7 +820,7 @@
   // convite para voltar: pessoal, com um motivo de verdade e dois horários prontos para escolher
   function conviteVolta(x){
     var n=primeiro(x.nome),d=diasDesde(x.ultima),sv=x.ultimo_servico||'',s=semAcento(sv);
-    var motivo=s.indexOf('auriculo')>=0?'Já faz '+d+' dias da sua última sessão de auriculoterapia. Com o tempo o efeito das sementes vai passando, e é a constância que mantém a ansiedade e o sono sob controle.':
+    var motivo=s.indexOf('auriculo')>=0?'Já faz '+d+' dias da sua última sessão de auriculoterapia. Com o tempo o efeito das sementes vai passando, e é a constância que mantém as dores, a ansiedade e o sono sob controle.':
       s.indexOf('limpeza')>=0?'Já faz '+d+' dias da sua limpeza de pele. A pele se renova mais ou menos a cada 4 semanas, então agora é o momento ideal para a próxima: o resultado dura muito mais quando a gente mantém o cuidado.':
       'Já faz '+d+' dias do seu último atendimento e lembrei de você.';
     var l=proximosLivres(sv,2);

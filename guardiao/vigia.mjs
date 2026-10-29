@@ -92,7 +92,7 @@ async function conferirBanco() {
 
   const ag = await rpc('agenda_publica');
   if (ag.status !== 200 || !Array.isArray(ag.json)) problema(`A agenda do site não respondeu (resposta ${ag.status || ag.erro}). As clientes não conseguem ver os horários.`);
-  else if (ag.json.some((h) => Object.keys(h).some((k) => !['id', 'data', 'hora', 'status'].includes(k)))) problema('A agenda pública está mostrando mais dados do que deveria.');
+  else if (ag.json.some((h) => Object.keys(h).some((k) => !['id', 'data', 'hora', 'status', 'ate'].includes(k)))) problema('A agenda pública está mostrando mais dados do que deveria.');
   const pd = await rpc('pedir_horario', { p_id: ZERO, p_servico: 'Teste', p_nome: 'Guardião', p_telefone: '11900000000' });
   if (pd.status !== 200 || pd.json !== 'indisponivel') problema(`A reserva de horário respondeu algo inesperado (${pd.status} ${pd.texto.slice(0, 80)}).`);
 
