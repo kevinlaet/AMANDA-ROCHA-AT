@@ -699,7 +699,7 @@
       '<div class="codigo" id="ntfyCodigo">'+esc(guard.ntfy)+'</div>'+
       '<div class="row"><button class="btn ghost" type="button" data-acao="ntfy-copiar">Copiar código</button><button class="btn main" type="button" data-acao="ntfy-teste">Enviar teste</button></div>'+
       '<p class="dica">Depois toque em Enviar teste: se a notificação chegar no celular, está tudo certo. Não conte este código para ninguém.</p>'+
-      '<div class="resumo-6h"><b>Todo dia às 6h</b><span>'+(guard.resumo?'Chega um resumo: “Você tem 4 agendamentos para hoje: 13h, 14h…”. Só quando houver agendamento.':'O resumo das 6h ainda não está ligado no banco.')+'</span>'+
+      '<div class="resumo-6h"><b>Todo dia às 6h</b><span>'+(guard.resumo?'Chega um resumo com cada cliente e o procedimento, por exemplo: “13h Maria · Auriculoterapia”. Só quando houver agendamento.':'O resumo das 6h ainda não está ligado no banco. Peça para o Kevin ligar o pg_cron no Supabase (Database › Extensions).')+'</span>'+
         (guard.resumo?'<button class="btn ghost" type="button" data-acao="resumo-agora">Mandar o resumo de hoje agora</button>':'')+'</div>';
     var al=guard.alertas||[];
     $('gAlertas').innerHTML=al.length?al.map(function(a){

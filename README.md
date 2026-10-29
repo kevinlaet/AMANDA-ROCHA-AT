@@ -90,7 +90,7 @@ Abra `…/admin/` no celular dela e escolha "Adicionar à tela de início" (no S
 
 ## Notificações no celular (app ntfy, grátis)
 
-A Amanda recebe um aviso a cada pedido novo e sempre que o guardião encontrar algo grave, mesmo com o painel fechado. Todo dia às 6h chega um resumo ("Você tem 4 agendamentos para hoje: 13h, 14h, 15h30 e 17h."), só quando houver agendamento; ele usa a extensão pg_cron do Supabase. As mensagens não levam nome nem telefone de cliente.
+A Amanda recebe um aviso a cada pedido novo e sempre que o guardião encontrar algo grave, mesmo com o painel fechado. Todo dia às 6h, só quando houver agendamento, chega um resumo ("Você tem 3 agendamentos para hoje:" e uma linha por cliente, como "• 13h Maria · Auriculoterapia"); ele usa a extensão pg_cron do Supabase. As mensagens levam só o primeiro nome da cliente, nunca telefone nem sobrenome.
 
 1. Instale o app **ntfy** (App Store ou Play Store).
 2. No painel, abra Mais › Segurança › Avisos no celular e toque em **Copiar código**.
