@@ -486,6 +486,8 @@
     if(a==='protecao')protecao(b.getAttribute('data-ligar')==='1',b);
     if(a==='sair-outros')sairOutros(b);
     if(a==='cli-obs')abrirObs(b.getAttribute('data-chave'));
+    if(a==='ntfy-copiar')copiarCodigo();
+    if(a==='ntfy-teste')testarNtfy(b);
     if(a==='cli-salvar')salvarObs(b.getAttribute('data-chave'),b);
     if(a==='dia')abrirDia(b.getAttribute('data-dia'));
     if(a==='dia-add')diaAdicionar(b.getAttribute('data-dia'),b);
@@ -547,7 +549,7 @@
       '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>';
     abrirEnvio(h);
   }
-  function slug(t){var b=String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,26)||'servico';
+  function slug(t){var b=String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,26)||'servico';
     if(b.length<2)b+='-s';var id=b,i=2;while(servPorId(id))id=b+'-'+(i++);return id}
   function salvarServ(id,b){
     var nome=$('sNome').value.trim(),det=$('sDet').value.trim(),desde=$('sDesde').value||null;
@@ -610,6 +612,12 @@
       '<button class="btn ghost" type="button" data-acao="protecao" data-ligar="1">Ligar proteção agora</button>'+
       '<p class="dica" style="margin-top:-4px">Use se perceber pedidos falsos: as clientes passam a confirmar com você pelo WhatsApp, e nada é perdido.</p>';
     st.className='card gst'+(e==='ok'?'':' '+e);st.innerHTML=h;
+    $('gNtfy').innerHTML=!guard.ntfy?'<p class="vazio">As notificações no celular ainda não estão ligadas no banco.</p>':
+      '<p>Receba no celular um aviso a cada <b>pedido novo</b> e sempre que o guardião encontrar algo estranho, mesmo com o painel fechado.</p>'+
+      '<ol><li>Instale o app <b>ntfy</b> (App Store ou Play Store). É grátis.</li><li>Abra o app, toque em <b>+</b> e cole este código:</li></ol>'+
+      '<div class="codigo" id="ntfyCodigo">'+esc(guard.ntfy)+'</div>'+
+      '<div class="row"><button class="btn ghost" type="button" data-acao="ntfy-copiar">Copiar código</button><button class="btn main" type="button" data-acao="ntfy-teste">Enviar teste</button></div>'+
+      '<p class="dica">Depois toque em Enviar teste: se a notificação chegar no celular, está tudo certo. Não conte este código para ninguém.</p>';
     var al=guard.alertas||[];
     $('gAlertas').innerHTML=al.length?al.map(function(a){
       var det=a.tipo==='aparelho'?esc(nomeAparelho(a.detalhe))+'. Se foi você, pode ignorar. Se não foi, toque em “Sair dos outros aparelhos” e troque sua senha.':esc(a.detalhe||'');
@@ -632,6 +640,16 @@
     b.disabled=true;
     api('POST','rpc/definir_protecao',{p_pausar:ligar}).then(function(g){if(g)guard=g;desenharGuardiao();
       toast(ligar?'Proteção ligada. As clientes agora confirmam com você pelo WhatsApp.':'Pronto! O agendamento pelo site voltou a funcionar.')},falha)
+      .then(function(){b.disabled=false});
+  }
+  function copiarCodigo(){
+    var t=guard&&guard.ntfy;if(!t)return;
+    var sel=function(){var r=document.createRange();r.selectNodeContents($('ntfyCodigo'));var x=getSelection();x.removeAllRanges();x.addRange(r);toast('Código selecionado. Toque em Copiar.')};
+    try{navigator.clipboard.writeText(t).then(function(){toast('Código copiado. Agora cole no app ntfy.')},sel)}catch(e){sel()}
+  }
+  function testarNtfy(b){
+    b.disabled=true;
+    api('POST','rpc/testar_notificacao',{}).then(function(ok){toast(ok?'Notificação de teste enviada. Ela chega em alguns segundos.':'Não consegui enviar agora. Tente de novo em instantes.',!ok)},falha)
       .then(function(){b.disabled=false});
   }
   function sairOutros(b){
@@ -741,8 +759,26 @@
     if(id==='envNome')desenharEnvio();
     (tel||inp).focus();
   });
-  function zapCliente(x,volta){if(!x.telefone)return '';var n=primeiro(x.nome);
-    var t=volta?'Oi, '+n+'! Aqui é a Amanda. Faz um tempinho que você não vem, estou com horários abertos. Quer que eu separe um para você?':'Oi, '+n+'! Aqui é a Amanda.';
+  // horários livres que o site também mostra (mais de 1 h à frente), respeitando a estreia do serviço
+  function proximosLivres(servNome,n){var sv=listaServ().filter(function(s){return s.nome===servNome})[0],desde=sv&&sv.desde,lim=limiteTxt();
+    var l=rows.filter(function(r){return r.status==='livre'&&(r.data+' '+r.hora)>lim&&(!desde||r.data>=desde)});
+    // de preferência em dias diferentes, para ela ter escolha de verdade
+    var out=[],dias={};l.forEach(function(r){if(out.length<n&&!dias[r.data]){out.push(r);dias[r.data]=1}});
+    l.forEach(function(r){if(out.length<n&&out.indexOf(r)<0)out.push(r)});
+    return out.sort(function(a,b){return (a.data+a.hora)<(b.data+b.hora)?-1:1})}
+  // convite para voltar: pessoal, com um motivo de verdade e dois horários prontos para escolher
+  function conviteVolta(x){
+    var n=primeiro(x.nome),d=diasDesde(x.ultima),sv=x.ultimo_servico||'',s=semAcento(sv);
+    var motivo=s.indexOf('auriculo')>=0?'Já faz '+d+' dias da sua última sessão de auriculoterapia. Com o tempo o efeito das sementes vai passando, e é a constância que mantém a ansiedade e o sono sob controle.':
+      s.indexOf('limpeza')>=0?'Já faz '+d+' dias da sua limpeza de pele. A pele se renova mais ou menos a cada 4 semanas, então agora é o momento ideal para a próxima: o resultado dura muito mais quando a gente mantém o cuidado.':
+      'Já faz '+d+' dias do seu último atendimento e lembrei de você.';
+    var l=proximosLivres(sv,2);
+    var op=l.length?'Separei '+(l.length>1?'dois horários':'um horário')+' para você:\n'+l.map(function(r,i){return (l.length>1?(i+1)+') ':'')+cap(semana(r.data))+', '+curta(r.data)+' às '+hh(r.hora)}).join('\n')+
+      '\n\nÉ só responder '+(l.length>1?'1 ou 2':'"quero"')+' que eu já reservo.':'Qual dia fica bom para você nas próximas semanas? Me responde aqui que eu encaixo você.';
+    return 'Oi, '+n+'! Aqui é a Amanda 🌿\n\n'+motivo+'\n\n'+op+'\n\nE lembra: indicando uma amiga que fechar um procedimento, você ganha 1 sessão de auriculoterapia. Te espero!';
+  }
+  function zapCliente(x,volta){if(!x.telefone)return '';
+    var t=volta?conviteVolta(x):'Oi, '+primeiro(x.nome)+'! Aqui é a Amanda.';
     return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t)}
   function desenharClientes(){
     var el=$('cliLista'),b=$('cliBusca').value.trim().toLowerCase(),bd=b.replace(/\D/g,'');

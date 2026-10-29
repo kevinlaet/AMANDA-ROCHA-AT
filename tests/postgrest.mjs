@@ -93,6 +93,7 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/servicos_publicos') return json(route, await lista('select * from public.servicos_publicos()'));
         const rpc1 = { '/rest/v1/rpc/situacao_guardiao': 'select public.situacao_guardiao() j', '/rest/v1/rpc/marcar_alertas_vistos': 'select public.marcar_alertas_vistos() j', '/rest/v1/rpc/guardiao_publico': 'select public.guardiao_publico() j' };
         if (rpc1[caminho]) return json(route, (await db.query(rpc1[caminho])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/testar_notificacao') return json(route, (await db.query('select public.testar_notificacao() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/clientes_resumo') return json(route, (await db.query('select public.clientes_resumo() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/salvar_cliente') { const b = req.postDataJSON() || {}; return json(route, (await db.query('select public.salvar_cliente($1, $2) j', [b.p_chave, b.p_obs])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/definir_protecao') return json(route, (await db.query('select public.definir_protecao($1) j', [!!(req.postDataJSON() || {}).p_pausar])).rows[0].j);

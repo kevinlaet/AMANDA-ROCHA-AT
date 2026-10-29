@@ -647,7 +647,9 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await M.click('#cliSumidas');
   const sum = await M.locator('#cliLista .cli').allInnerTexts();
   ok(sum.length === 1 && /Glória Antiga/.test(sum[0]) && /15 dias/.test(sum[0]) && /Convidar a voltar/.test(sum[0]), 'Clientes: só aparece quem está há mais de 10 dias sem vir, com o convite pronto');
-  ok((await M.locator('#cliLista .cli a.btn').getAttribute('href')).includes('Faz%20um%20tempinho'), 'Clientes: o convite já vai escrito no WhatsApp');
+  const convite = decodeURIComponent((await M.locator('#cliLista .cli a.btn').getAttribute('href')).split('text=')[1]);
+  ok(/^Oi, Glória!/.test(convite) && /15 dias da sua última sessão de auriculoterapia/.test(convite) && /Separei dois horários/.test(convite) && /1\) .+ às \d+h/.test(convite) && /responder 1 ou 2/.test(convite), 'Clientes: convite personalizado pelo serviço, com 2 horários livres de verdade para escolher');
+  console.log('   convite:', convite.replace(/\n/g, ' / '));
   await M.click('[data-cli-f=todas]');
   await foto(M, 'painel-clientes');
 
@@ -687,6 +689,13 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/Tudo normal/.test(await M.locator('#gStatus').innerText()), 'Segurança: "Tudo normal" quando não há nada grave');
   ok((await M.locator('#gAlertas .al', { hasText: 'Novo acesso ao painel' }).count()) >= 1 && (await M.locator('#gAlertas .novo').count()) >= 1, 'Segurança: alertas de novo acesso aparecem marcados como NOVO');
   ok((await M.locator('#gAparelhos .ap', { hasText: 'Este aparelho' }).count()) === 1, 'Segurança: lista os aparelhos conectados e marca "Este aparelho"');
+  const cod = (await M.locator('#ntfyCodigo').innerText()).trim();
+  ok(/^amanda-[0-9a-f]{20}$/.test(cod), 'Segurança: mostra o código secreto para assinar no app ntfy (' + cod + ')');
+  const antesN = (await q('select count(*)::int n from net.enviados'))[0].n;
+  await M.click('[data-acao=ntfy-teste]');
+  await M.waitForFunction(() => /teste enviada/.test(document.getElementById('toast').innerText));
+  const env = (await q('select url, body from net.enviados order by id desc limit 1'))[0];
+  ok((await q('select count(*)::int n from net.enviados'))[0].n === antesN + 1 && env.url === 'https://ntfy.sh/' && env.body.topic === cod, 'Segurança: "Enviar teste" manda a notificação para o canal dela no ntfy');
   await M.waitForFunction(() => document.getElementById('nMais').hidden);
   ok((await q(`select count(*)::int n from alertas where visto_em is null`))[0].n === 0, 'abrir a Segurança marca os alertas como vistos');
   await foto(M, 'painel-seguranca');

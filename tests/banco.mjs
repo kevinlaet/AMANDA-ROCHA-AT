@@ -30,6 +30,11 @@ export async function criarBanco({ schema } = {}) {
       updated_at timestamptz default now(),
       user_agent text
     );
+    -- imita o pg_net do Supabase: guarda o que seria enviado ao ntfy
+    create schema net;
+    create table net.enviados (id serial primary key, url text, body jsonb, em timestamptz default now());
+    create function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds integer default 5000)
+    returns bigint language sql as $$ insert into net.enviados (url, body) values (url, body) returning id $$;
     insert into auth.users (email) values ('${EMAIL_ADMIN}'), ('outra@pessoa.com');
     grant usage on schema auth, public to anon, authenticated;
     -- o Supabase dá estes privilégios por padrão; o schema precisa se proteger mesmo assim

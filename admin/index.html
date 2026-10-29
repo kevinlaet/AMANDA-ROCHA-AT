@@ -229,6 +229,9 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 .sug small{font-weight:600;color:var(--muted);font-size:13px;white-space:nowrap}
 textarea{width:100%;min-height:120px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;font:inherit;resize:vertical;outline:none}
 textarea:focus{border-color:var(--teal)}
+.ntfy{display:grid;gap:10px}.ntfy p{font-size:15px}
+.ntfy ol{margin-left:20px;display:grid;gap:6px;font-size:15px}
+.codigo{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:700;letter-spacing:.5px;text-align:center;background:var(--sand);border:2px dashed var(--peach);border-radius:12px;padding:12px;word-break:break-all;user-select:all;-webkit-user-select:all}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -374,6 +377,8 @@ textarea:focus{border-color:var(--teal)}
     <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
     <div class="aba-topo"><h2 class="aba-t">Segurança</h2><p>O guardião vigia o site o tempo todo e avisa aqui se algo sair do normal.</p></div>
     <div class="card gst" id="gStatus"><p class="vazio">Carregando…</p></div>
+    <h2>Avisos no celular</h2>
+    <div class="card ntfy" id="gNtfy"><p class="vazio">Carregando…</p></div>
     <h2>Alertas</h2>
     <div id="gAlertas"></div>
     <h2>Aparelhos conectados</h2>

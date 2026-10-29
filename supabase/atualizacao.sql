@@ -315,8 +315,9 @@ declare
   v_nome text;
   v_serv text := btrim(coalesce(p_servico, ''));
   v_desde date;
+  v_data date;
+  v_hora text;
   ativos integer;
-  n integer;
 begin
   -- conferência do diagnóstico e do guardião externo: não reserva nem conta nada
   if p_id = '00000000-0000-0000-0000-000000000000' then
@@ -335,7 +336,7 @@ begin
     v_tel := substr(v_tel, 3);
   end if;
   -- nome sem caracteres invisíveis, de controle ou espaços repetidos
-  v_nome := regexp_replace(coalesce(p_nome, ''), '[​-‏‪-‮⁠-⁩﻿]', '', 'g');
+  v_nome := regexp_replace(coalesce(p_nome, ''), '[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]', '', 'g');
   v_nome := left(btrim(regexp_replace(regexp_replace(v_nome, '[[:cntrl:]]', ' ', 'g'), '\s+', ' ', 'g')), 60);
 
   if length(v_nome) < 2 or v_nome !~ '[[:alpha:]]'
@@ -384,12 +385,15 @@ begin
    where h.id = p_id
      and h.status = 'livre'
      and (h.data + h.hora::time) > public.agora_sp() + public.antecedencia()
-     and (v_desde is null or h.data >= v_desde);
+     and (v_desde is null or h.data >= v_desde)
+  returning h.data, h.hora into v_data, v_hora;
 
-  get diagnostics n = row_count;
-  if n = 1 then
+  if found then
     insert into public.eventos (tipo, origem) values ('pedido', v_origem);
     perform public.vigia();
+    -- avisa a Amanda no celular (sem o nome da cliente)
+    perform public.notificar('Novo pedido de horário',
+      public.quando_texto(v_data, v_hora) || ' · ' || v_serv || '. Abra o painel para confirmar.', 4, 'calendar');
     return 'ok';
   end if;
   if not exists (select 1 from public.horarios h where h.id = p_id) then
@@ -511,7 +515,8 @@ begin
     'alertas', (select coalesce(json_agg(t order by t.em desc), '[]'::json)
                   from (select a.id, a.em, a.tipo, a.nivel, a.titulo, a.detalhe, a.visto_em
                           from public.alertas a order by a.em desc limit 30) t),
-    'aparelhos', v_aparelhos);
+    'aparelhos', v_aparelhos,
+    'ntfy', case when public.notificacoes_disponiveis() then g.ntfy_topico end);
 end;
 $$;
 
@@ -570,6 +575,107 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------
+-- Notificações no celular da Amanda (app ntfy, grátis).
+-- O código secreto do canal fica só aqui no banco; ela assina pelo painel.
+-- As mensagens não levam nome nem telefone de cliente.
+-- ---------------------------------------------------------------------
+do $$
+begin
+  create extension if not exists pg_net;
+exception when others then
+  raise notice 'pg_net indisponível: as notificações ficam desligadas';
+end $$;
+
+alter table public.guardiao add column if not exists ntfy_topico text not null
+  default ('amanda-' || substr(md5(random()::text || clock_timestamp()::text), 1, 20));
+alter table public.guardiao add column if not exists ntfy_ligado boolean not null default true;
+alter table public.guardiao add column if not exists painel_url text not null
+  default 'https://kevinlaet.github.io/AMANDA-ROCHA-AT/admin/';
+
+create or replace function public.notificacoes_disponiveis()
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$ select to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is not null $$;
+
+-- Envia a notificação sem travar nada: se der erro, o resto continua normalmente.
+create or replace function public.notificar(p_titulo text, p_texto text, p_prioridade integer, p_tag text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  g public.guardiao;
+begin
+  select * into g from public.guardiao where id = 1;
+  if g.ntfy_topico is null or not g.ntfy_ligado or not public.notificacoes_disponiveis() then
+    return false;
+  end if;
+  begin
+    execute 'select net.http_post(url := $1, body := $2, params := ''{}''::jsonb, headers := ''{"Content-Type": "application/json"}''::jsonb, timeout_milliseconds := 5000)'
+      using 'https://ntfy.sh/', jsonb_build_object('topic', g.ntfy_topico, 'title', p_titulo, 'message', p_texto,
+                                                   'priority', p_prioridade, 'tags', jsonb_build_array(p_tag), 'click', g.painel_url);
+    return true;
+  exception when others then
+    return false;
+  end;
+end;
+$$;
+
+-- Alertas graves e acessos novos ao painel viram notificação na hora.
+create or replace function public.notifica_alerta()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.nivel = 'grave' or new.tipo = 'aparelho' then
+    perform public.notificar(new.titulo,
+      case when new.tipo = 'aparelho' then 'Um aparelho novo entrou no seu painel. Se não foi você, abra o painel em Mais › Segurança.'
+           else 'Abra o painel em Mais › Segurança para ver o que aconteceu.' end,
+      case when new.nivel = 'grave' then 5 else 4 end,
+      case when new.nivel = 'grave' then 'warning' else 'lock' end);
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists trg_notifica_alerta on public.alertas;
+create trigger trg_notifica_alerta
+  after insert on public.alertas
+  for each row execute function public.notifica_alerta();
+
+-- Texto curto do dia e hora: "sábado, 14/11 às 15h"
+create or replace function public.quando_texto(p_data date, p_hora text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select (array['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'])[extract(dow from p_data)::int + 1]
+         || ', ' || to_char(p_data, 'DD/MM') || ' às '
+         || split_part(p_hora, ':', 1)::int::text || 'h' || coalesce(nullif(split_part(p_hora, ':', 2), '00'), '')
+$$;
+
+-- Botão "Enviar teste" do painel
+create or replace function public.testar_notificacao()
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_admin() then
+    return false;
+  end if;
+  return public.notificar('Notificações ligadas', 'Pronto! Os avisos da sua agenda vão chegar aqui.', 3, 'white_check_mark');
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- Clientes: a ficha de cada cliente é montada a partir da agenda;
 -- a Amanda só guarda anotações (alergias, preferências, observações).
 -- ---------------------------------------------------------------------
@@ -602,6 +708,7 @@ begin
                max(h.data) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()) as ultima,
                min(h.data + h.hora::time) filter (where (h.data + h.hora::time) > public.agora_sp()) as proxima,
                array_agg(distinct h.servico) filter (where h.servico is not null and h.servico not in ('Combinado por fora', 'Manual')) as servicos,
+               (array_agg(h.servico order by h.data desc, h.hora desc) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()))[1] as ultimo_servico,
                min(h.data) as desde,
                max(h.data) as recente,
                c.obs
@@ -654,6 +761,11 @@ revoke all on function public.definir_protecao(boolean) from public, anon, authe
 revoke all on function public.marcar_alertas_vistos() from public, anon, authenticated;
 revoke all on function public.guardiao_publico() from public, anon, authenticated;
 revoke all on function public.clientes_resumo() from public, anon, authenticated;
+revoke all on function public.notificar(text, text, integer, text) from public, anon, authenticated;
+revoke all on function public.notifica_alerta() from public, anon, authenticated;
+revoke all on function public.notificacoes_disponiveis() from public, anon, authenticated;
+revoke all on function public.quando_texto(date, text) from public, anon, authenticated;
+revoke all on function public.testar_notificacao() from public, anon, authenticated;
 revoke all on function public.salvar_cliente(text, text) from public, anon, authenticated;
 
 grant execute on function public.agenda_publica() to anon, authenticated;
@@ -667,4 +779,5 @@ grant execute on function public.situacao_guardiao() to authenticated;
 grant execute on function public.definir_protecao(boolean) to authenticated;
 grant execute on function public.marcar_alertas_vistos() to authenticated;
 grant execute on function public.clientes_resumo() to authenticated;
+grant execute on function public.testar_notificacao() to authenticated;
 grant execute on function public.salvar_cliente(text, text) to authenticated;

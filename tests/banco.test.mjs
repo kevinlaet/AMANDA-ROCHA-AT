@@ -194,7 +194,7 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok(await pedirDe(null, g1[0], 'Bruna Alves', '11960000001', 'Massagem') === 'servico', 'serviço escondido do site é recusado');
   ok(await pedirDe(null, g1[0], 'Ganhe pix em www.golpe.com', '11960000001') === 'dados', 'nome com endereço de site é recusado');
   ok(await pedirDe(null, g1[0], 'Bruna Alves', '11111111111') === 'dados', 'telefone com todos os números iguais é recusado');
-  ok(await pedirDe(null, g1[0], 'Bru​na‮  Alves\t', '11960000001', 'auriculoterapia') === 'ok', 'pedido com nome sujo e serviço em minúsculas é aceito');
+  ok(await pedirDe(null, g1[0], 'Bru\u200Bna\u202E  Alves\t', '11960000001', 'auriculoterapia') === 'ok', 'pedido com nome sujo e serviço em minúsculas é aceito');
   const limpa = (await q('select nome, servico from horarios where id = $1', [g1[0]]))[0];
   ok(limpa.nome === 'Bruna Alves' && limpa.servico === 'Auriculoterapia', 'nome guardado sem caracteres invisíveis e serviço com o nome oficial (' + JSON.stringify(limpa) + ')');
 
@@ -303,6 +303,19 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok(!!(await como('anon', null, () => tenta(q('select public.clientes_resumo()')))).erro && !!(await como('anon', null, () => tenta(q(`select public.salvar_cliente('x1', 'y')`)))).erro, 'visitante não vê nem altera clientes');
   ok((await como('authenticated', 'outra@pessoa.com', () => q('select public.clientes_resumo() c')))[0].c === null && (await como('authenticated', 'outra@pessoa.com', () => q(`select public.salvar_cliente('x1', 'y') r`)))[0].r === false, 'outra conta não vê nem altera clientes');
   ok(!!(await como('anon', null, () => tenta(q('select * from clientes')))).erro, 'a tabela de clientes é fechada');
+
+  // notificações no celular (ntfy)
+  const env = await q(`select body from net.enviados order by id`);
+  const corpos = env.map((e) => e.body), topico = (await q('select ntfy_topico t from guardiao'))[0].t;
+  ok(/^amanda-[0-9a-f]{20}$/.test(topico) && corpos.length && corpos.every((b) => b.topic === topico), 'notificações vão só para o canal secreto da Amanda');
+  ok(corpos.some((b) => b.title === 'Novo pedido de horário' && /^(domingo|segunda|terça|quarta|quinta|sexta|sábado), \d\d\/\d\d às \d+h/.test(b.message)), 'pedido novo vira notificação com dia e hora');
+  ok(corpos.some((b) => b.title === 'Proteção ligada automaticamente' && b.priority === 5), 'proteção automática vira notificação urgente');
+  ok(corpos.some((b) => b.title === 'Novo acesso ao painel'), 'acesso novo ao painel vira notificação');
+  ok(!corpos.some((b) => /Helena|Bruna|Enxurrada|119\d{8}/.test(JSON.stringify(b))), 'nenhuma notificação leva nome ou telefone de cliente');
+  ok((await como('authenticated', EMAIL_ADMIN, () => q('select public.testar_notificacao() r')))[0].r === true, 'botão de teste da Amanda envia uma notificação');
+  ok((await como('authenticated', 'outra@pessoa.com', () => q('select public.testar_notificacao() r')))[0].r === false && !!(await como('anon', null, () => tenta(q(`select public.notificar('x', 'y', 5, 'z')`)))).erro, 'ninguém mais consegue mandar notificação para ela');
+  const hc = (await q(`select public.quando_texto('2026-11-14', '13:30') t, public.quando_texto('2026-11-14', '09:00') u`))[0];
+  ok(hc.t === 'sábado, 14/11 às 13h30' && hc.u === 'sábado, 14/11 às 9h', 'texto do dia e hora: ' + hc.t + ' / ' + hc.u);
 }
 
 fim('banco');
