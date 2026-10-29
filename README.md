@@ -32,6 +32,11 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 - **Dias:** em "Opções do dia", adicionar um horário avulso ou remover todos os horários livres do dia (quem tem cliente continua).
 - **Serviços:** adicionar, renomear, mudar a descrição, esconder do site, marcar como novidade e definir a partir de quando pode ser marcado. O site atualiza sozinho.
 - **Lembretes:** "Próximos atendimentos" lista os confirmados dos próximos 7 dias. "Mandar lembrete" abre o WhatsApp da cliente com a mensagem pronta ("Passando para lembrar do seu horário amanhã...") e registra que foi enviado.
+- **Clientes** (Mais › Clientes): ficha montada sozinha a partir da agenda, com WhatsApp, atendimentos, última vez, próximo horário, serviços e anotações. O botão "Mais de 10 dias sem vir" lista quem sumiu, com um convite pronto: motivo pelo último serviço e dois horários livres para a cliente responder "1" ou "2".
+- **Nomes que já existem:** ao digitar o nome em "Marcar como ocupado" ou em Enviar, o painel sugere as clientes e preenche o WhatsApp.
+- **Histórico** (Mais › Histórico): tudo o que aconteceu, em frases simples, com busca pelo nome.
+
+O painel é organizado como aplicativo: **Início** (pedidos e lembretes do dia), **Agenda**, **Enviar** e **Mais** (Clientes, Serviços e preços, Histórico, Segurança, Como funciona e Minha conta).
 
 **Enviar horários para uma cliente específica** (no painel, seção do mesmo nome):
 
@@ -75,6 +80,23 @@ Se um dia usarem domínio próprio, troquem o endereço nas tags `og:` e `canoni
 
 Abra `…/admin/` no celular dela e escolha "Adicionar à tela de início" (no Safari, pelo botão de compartilhar). O painel vira um ícone como de aplicativo. Ele se atualiza sozinho a cada 30 segundos e quando ela volta para a tela.
 
+## Segurança
+
+- **Guardião do banco (tempo real):** se chegarem pedidos demais em pouco tempo, ele liga a proteção sozinho. O site continua mostrando os horários, e as clientes passam a confirmar direto pelo WhatsApp. Também barra abuso por aparelho/rede e avisa sobre tentativas estranhas, muitos cancelamentos de uma vez e acesso novo ao painel. Tudo aparece em Mais › Segurança, onde a Amanda religa o agendamento.
+- **Sessão:** o painel pede a senha a cada 12 horas. Se um programa automático entrar com a senha dela, todos os aparelhos são desconectados na hora. Em Minha conta ela troca a senha (os outros aparelhos saem) e pode "Sair dos outros aparelhos".
+- **Guardião externo:** `.github/workflows/guardiao.yml` roda `guardiao/vigia.mjs` a cada 15 minutos. Ele confere se o site está no ar e igual ao GitHub, os números de WhatsApp, chaves secretas expostas, a privacidade das tabelas, o cadastro fechado e os alertas do banco. Se algo estiver errado, abre um aviso (issue) no GitHub, que manda e-mail ao dono do repositório, e fecha sozinho quando tudo volta ao normal. Atenção: o GitHub pausa tarefas agendadas depois de 60 dias sem nenhuma mudança no repositório e avisa por e-mail; basta reativar em Actions.
+
+## Notificações no celular (app ntfy, grátis)
+
+A Amanda recebe um aviso a cada pedido novo e sempre que o guardião encontrar algo grave, mesmo com o painel fechado. As mensagens não levam nome nem telefone de cliente.
+
+1. Instale o app **ntfy** (App Store ou Play Store).
+2. No painel, abra Mais › Segurança › Avisos no celular e toque em **Copiar código**.
+3. No app, toque em **+**, cole o código e confirme.
+4. No painel, toque em **Enviar teste**: a notificação deve chegar em alguns segundos.
+
+Se o painel disser que as notificações não estão ligadas, ative a extensão **pg_net** no Supabase (Database > Extensions) e rode o `supabase/atualizacao.sql` de novo.
+
 ## Atualizar um banco que já existe
 
 Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supabase/atualizacao.sql` no SQL Editor e toque em Run (se aparecer o aviso "Make sure you are not accidentally removing something important", toque em Run de novo: os `drop ... if exists` só recriam regras). Ele junta todas as atualizações (serviços editáveis, remarcar, lembretes, histórico completo e o guardião), não apaga nenhum horário e pode ser rodado quantas vezes quiser.
@@ -83,7 +105,7 @@ Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supab
 
 - **Serviços:** pelo painel, na seção Serviços. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
 - **Textos do site**: `index.html`
-- **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5.
+- **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5. Para gerar os PNGs de novo (e conferir que nada saiu da página), rode `node tests/render-folders.mjs`. As fotos ficam em `img/folder-*.jpg`; a do espaço é ilustrativa, então o ideal é trocar `img/folder-espaco.jpg` por uma foto real do salão.
 
 ## Testes
 
