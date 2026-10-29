@@ -601,7 +601,7 @@
   function lerPreco(t){t=String(t||'').replace(/R\$|\s/gi,'').replace(',','.');if(!t)return null;return /^\d{1,5}(\.\d{1,2})?$/.test(t)?+t:NaN}
   function precoTexto(x){if(x.preco===null||x.preco===undefined)return '';
     return (x.preco_antes!=null?'<s>R$ '+fmtPreco(x.preco_antes)+'</s> ':'')+'R$ '+fmtPreco(x.preco)+(x.preco_obs?' · '+esc(x.preco_obs):'')}
-  var DURACOES=[15,20,30,40,45,50,60,75,90,105,120,150,180];
+  var DURACOES=[15,20,30,40,45,50,60,75,85,90,100,105,110,120,150,180];
   function opcoesDuracao(atual){var l=DURACOES.slice();if(l.indexOf(atual)<0)l.push(atual);l.sort(function(a,b){return a-b});
     return l.map(function(m){return '<option value="'+m+'"'+(m===atual?' selected':'')+'>'+durTxt(m)+'</option>'}).join('')}
   function abrirServ(id,perguntar){

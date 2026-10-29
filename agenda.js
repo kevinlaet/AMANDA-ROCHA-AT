@@ -19,8 +19,8 @@ window.AGENDA = {
 
   servicos: [
     // "duracao": minutos que o procedimento ocupa; "desde": primeiro dia em que pode ser marcado
-    { id: "auriculo", nome: "Auriculoterapia", detalhe: "Dores, ansiedade e sono", duracao: 60 },
-    { id: "limpeza", nome: "Limpeza de pele", detalhe: "R$ 75 na inauguração", novidade: true, desde: "2026-11-14", duracao: 90 }
+    { id: "auriculo", nome: "Auriculoterapia", detalhe: "Dores, ansiedade e sono", duracao: 85 },
+    { id: "limpeza", nome: "Limpeza de pele", detalhe: "R$ 75 na inauguração", novidade: true, desde: "2026-11-14", duracao: 110 }
   ],
 
   dias: [
