@@ -140,7 +140,7 @@
   $('bSair').onclick=function(){encerrar()};
 
   // ---------- abas ----------
-  var DO_MAIS={clientes:1,servicos:1,historico:1,seguranca:1,ajuda:1,conta:1};
+  var DO_MAIS={numeros:1,clientes:1,servicos:1,historico:1,seguranca:1,ajuda:1,conta:1};
   function irAba(n){
     if(!document.querySelector('[data-aba="'+n+'"]'))n='inicio';
     abaAtual=n;var nav=DO_MAIS[n]?'mais':n;
@@ -150,6 +150,7 @@
     window.scrollTo(0,0);
     if(n==='historico'&&sess)carregarHist(true);
     if(n==='clientes'&&sess)carregarClientes();
+    if(n==='numeros'&&sess)carregarNumeros();
     if(n==='conta')$('cEmail').textContent=sess&&emailSessao()?'Conectada como '+emailSessao():'Conectada';
     if(n==='seguranca')verSeguranca();
     desenharSelos();
@@ -178,7 +179,7 @@
       .then(function(j){atual();rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
         return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){atual();servs=sv||[];bancoVelho=false},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
       .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){atual();guard=g;semGuardiao=false;if(acessoEstranho())throw 'estranho'},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
-      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes()})
+      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes();carregarNumeros()})
       .catch(function(e){
         if(e==='estranho'){encerrar('Encontrei um acesso estranho ao seu painel e desconectei todos os aparelhos por segurança. Entre de novo e depois troque sua senha em Mais › Minha conta.','global');return}
         if(e==='velho'||minha!==geracao)return;
@@ -210,7 +211,7 @@
       var resumo=[c.livre?c.livre+' livre'+(c.livre>1?'s':''):'',c.pedido?c.pedido+' pedido'+(c.pedido>1?'s':''):'',c.confirmado?c.confirmado+' confirmado'+(c.confirmado>1?'s':''):''].filter(Boolean).join(' · ');
       return '<div class="dia"><h3><span>'+dia(d)+'</span><button class="dia-op" type="button" data-acao="dia" data-dia="'+d+'">Opções do dia</button></h3><div class="resumo">'+resumo+'</div><div class="chips">'+por[d].map(function(r){
         var bloq=r.status==='livre'&&!cabeEm(r,menorDuracao()),rot=r.status==='livre'?(bloq?'bloqueado':'livre'):esc(primeiro(r.nome));
-        return '<button class="s '+r.status+(bloq?' bloq':'')+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?(bloq?'livre, mas bloqueado por outro atendimento':'livre'):r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
+        return '<button class="s '+r.status+(bloq?' bloq':'')+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?(bloq?'livre, mas bloqueado por outro atendimento':'livre'):r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(r.faltou?'não veio':passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
       '<p class="vazio">Nenhum horário aberto ainda. Toque em “Abrir novos horários” acima.</p>';
     if(!rows.length&&$('cardAbrir').hidden)mostrarAbrir(true,true);
     var ate=somaDias(hojeSP(),7),prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
@@ -249,8 +250,14 @@
     return '<option value="">Combinado por fora</option>'+l.map(function(n){return '<option'+(n===sel?' selected':'')+'>'+esc(n)+'</option>'}).join('')}
   function campos(r){r=r||{};return '<label for="fNome">Nome da cliente</label><input type="text" id="fNome" maxlength="60" value="'+esc(r.nome&&r.nome!=='Marcado por fora'?r.nome:'')+'" placeholder="Ex.: Maria Silva">'+
     '<label for="fTel">WhatsApp da cliente (opcional)</label><input type="tel" id="fTel" inputmode="tel" value="'+esc(fmtTel(r.telefone))+'" placeholder="(11) 90000-0000">'+
-    '<label for="fServ">Serviço</label><select id="fServ">'+opcoesServ(r.servico)+'</select>'}
-  function lerForm(){var v=($('fTel')||{}).value||'';return {nome:(($('fNome')||{}).value||'').trim().slice(0,60),tel:normTel(v),telErro:!!v.trim()&&!normTel(v),serv:($('fServ')||{}).value||''}}
+    '<label for="fServ">Serviço</label><select id="fServ">'+opcoesServ(r.servico)+'</select>'+
+    (temValor()?'<label for="fValor">Valor cobrado (R$)</label><input type="text" inputmode="decimal" id="fValor" maxlength="9" value="'+esc(r.valor!=null?fmtPreco(r.valor):'')+'" placeholder="'+esc(phValor(r.servico))+'"><p class="dica">Vazio: vale o preço do serviço. Cortesia: 0.</p>':'')}
+  // o banco só guarda o valor de cada atendimento depois da atualização
+  function temValor(){return !!(rows.length&&('valor' in rows[0]))}
+  function phValor(nome){var n=semAcento(nome),x=listaServ().filter(function(v){return semAcento(v.nome)===n})[0];return x&&x.preco!=null?'Preço do serviço: '+rs(x.preco):'Opcional'}
+  function comValor(o,f){if(temValor())o.valor=f.valor;return o}
+  function lerForm(){var v=($('fTel')||{}).value||'',fv=$('fValor'),pv=fv?lerPreco(fv.value):null;
+    return {nome:(($('fNome')||{}).value||'').trim().slice(0,60),tel:normTel(v),telErro:!!v.trim()&&!normTel(v),serv:($('fServ')||{}).value||'',valor:pv,valorErro:typeof pv==='number'&&isNaN(pv)}}
   function livresPara(r){var m={},o=[];rows.forEach(function(x){if(x.status!=='livre'||x.id===r.id||passou(x))return;if(!m[x.data]){m[x.data]=[];o.push(x.data)}m[x.data].push(x)});return o.map(function(d){return {data:d,itens:m[d]}})}
   function abrirSheet(id){aberto=id;pergunta=null;destino=null;desenharSheet()}
   function fecharSheet(){aberto=null;pergunta=null;destino=null;$('sheet').hidden=true;if($('envio').hidden)$('veu').hidden=true}
@@ -259,9 +266,9 @@
     if(!r){fecharSheet();return}
     var nomes={livre:'Livre',pedido:'Pedido',confirmado:'Confirmado'},nm=esc(primeiro(r.nome));
     var h='<div><span class="estado '+r.status+'">'+nomes[r.status]+'</span><div class="t" id="sheetT">'+dia(r.data)+' às '+hh(r.hora)+'</div>'+
-      (r.status!=='livre'?'<div class="d">'+esc(r.nome)+' · '+esc(servRot(r))+(r.telefone?' · '+fmtTel(r.telefone):'')+'</div>':'')+
+      (r.status!=='livre'?'<div class="d">'+esc(r.nome)+' · '+esc(servRot(r))+(r.valor!=null?' · '+rs(r.valor):'')+(r.telefone?' · '+fmtTel(r.telefone):'')+'</div>':'')+
       (r.lembrete_em?'<div class="d" style="color:var(--ok)">✓ Lembrete enviado '+idade(r.lembrete_em)+'</div>':'')+
-      (passou(r)?'<div class="d" style="color:var(--bad)">Esse horário já passou.</div>':'')+'</div>';
+      (r.faltou?'<div class="d" style="color:var(--bad)">Anotado: a cliente não veio.</div>':passou(r)?'<div class="d" style="color:var(--bad)">Esse horário já passou.</div>':'')+'</div>';
     if(r.status==='livre'&&!pergunta){var dn=dentroDe(r),cf=dn?null:conflitos(r.data,r.hora,menorDuracao(),[r.id]);
       if(dn)h+='<div class="aviso-dur">As clientes não conseguem marcar este horário pelo site: ele fica dentro do atendimento de '+textoConflito([dn])+'.</div>';
       else if(cf.length)h+='<div class="aviso-dur">As clientes não conseguem marcar este horário pelo site: não dá tempo de nenhum procedimento antes do atendimento de '+textoConflito(cf)+'.</div>'}
@@ -270,6 +277,7 @@
     else if(pergunta==='cancelar')h+='<div class="pergunta">Cancelar o horário de '+nm+'? Ele volta a ficar livre no site.</div><button class="btn bad-solid" data-a="cancelar" type="button"'+dis+'>Sim, cancelar e liberar</button>'+V;
     else if(pergunta==='excluir')h+='<div class="pergunta">Cancelar o horário de '+nm+' e apagar este horário da agenda? Ele some do site.</div><button class="btn bad-solid" data-a="excluir" type="button"'+dis+'>Sim, cancelar e apagar</button>'+V;
     else if(pergunta==='remover')h+='<div class="pergunta">Remover este horário da agenda? Ele some do site.</div><button class="btn bad-solid" data-a="remover" type="button"'+dis+'>Sim, remover</button>'+V;
+    else if(pergunta==='faltou')h+='<div class="pergunta">Marcar que '+nm+' não veio? Esse atendimento sai da sua conta e fica anotado na ficha dela.</div><button class="btn bad-solid" data-a="faltou" type="button"'+dis+'>Sim, não veio</button>'+V;
     else if(pergunta==='ocupar')h+=campos()+'<button class="btn main" data-a="ocupar" type="button"'+dis+'>Marcar como ocupado</button>'+V;
     else if(pergunta==='editar')h+=campos(r)+'<button class="btn main" data-a="editar" type="button"'+dis+'>Salvar alterações</button>'+V;
     else if(pergunta==='mover')h+='<label for="fData">Dia</label><input type="date" id="fData" value="'+r.data+'" min="'+hojeSP()+'"><label for="fHora">Horário</label><input type="time" id="fHora" value="'+r.hora+'" step="900"><button class="btn main" data-a="mover" type="button"'+dis+'>Salvar novo dia e horário</button>'+V;
@@ -282,7 +290,8 @@
     }
     else{
       if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')}
-      if(r.status==='confirmado'){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
+      if(r.status==='confirmado'&&passou(r)&&('faltou' in r))h+=r.faltou?'<button class="btn ghost" data-a="veio" type="button"'+dis+'>Ela veio, sim (desfazer)</button>':'<button class="btn ghost" data-a="perg-faltou" type="button">Não veio…</button>';
+      if(r.status==='confirmado'&&!passou(r)){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
       if(r.status!=='livre')h+=(bancoVelho?'<button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button>':'<div class="row"><button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button><button class="btn ghost" data-a="perg-remarcar" type="button">Remarcar</button></div>')+
         (r.status==='pedido'?'<button class="btn bad" data-a="perg-recusar" type="button">Recusar…</button>':'<button class="btn bad" data-a="perg-cancelar" type="button">Cancelar e liberar…</button>')+
         '<button class="btn bad" data-a="perg-excluir" type="button">Cancelar e apagar este horário…</button>';
@@ -307,15 +316,17 @@
     if(ocupado)return;
     var antes={id:r.id,data:r.data,hora:r.hora,nome:r.nome,servico:r.servico,telefone:r.telefone},quando=dia(r.data)+' às '+hh(r.hora),p,f;
     // conferências antes de mandar ao banco
-    if(acao==='ocupar'||acao==='editar'){f=lerForm();if(f.telErro){toast('Confira o WhatsApp: use o número com DDD.',true);return}if(acao==='editar'&&f.nome.length<2){toast('Escreva o nome da cliente.',true);return}}
+    if(acao==='ocupar'||acao==='editar'){f=lerForm();if(f.telErro){toast('Confira o WhatsApp: use o número com DDD.',true);return}if(f.valorErro){toast('Confira o valor: use só números, como 75 ou 89,90.',true);return}if(acao==='editar'&&f.nome.length<2){toast('Escreva o nome da cliente.',true);return}}
     if(acao==='mover'){var nd=$('fData').value,nh=$('fHora').value;if(!/^\d{4}-\d\d-\d\d$/.test(nd)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(nh)){toast('Escolha o dia e o horário.',true);return}if(nd===r.data&&nh===r.hora){pergunta=null;desenharSheet();return}}
     if(acao==='remarcar'&&!(destino&&linha(destino))){toast('Escolha o novo horário.',true);return}
     ocupado=true;
     if(acao==='confirmar')p=mudar(r,'pedido',{status:'confirmado'}).then(function(ok){if(ok){var z=zapUrl(antes,'confirmar');toast('Confirmado: '+primeiro(antes.nome)+', '+quando+'.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
     else if(acao==='recusar')p=mudar(r,'pedido',limpa()).then(function(ok){if(ok){var z=zapUrl(antes,'recusar');toast('Pedido recusado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
     else if(acao==='cancelar')p=mudar(r,'confirmado',limpa()).then(function(ok){if(ok){var z=zapUrl(antes,'cancelar');toast('Horário cancelado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
-    else if(acao==='ocupar')p=mudar(r,'livre',{status:'confirmado',nome:f.nome.length>1?f.nome:'Marcado por fora',servico:f.serv||'Combinado por fora',telefone:f.tel||null,pedido_em:new Date().toISOString()}).then(function(ok){if(ok)toast(quando+' marcado como ocupado'+(f.nome.length>1?' para '+primeiro(f.nome):'')+'.');return ok});
-    else if(acao==='editar')p=mudar(r,r.status,{nome:f.nome,telefone:f.tel||null,servico:f.serv||'Combinado por fora'}).then(function(ok){if(ok)toast('Dados de '+primeiro(f.nome)+' atualizados.');return ok});
+    else if(acao==='ocupar')p=mudar(r,'livre',comValor({status:'confirmado',nome:f.nome.length>1?f.nome:'Marcado por fora',servico:f.serv||'Combinado por fora',telefone:f.tel||null,pedido_em:new Date().toISOString()},f)).then(function(ok){if(ok)toast(quando+' marcado como ocupado'+(f.nome.length>1?' para '+primeiro(f.nome):'')+'.');return ok});
+    else if(acao==='editar')p=mudar(r,r.status,comValor({nome:f.nome,telefone:f.tel||null,servico:f.serv||'Combinado por fora'},f)).then(function(ok){if(ok)toast('Dados de '+primeiro(f.nome)+' atualizados.');return ok});
+    else if(acao==='faltou')p=mudar(r,'confirmado',{faltou:true}).then(function(ok){if(ok)toast('Anotado: '+primeiro(antes.nome)+' não veio. Esse atendimento saiu da sua conta.');return ok});
+    else if(acao==='veio')p=mudar(r,'confirmado',{faltou:false}).then(function(ok){if(ok)toast('Pronto: o atendimento de '+primeiro(antes.nome)+' voltou para a conta.');return ok});
     else if(acao==='mover')p=api('PATCH','horarios?id=eq.'+r.id+'&status=eq.livre',{data:nd,hora:nh},{Prefer:'return=representation'})
       .then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}toast('Horário mudado para '+dia(nd)+' às '+hh(nh)+'.');return true},
             function(e){if(e==='erro'){toast('Não deu certo: já existe um horário nesse dia e hora, ou ele já passou.',true);return false}throw e});
@@ -336,6 +347,7 @@
     d.innerHTML='<b>Atenção:</b> '+esc(serv||'Combinado por fora')+' leva '+durTxt(duracaoDe(serv))+'. Nesse horário vai encostar no atendimento de '+textoConflito(lista)+'.';
     b.parentNode.insertBefore(d,b);b.setAttribute('data-forcar','1');b.textContent=b.getAttribute('data-a')==='ocupar'?'Marcar mesmo assim':'Salvar mesmo assim';
   }
+  document.addEventListener('change',function(e){if(e.target&&e.target.id==='fServ'&&$('fValor'))$('fValor').placeholder=phValor(e.target.value)});
   document.addEventListener('change',function(e){if(e.target&&e.target.id==='fServ'){var w=$('avisoConflito');if(w)w.remove();
     var b=document.querySelector('#sheet [data-forcar]');if(b){b.removeAttribute('data-forcar');b.textContent=b.getAttribute('data-a')==='ocupar'?'Marcar como ocupado':'Salvar alterações'}}});
   function marcarLembrete(id){api('PATCH','horarios?id=eq.'+id+'&status=eq.confirmado',{lembrete_em:new Date().toISOString()},{Prefer:'return=minimal'}).then(function(){return carregar()},function(){})}
@@ -786,6 +798,8 @@
     if(o==='lembrete'){t='Lembrete enviado para '+n;ic='lemb'}
     else if(o==='editado'){t='Dados de '+n+' editados'}
     else if(o==='remarcado'){t=x.para==='livre'?n+' foi remarcada para outro horário':n+' remarcada para este horário';ic='rem'}
+    else if(o==='faltou'){t=n+' não veio';ic='del'}
+    else if(o==='veio'){t=n+' veio, sim (o “não veio” foi desfeito)';ic='ok'}
     else if(o.indexOf('mudou de ')===0){var m=/(\d{4}-\d\d-\d\d) (\d\d:\d\d)/.exec(o);t='Horário mudado'+(m?' (antes era '+curta(m[1])+' às '+hh(m[2])+')':'')}
     else if(!x.de&&x.para==='livre'){t='Horário aberto';ic='abre'}
     else if(x.para==='removido'){t=x.nome?'Horário de '+n+' cancelado e apagado':'Horário removido da agenda';ic='del'}
@@ -828,6 +842,88 @@
   function sumida(x){return !x.proxima&&!!x.ultima&&diasDesde(x.ultima)>DIAS_SEM_VIR}
   function semAcento(t){t=String(t||'').toLowerCase();try{return t.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(e){return t}}
   document.addEventListener('click',function(e){var f=e.target.closest('[data-cli-f]');if(!f)return;cliFiltro=f.getAttribute('data-cli-f');desenharClientes()});
+
+  // ---------- seus números: atendimentos e faturamento (só ela vê) ----------
+  var numeros=null,semNumeros=false,ocultar=false,MARCOS=[10,25,50,100,150,200,300,500,750,1000];
+  var OLHO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var OLHO_FECHADO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6C3.9 8.3 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  try{ocultar=localStorage.getItem('amanda-ocultar-valores')==='1'}catch(e){}
+  var seqNum=0;
+  function carregarNumeros(){
+    var minha=++seqNum;
+    api('POST','rpc/meus_numeros',{}).then(function(j){if(minha!==seqNum)return;numeros=j&&j.mes?j:null;semNumeros=false;desenharNumeros();if(numeros)carregarRecentes()},
+      function(e){if(minha!==seqNum)return;if(e==='ausente'){numeros=null;semNumeros=true;desenharNumeros()}});
+  }
+  // atendimentos dos últimos 7 dias (a agenda só mostra de hoje em diante): para marcar quem não veio depois
+  var recentes=null;
+  function carregarRecentes(){
+    api('GET','horarios?select=*&status=eq.confirmado&data=gte.'+somaDias(hojeSP(),-7)+'&data=lte.'+hojeSP()+'&order=data.desc,hora.desc').then(function(j){
+      recentes=(j||[]).filter(passou).sort(function(a,b){return (b.data+b.hora)<(a.data+a.hora)?-1:1});desenharNumeros()},function(){});
+  }
+  // R$ 1.140 ou R$ 89,90; com o olho fechado, os totais viram R$ •••
+  function rs(v){v=+v||0;return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})}
+  function dinheiro(v){return ocultar?'R$ •••':rs(v)}
+  function vezes(n,um,varios){return n+' '+(n===1?um:varios)}
+  // o maior marco (10, 25, 50...) que ela passou neste mês
+  function marcoDoMes(n){var t=+n.total.atendimentos,ini=t-(+n.mes.atendimentos),m=null;MARCOS.forEach(function(x){if(ini<x&&x<=t)m=x});return m}
+  function botaoOlho(){return '<button class="olho" type="button" data-num="olho" aria-pressed="'+ocultar+'" aria-label="'+(ocultar?'Mostrar os valores':'Esconder os valores')+'">'+(ocultar?OLHO_FECHADO:OLHO)+'</button>'}
+  function desenharNumeros(){
+    var card=$('numeros'),det=$('numDet');
+    if(!numeros){card.hidden=true;det.innerHTML='<p class="vazio">'+(semNumeros?'Para ver seus números, falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).':'Carregando…')+'</p>';return}
+    var n=numeros,m=n.mes,fat=+m.faturamento,meta=n.meta!=null?+n.meta:null,antV=+n.anterior.faturamento;
+    var mesN=+String(n.hoje).slice(5,7),mes=MESES[mesN-1],mesAnt=MESES[(mesN+10)%12];
+    var alvo=meta||antV,pct=alvo?Math.min(100,Math.round(fat/alvo*100)):0,batida=!!alvo&&fat>=alvo;
+    var mc=n.marcados||{atendimentos:0,faturamento:0},nMc=+mc.atendimentos,marco=marcoDoMes(n);
+    var h='<div class="num-top"><span class="num-l">Faturamento de '+mes+'</span>'+botaoOlho()+'</div>'+
+      '<div class="num-v">'+dinheiro(fat)+'</div>'+
+      '<div class="num-s"><b>'+m.atendimentos+'</b> '+(+m.atendimentos===1?'atendimento':'atendimentos')+' este mês</div>';
+    if(alvo){
+      var txt=meta?(batida?'🎉 Meta do mês batida! ('+dinheiro(meta)+')':pct+'% da meta de '+dinheiro(meta)+' · faltam '+dinheiro(meta-fat))
+                  :(batida?'🎉 Você já passou '+mesAnt+' ('+dinheiro(antV)+')!':'Faltam '+dinheiro(antV-fat)+' para passar '+mesAnt+' ('+dinheiro(antV)+')');
+      h+='<div class="meter'+(batida?' ok':'')+'" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" aria-label="'+(meta?'Meta do mês':'Comparado com '+mesAnt)+'"><i style="width:'+pct+'%"></i></div><p class="num-m">'+txt+'</p>';
+    } else h+='<p class="num-m">'+(!n.total.desde||String(n.total.desde)>=String(n.hoje).slice(0,8)+'01'?'Seu primeiro mês por aqui: cada atendimento conta! 🌱':'Defina uma meta para ver quanto falta a cada atendimento. 🌱')+'</p>';
+    if(nMc)h+='<p class="num-x">+ '+(ocultar?'':dinheiro(mc.faturamento)+' em ')+vezes(nMc,'atendimento já marcado','atendimentos já marcados')+' até o fim do mês'+(meta&&!batida&&fat+(+mc.faturamento)>=meta?'. Com eles, você bate a meta! 💪':'.')+'</p>';
+    if(+m.sem_valor)h+='<p class="num-x">'+vezes(+m.sem_valor,'atendimento sem preço ainda não entrou','atendimentos sem preço ainda não entraram')+' na conta. Coloque o preço em Mais › Serviços e preços.</p>';
+    if(marco)h+='<p class="num-x marco">🎉 Este mês você chegou a '+marco+' atendimentos desde o começo!</p>';
+    h+='<div class="row">'+(meta?'':'<button class="btn ghost" type="button" data-num="meta-ir">Definir uma meta</button>')+'<button class="btn ghost" type="button" data-ir="numeros"'+(meta?' style="grid-column:1/-1"':'')+'>Ver meus números</button></div>';
+    card.innerHTML=h;card.hidden=false;
+    // com ela digitando a meta, não redesenha a página (não apaga o que está sendo digitado)
+    if(document.activeElement&&document.activeElement.id==='metaV')return;
+    var mx=Math.max.apply(null,n.meses.map(function(x){return +x.faturamento})),mxN=Math.max.apply(null,n.meses.map(function(x){return +x.atendimentos}));
+    var t=n.total,desde=t.desde?String(t.desde):'';
+    det.innerHTML='<div class="card num-d"><div class="num-top"><span class="num-l">'+cap(mes)+'</span>'+botaoOlho()+'</div>'+
+        '<div class="num-kpi"><div><b>'+dinheiro(fat)+'</b><span>faturamento</span></div><div><b>'+m.atendimentos+'</b><span>'+(+m.atendimentos===1?'atendimento':'atendimentos')+'</span></div></div>'+
+        (n.servicos.length?'<ul class="num-serv">'+n.servicos.map(function(x){return '<li><span>'+esc(x.servico)+'</span><span>'+vezes(+x.atendimentos,'atendimento','atendimentos')+' · '+dinheiro(x.faturamento)+'</span></li>'}).join('')+'</ul>':'<p class="dica">Nenhum atendimento ainda este mês.</p>')+
+        (+m.sem_valor?'<p class="dica">'+vezes(+m.sem_valor,'atendimento sem preço não entrou','atendimentos sem preço não entraram')+' no faturamento. Coloque o preço em Mais › Serviços e preços ou no próprio horário (Editar dados).</p>':'')+'</div>'+
+      (recentes&&recentes.length?'<h2>Últimos 7 dias</h2><div class="card"><ul class="num-ult">'+recentes.map(function(r){
+        return '<li'+(r.faltou?' class="faltou"':'')+'><div><b>'+esc(r.nome)+'</b><span>'+esc(dia(r.data))+' às '+hh(r.hora)+' · '+esc(servRot(r))+(r.valor!=null?' · '+dinheiro(r.valor):'')+(r.faltou?' · não veio':'')+'</span></div>'+
+          '<button class="btn ghost" type="button" data-num="faltou" data-id="'+esc(r.id)+'" data-v="'+(r.faltou?'0':'1')+'">'+(r.faltou?'Veio, sim':'Não veio')+'</button></li>'}).join('')+
+        '</ul><p class="dica">Alguém não veio? Toque em “Não veio”: sai da conta e fica anotado na ficha dela.</p></div>':'')+
+      '<h2>Meta do mês</h2><div class="card"><label for="metaV">Quanto você quer faturar por mês (R$)</label><div class="extra"><input type="text" inputmode="decimal" id="metaV" maxlength="9" value="'+esc(meta?fmtPreco(meta):'')+'" placeholder="Ex.: 2000"><button class="btn main" type="button" data-num="meta-salvar">Salvar</button></div>'+
+        (meta?'<button class="btn ghost" type="button" data-num="meta-tirar" style="margin-top:10px">Tirar a meta</button>':'<p class="dica">Com uma meta, o Início mostra quanto falta a cada atendimento.</p>')+'</div>'+
+      '<h2>Últimos 6 meses</h2><div class="card"><ul class="num-meses">'+n.meses.map(function(x){var f=mx>0?(+x.faturamento)/mx:mxN>0?(+x.atendimentos)/mxN:0;
+        return '<li><span class="nm">'+cap(MESES[+String(x.mes).slice(5,7)-1].slice(0,3))+'</span><span class="barra" aria-hidden="true"><i style="width:'+Math.round(f*100)+'%"></i></span><span class="vl">'+vezes(+x.atendimentos,'atend.','atend.')+' · '+dinheiro(x.faturamento)+'</span></li>'}).join('')+'</ul></div>'+
+      '<h2>Desde o começo</h2><div class="card"><div class="num-kpi tres"><div><b>'+t.atendimentos+'</b><span>atendimentos</span></div><div><b>'+t.clientes+'</b><span>'+(+t.clientes===1?'cliente':'clientes')+'</span></div><div><b>'+dinheiro(t.faturamento)+'</b><span>faturamento</span></div></div>'+
+        (desde?'<p class="dica">Desde '+desde.slice(8,10)+'/'+desde.slice(5,7)+'/'+desde.slice(0,4)+'.'+(+n.faltas?' '+vezes(+n.faltas,'vez','vezes')+' a cliente não veio (fora da conta).':'')+'</p>':'')+'</div>';
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-num]');if(!b)return;var a=b.getAttribute('data-num');
+    if(a==='olho'){ocultar=!ocultar;try{localStorage.setItem('amanda-ocultar-valores',ocultar?'1':'0')}catch(x){}desenharNumeros();
+      var o=document.querySelector('[data-aba]:not([hidden]) [data-num="olho"]');if(o)o.focus();return}
+    if(a==='meta-ir'){irAba('numeros');var i=$('metaV');if(i)i.focus();return}
+    if(a==='faltou'){var fv=b.getAttribute('data-v')==='1';b.disabled=true;
+      api('PATCH','horarios?id=eq.'+b.getAttribute('data-id')+'&status=eq.confirmado',{faltou:fv},{Prefer:'return=representation'}).then(function(j){
+        if(!j||!j.length){toast(MUDOU,true);return}
+        toast(fv?'Anotado: '+primeiro(j[0].nome)+' não veio. Saiu da conta.':'Pronto: o atendimento de '+primeiro(j[0].nome)+' voltou para a conta.');carregar()},falha)
+        .then(function(){b.disabled=false});return}
+    var v=a==='meta-tirar'?null:lerPreco(($('metaV')||{}).value);
+    if(a==='meta-salvar'&&(v===null||isNaN(v)||v<1)){toast('Escreva a meta em reais, por exemplo 2000.',true);return}
+    b.disabled=true;
+    api('POST','rpc/definir_meta',{p_valor:v}).then(function(ok){
+      if(!ok){toast('Não deu certo. Confira o valor e tente de novo.',true);return}
+      toast(v?'Meta salva: '+rs(v)+' por mês.':'Meta tirada.');if(document.activeElement)document.activeElement.blur();carregarNumeros()},falha)
+      .then(function(){b.disabled=false});
+  });
 
   // ---------- sugestão de nomes: ao digitar, mostra clientes que já existem ----------
   var CAMPO_TEL={fNome:'fTel',envNome:'envTel'};
@@ -883,7 +979,7 @@
       var prox=x.proxima?String(x.proxima).replace('T',' '):'',pd=prox.slice(0,10),ph=prox.slice(11,16);
       var sumiu=sumida(x),z=zapCliente(x,sumiu);
       return '<div class="card cli"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+'</div>'+
-        '<div class="cli-d">'+(x.telefone?esc(fmtTel(x.telefone)):'Sem WhatsApp')+(x.servicos&&x.servicos.length?' · '+esc(x.servicos.join(', ')):'')+'</div>'+
+        '<div class="cli-d">'+(x.telefone?esc(fmtTel(x.telefone)):'Sem WhatsApp')+(x.servicos&&x.servicos.length?' · '+esc(x.servicos.join(', ')):'')+(x.faltas?' · não veio '+x.faltas+(x.faltas>1?' vezes':' vez'):'')+'</div>'+
         '<div class="cli-n"><div><b>'+x.atendimentos+'</b>'+(x.atendimentos===1?'atendimento':'atendimentos')+'</div>'+
           '<div><b>'+(x.ultima?esc(curta(x.ultima)):'—')+'</b>última vez'+(x.ultima?' ('+(diasDesde(x.ultima)===0?'hoje':'há '+diasDesde(x.ultima)+' dia'+(diasDesde(x.ultima)===1?'':'s'))+')':'')+'</div>'+
           '<div><b>'+(prox?esc(curta(pd)):'—')+'</b>'+(prox?'próximo, '+esc(hh(ph)):'sem horário marcado')+'</div></div>'+

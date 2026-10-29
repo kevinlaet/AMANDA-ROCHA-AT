@@ -251,6 +251,46 @@ input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;displa
 input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
+/* seus números: faturamento do mês (número grande), atendimentos e barra da meta */
+.num{margin-top:14px;border-color:#CFE5E0;background:linear-gradient(160deg,#fff 40%,#F1F8F6)}
+.num-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.num-l{font-size:14px;font-weight:700;color:var(--muted)}
+.olho{flex:none;width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--teal);display:grid;place-items:center}
+.olho svg{width:22px;height:22px}
+.num-v{font-size:clamp(36px,12vw,48px);font-weight:700;line-height:1.1;letter-spacing:-.5px;color:var(--teal-d);margin-top:2px;overflow-wrap:anywhere}
+.num-s{font-size:15px;margin-top:2px}
+.num-s b{font-weight:800}
+.meter{height:10px;border-radius:99px;background:#D5E9E5;margin-top:14px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:99px;background:var(--teal)}
+.meter.ok i{background:var(--ok)}
+.num-m{font-size:14.5px;font-weight:600;margin-top:8px}
+.num-x{font-size:14px;color:var(--muted);margin-top:6px}
+.num-x.marco{color:var(--ink);font-weight:700}
+.num .row{margin-top:14px}
+.num-kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.num-kpi.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.num-kpi div{background:var(--cream);border-radius:14px;padding:10px 12px;min-width:0}
+.num-kpi b{display:block;font-size:22px;font-weight:700;color:var(--teal-d);overflow-wrap:anywhere}
+.num-kpi.tres b{font-size:18px}
+.num-kpi span{font-size:13px;color:var(--muted)}
+.num-serv{list-style:none;margin-top:12px;display:grid;gap:6px}
+.num-serv li{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;border-top:1px solid var(--line);padding-top:6px}
+.num-serv li span:last-child{color:var(--muted);text-align:right}
+.num-meses{list-style:none;display:grid;gap:10px}
+.num-meses li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;font-size:14px}
+.num-meses .nm{font-weight:700;color:var(--muted)}
+.num-meses .barra{height:10px}
+.num-meses .barra i{display:block;height:100%;background:var(--teal);border-radius:0 4px 4px 0}
+.num-meses .vl{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.num-d .num-kpi{margin-top:8px}
+.ajuda ul{margin:0 14px 14px 32px;display:grid;gap:8px;font-size:15px}
+.num-ult{list-style:none;display:grid;gap:10px}
+.num-ult li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+.num-ult li:first-child{border-top:0;padding-top:0}
+.num-ult b{display:block;font-size:15px}
+.num-ult span{display:block;font-size:13.5px;color:var(--muted)}
+.num-ult .btn{width:auto;min-height:44px;padding:8px 14px;font-size:14px}
+.num-ult li.faltou b{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -289,6 +329,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     </div>
     <div class="aba-topo"><h2 class="aba-t">Início</h2><p>O que precisa de você agora.</p></div>
     <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Quando uma cliente pede um horário pelo site, ele aparece em <b>Pedidos</b>. Toque em <b>Confirmar</b>.</li><li>Logo depois, toque em <b>Avisar no WhatsApp</b>: a mensagem já vai pronta.</li><li>Um dia antes do atendimento, toque em <b>Mandar lembrete</b>.</li></ol></details>
+    <div class="card num" id="numeros" hidden></div>
     <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
     <div id="pedidos"><p class="vazio">Carregando…</p></div>
 
@@ -352,8 +393,9 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     </section>
 
     <section class="aba" data-aba="mais" hidden>
-    <div class="aba-topo"><h2 class="aba-t">Mais</h2><p>Clientes, preços, histórico, segurança e ajuda.</p></div>
+    <div class="aba-topo"><h2 class="aba-t">Mais</h2><p>Seus números, clientes, preços, histórico, segurança e ajuda.</p></div>
     <div class="lista">
+        <button type="button" data-ir="numeros"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="li-tx"><b>Seus números</b><small>Atendimentos, faturamento e meta do mês</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="clientes"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c1-4 4-6 7-6s6 2 7 6"/><path d="M16 4a4 4 0 0 1 0 8M22 21c-.5-2.5-2-4.3-4-5.3"/></svg></span><span class="li-tx"><b>Clientes</b><small>Ficha de cada cliente: última vez, próximo horário e anotações</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="servicos"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span class="li-tx"><b>Serviços e preços</b><small>O que aparece no site para a cliente escolher</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="historico"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="li-tx"><b>Histórico</b><small>Tudo o que aconteceu na agenda</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
@@ -361,6 +403,19 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
         <button type="button" data-ir="ajuda"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 3.7M12 17h.01"/></svg></span><span class="li-tx"><b>Como funciona</b><small>Respostas rápidas sobre o painel e o site</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="conta"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><span class="li-tx"><b>Minha conta</b><small>Trocar senha e sair</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
+    </section>
+
+    <section class="aba" data-aba="numeros" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Seus números</h2><p>Atendimentos e faturamento. Só você vê.</p></div>
+    <div id="numDet"><p class="vazio">Carregando…</p></div>
+    <details class="ajuda"><summary>Como é contado</summary><ul>
+      <li>Conta cada atendimento <b>confirmado</b> assim que o horário começa. Pedido sem confirmar não conta.</li>
+      <li>O valor é o preço do serviço <b>no dia em que a cliente marcou</b>. Se o preço mudar depois, quem já tinha marcado continua com o preço antigo.</li>
+      <li>Deu desconto, vendeu pacote ou foi cortesia? Toque no horário › <b>Editar dados</b> › <b>Valor cobrado</b> (cortesia é 0).</li>
+      <li>A cliente não veio? Toque no horário › <b>Não veio</b> (ou aqui, em <b>Últimos 7 dias</b>, se lembrar depois). Ele sai da conta e fica anotado na ficha dela.</li>
+      <li>O olho esconde os valores, para quando alguém estiver olhando a tela com você.</li>
+    </ul></details>
     </section>
 
     <section class="aba" data-aba="clientes" hidden>

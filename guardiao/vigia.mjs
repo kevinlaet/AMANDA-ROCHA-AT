@@ -96,14 +96,14 @@ async function conferirBanco() {
   const pd = await rpc('pedir_horario', { p_id: ZERO, p_servico: 'Teste', p_nome: 'Guardião', p_telefone: '11900000000' });
   if (pd.status !== 200 || pd.json !== 'indisponivel') problema(`A reserva de horário respondeu algo inesperado (${pd.status} ${pd.texto.slice(0, 80)}).`);
 
-  for (const t of ['horarios', 'historico', 'admins', 'servicos', 'clientes', 'alertas', 'eventos', 'guardiao', 'aparelhos_vistos']) {
+  for (const t of ['horarios', 'historico', 'admins', 'servicos', 'clientes', 'alertas', 'eventos', 'guardiao', 'aparelhos_vistos', 'painel_config']) {
     const r = await rest(t + '?select=*&limit=1');
     if (r.status === 200 && Array.isArray(r.json) && r.json.length) problema(`PERIGO: visitantes conseguem ler a tabela ${t}. Rode o supabase/atualizacao.sql de novo.`);
   }
   if (aberto(await rest('horarios', { method: 'POST', body: JSON.stringify([{ data: '2099-01-01', hora: '03:00' }]) }))) problema('PERIGO: visitantes conseguem criar horários.');
   if (aberto(await rest('servicos?id=eq.__guardiao__', { method: 'PATCH', body: JSON.stringify({ nome: 'x' }) }))) problema('PERIGO: visitantes conseguem mudar os serviços.');
-  for (const f of ['remarcar', 'situacao_guardiao', 'clientes_resumo', 'testar_notificacao', 'definir_protecao']) {
-    const r = await rpc(f, f === 'remarcar' ? { p_de: ZERO, p_para: ZERO } : f === 'definir_protecao' ? { p_pausar: false } : {});
+  for (const f of ['remarcar', 'situacao_guardiao', 'clientes_resumo', 'testar_notificacao', 'definir_protecao', 'meus_numeros', 'definir_meta']) {
+    const r = await rpc(f, f === 'remarcar' ? { p_de: ZERO, p_para: ZERO } : f === 'definir_protecao' ? { p_pausar: false } : f === 'definir_meta' ? { p_valor: 1 } : {});
     if (r.status === 200 && r.json !== null && r.json !== false) problema(`PERIGO: visitantes conseguem usar a função ${f}.`);
   }
   const cfg = await buscar(SB + '/auth/v1/settings', { headers: { apikey: CHAVE } });

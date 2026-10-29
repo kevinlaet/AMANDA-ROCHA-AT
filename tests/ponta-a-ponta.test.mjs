@@ -183,7 +183,7 @@ ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 
 ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
 ok(await P.locator('#boasVindas').isVisible(), 'primeira vez: aparece o guia de boas-vindas');
 ok((await P.locator('#nPedNav').innerText()) === '3', 'a barra de baixo mostra 3 pedidos no botão Início');
-ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('details.ajuda').count()) === 4, 'são 4 abas, cada uma com "Como usar esta parte"');
+ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('details.ajuda summary', { hasText: 'Como usar esta parte' }).count()) === 4, 'são 4 abas, cada uma com "Como usar esta parte"');
 await foto(P, 'painel-pedidos');
 
 // confirmar pelo cartão do pedido
@@ -748,6 +748,10 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok((await V.locator('#hLista .hrow').count()) > 3, 'banco antigo: o histórico também funciona');
   await doMais(V, 'seguranca');
   ok(/atualização do banco/.test(await V.locator('#gStatus').innerText()), 'banco antigo: Segurança explica que falta a atualização');
+  ok(await V.locator('#numeros').isHidden(), 'banco antigo: o cartão de números não aparece no Início');
+  await doMais(V, 'numeros');
+  await V.waitForFunction(() => /falta rodar a atualização/.test(document.getElementById('numDet').innerText));
+  ok(true, 'banco antigo: Seus números explica que falta a atualização');
   ok(errosV.filter((t) => !/Failed to load resource/.test(t)).length === 0, 'banco antigo: nenhum erro no console' + (errosV.filter((t) => !/Failed to load resource/.test(t)).length ? ' (' + errosV.join(' | ') + ')' : ''));
   await c.close();
 }
@@ -760,7 +764,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok((await M.locator('#selo').innerText()) === 'Protegido', 'topo do painel mostra o selo "Protegido" do guardião');
   ok(await M.locator('#bancoVelho').isHidden(), 'com o banco atualizado, não aparece aviso de atualização');
   await aba(M, 'mais');
-  ok((await M.locator('[data-aba="mais"] .lista [data-ir]').count()) === 6, 'Mais tem 6 páginas: Clientes, Serviços, Histórico, Segurança, Como funciona e Minha conta');
+  ok((await M.locator('[data-aba="mais"] .lista [data-ir]').count()) === 7, 'Mais tem 7 páginas: Seus números, Clientes, Serviços, Histórico, Segurança, Como funciona e Minha conta');
   ok(await M.locator('#nMais').isVisible(), 'o botão Mais avisa que há alertas novos (logins de outros aparelhos nos testes)');
 
   // clientes
@@ -1030,6 +1034,126 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   const sugs = await blocos();
   await chip('Prontinho').click();
   ok(inicio === '01/' + total && sugs === 3 && (await p.locator('#previa').innerText()).includes('1) Alívio de dores'), 'questionário: respostas estragadas no celular não quebram a página');
+  await c.close();
+}
+
+// ===== 4j. Seus números: atendimentos e faturamento no painel (relógio do banco fixo em 20/10/2026 às 15h) =====
+{
+  const nb = await criarBanco();
+  const apiN = criarApi(nb);
+  const nq = async (sql, p) => (await apiN.sql(sql, p)).rows;
+  const aguarda = async (fn, ms = 6000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await new Promise((r) => setTimeout(r, 120)); } return false; };
+  await nb.db.exec(`create or replace function public.agora_sp() returns timestamp language sql stable set search_path = '' as $$ select timestamp '2026-10-20 15:00' $$`);
+  await nb.db.exec(`update servicos set preco = 80 where id = 'auriculo'; update servicos set desde = null where id = 'limpeza'`);
+  await nb.db.exec(`alter table horarios disable trigger trg_horario_passado`);
+  await nb.db.exec(`insert into horarios (data, hora, status, nome, telefone, servico, pedido_em) values
+    ('2026-10-05', '10:00', 'confirmado', 'Maria Silva', '11911110001', 'Auriculoterapia', now()),
+    ('2026-10-15', '14:00', 'confirmado', 'Joana Lima', '11911110002', 'Limpeza de pele', now()),
+    ('2026-10-20', '13:00', 'confirmado', 'Rita Souza', '11911110003', 'Auriculoterapia', now()),
+    ('2026-10-20', '17:00', 'confirmado', 'Cris Melo', '11911110005', 'Limpeza de pele', now()),
+    ('2026-09-10', '10:00', 'confirmado', 'Joana Lima', '11911110002', 'Auriculoterapia', now())`);
+  await nb.db.exec(`alter table horarios enable trigger trg_horario_passado`);
+  await nb.db.exec(`insert into horarios (data, hora) values ('2026-10-22', '10:00')`);
+  const idDe = async (data, hora) => (await nq(`select id from horarios where data = $1 and hora = $2`, [data, hora]))[0].id;
+  const rita = await idDe('2026-10-20', '13:00'), livre = await idDe('2026-10-22', '10:00');
+  const c = await contexto(IPHONE, { apiDoBanco: apiN });
+  const N = await c.newPage();
+  await N.goto(BASE + 'admin/');
+  await N.fill('#email', EMAIL_ADMIN); await N.fill('#senha', 'certa'); await N.click('#bLogin');
+  await N.waitForSelector('#numeros:not([hidden])');
+  const cartao = () => N.locator('#numeros').innerText();
+  const fechaAviso = async () => { if (await N.locator('#toast').isVisible()) await N.click('#toast [data-fechar]'); };
+  let t = await cartao();
+  ok(/Faturamento de outubro/.test(t) && /R\$ 235/.test(t) && /3 atendimentos este mês/.test(t), 'Início mostra o faturamento do mês (R$ 235) e os 3 atendimentos: ' + t.replace(/\n+/g, ' / '));
+  ok(/Você já passou setembro \(R\$ 80\)/.test(t), 'sem meta, compara com o mês passado (setembro, R$ 80)');
+  ok(/\+ R\$ 75 em 1 atendimento já marcado até o fim do mês/.test(t), 'mostra quanto já está marcado até o fim do mês');
+  await foto(N, 'painel-numeros', false);
+  // olho: esconde os valores e lembra no aparelho
+  await N.click('#numeros [data-num="olho"]');
+  t = await cartao();
+  ok(/R\$ •••/.test(t) && !/235/.test(t) && /3 atendimentos/.test(t), 'o olho esconde os valores (os atendimentos continuam)');
+  await N.reload(); await N.waitForSelector('#numeros:not([hidden])');
+  ok(/R\$ •••/.test(await cartao()) && (await N.getAttribute('#numeros [data-num="olho"]', 'aria-pressed')) === 'true', 'depois de recarregar, os valores continuam escondidos');
+  await N.click('#numeros [data-num="olho"]');
+  ok(/R\$ 235/.test(await cartao()), 'tocar de novo no olho mostra os valores');
+  // não veio
+  await aba(N, 'agenda');
+  await N.click(`#agenda [data-abrir="${rita}"]`);
+  await foto(N, 'painel-nao-veio-antes', false);
+  await N.click('#sheet [data-a="perg-faltou"]');
+  await N.click('#sheet [data-a="faltou"]');
+  ok(await aguarda(async () => (await nq(`select faltou from horarios where id = $1`, [rita]))[0].faltou === true), 'não veio: fica anotado no banco');
+  ok(await aguarda(async () => /não veio/.test(await N.locator(`#agenda [data-abrir="${rita}"]`).innerText())), 'não veio: a agenda mostra "não veio" no horário');
+  await aba(N, 'inicio');
+  ok(await aguarda(async () => /R\$ 155/.test(await cartao()) && /2 atendimentos este mês/.test(await cartao())), 'não veio: sai da conta (2 atendimentos, R$ 155)');
+  await fechaAviso();
+  await aba(N, 'agenda');
+  await N.click(`#agenda [data-abrir="${rita}"]`);
+  ok(/Anotado: a cliente não veio/.test(await N.locator('#sheet').innerText()), 'o horário mostra que a cliente não veio');
+  await N.click('#sheet [data-a="veio"]');
+  ok(await aguarda(async () => (await nq(`select faltou from horarios where id = $1`, [rita]))[0].faltou === false), 'desfazer: a cliente veio, sim');
+  await aba(N, 'inicio');
+  ok(await aguarda(async () => /R\$ 235/.test(await cartao())), 'desfazer: o atendimento volta para a conta');
+  await fechaAviso();
+  // cortesia: valor cobrado 0
+  await aba(N, 'agenda');
+  await N.click(`#agenda [data-abrir="${rita}"]`);
+  ok(/R\$ 80/.test(await N.locator('#sheet').innerText()), 'o horário mostra o valor do atendimento (R$ 80)');
+  await N.click('#sheet [data-a="perg-editar"]');
+  ok((await N.inputValue('#fValor')) === '80', 'Editar dados traz o valor cobrado');
+  await foto(N, 'painel-valor', false);
+  await N.fill('#fValor', 'abc'); await N.click('#sheet [data-a="editar"]');
+  ok(/Confira o valor/.test(await N.locator('#toast').innerText()), 'valor inválido é recusado com explicação');
+  await N.fill('#fValor', '0'); await N.click('#sheet [data-a="editar"]');
+  ok(await aguarda(async () => Number((await nq(`select valor from horarios where id = $1`, [rita]))[0].valor) === 0), 'cortesia: valor 0 salvo no banco');
+  await aba(N, 'inicio');
+  ok(await aguarda(async () => /R\$ 155/.test(await cartao())), 'cortesia: o faturamento do mês desce para R$ 155');
+  await fechaAviso();
+  // meta do mês
+  await N.click('#numeros [data-num="meta-ir"]');
+  await N.waitForSelector('[data-aba="numeros"]:not([hidden])');
+  ok(await N.evaluate(() => document.activeElement && document.activeElement.id === 'metaV'), '"Definir uma meta" abre a página de números com o campo da meta pronto');
+  await N.fill('#metaV', '500'); await N.click('[data-num="meta-salvar"]');
+  ok(await aguarda(async () => Number((await nq(`select meta_mensal from painel_config`))[0].meta_mensal) === 500), 'meta salva no banco (R$ 500)');
+  await aba(N, 'inicio');
+  ok(await aguarda(async () => /31% da meta de R\$ 500 · faltam R\$ 345/.test(await cartao())), 'Início mostra quanto falta para a meta: ' + (await cartao()).replace(/\n+/g, ' / '));
+  ok((await N.getAttribute('#numeros [role="progressbar"]', 'aria-valuenow')) === '31', 'a barra da meta diz o número para quem usa leitor de tela');
+  await foto(N, 'painel-numeros-meta', false);
+  await doMais(N, 'numeros');
+  await foto(N, 'painel-numeros-detalhes');
+  const det = await N.locator('#numDet').innerText();
+  ok(/Auriculoterapia\s*2 atendimentos · R\$ 80/.test(det) && /Limpeza de pele\s*1 atendimento · R\$ 75/.test(det), 'detalhes: o mês separado por serviço');
+  ok((await N.locator('#numDet .num-meses li').count()) === 6 && /Set\s*1 atend\. · R\$ 80/.test(det), 'detalhes: os últimos 6 meses');
+  ok(/4\s*atendimentos/.test(det) && /3\s*clientes/.test(det) && /R\$ 235\s*faturamento/.test(det) && /Desde 10\/09\/2026/.test(det), 'detalhes: desde o começo (4 atendimentos, 3 clientes, R$ 235)');
+  // lembrou depois: "não veio" pela lista dos últimos 7 dias
+  const joana = () => N.locator('#numDet .num-ult li', { hasText: 'Joana Lima' });
+  ok(await aguarda(async () => (await N.locator('#numDet .num-ult li').count()) === 2), 'Últimos 7 dias: lista os atendimentos que já aconteceram (Rita e Joana; a Cris ainda vai ser atendida)');
+  await joana().locator('[data-num="faltou"]').click();
+  ok(await aguarda(async () => (await nq(`select faltou from horarios where data = '2026-10-15'`))[0].faltou === true), 'Últimos 7 dias: "Não veio" fica anotado no banco, mesmo fora da agenda de hoje');
+  ok(await aguarda(async () => /não veio/.test(await joana().innerText())), 'Últimos 7 dias: a cliente aparece como "não veio"');
+  await fechaAviso();
+  await joana().locator('[data-num="faltou"]').click();
+  ok(await aguarda(async () => (await nq(`select faltou from horarios where data = '2026-10-15'`))[0].faltou === false), 'Últimos 7 dias: "Veio, sim" desfaz');
+  await fechaAviso();
+  await N.fill('#metaV', '100'); await N.click('[data-num="meta-salvar"]');
+  await aba(N, 'inicio');
+  ok(await aguarda(async () => /Meta do mês batida! \(R\$ 100\)/.test(await cartao())) && (await N.getAttribute('#numeros .meter', 'class')).includes('ok'), 'meta batida: parabéns e barra verde');
+  await doMais(N, 'numeros');
+  await N.click('[data-num="meta-tirar"]');
+  ok(await aguarda(async () => (await nq(`select meta_mensal from painel_config`))[0].meta_mensal === null), 'tirar a meta');
+  // marcar por fora: o valor vem sozinho do preço do serviço
+  await fechaAviso();
+  await aba(N, 'agenda');
+  await N.click(`#agenda [data-abrir="${livre}"]`);
+  await N.click('#sheet [data-a="perg-ocupar"]');
+  await N.fill('#fNome', 'Lu Prado'); await N.selectOption('#fServ', 'Auriculoterapia');
+  ok((await N.getAttribute('#fValor', 'placeholder')) === 'Preço do serviço: R$ 80', 'ao escolher o serviço, o campo de valor mostra o preço dele');
+  await N.click('#sheet [data-a="ocupar"]');
+  ok(await aguarda(async () => Number((await nq(`select valor from horarios where id = $1`, [livre]))[0].valor) === 80), 'marcar por fora sem escrever o valor: fica o preço do serviço');
+  await doMais(N, 'historico');
+  ok(await aguarda(async () => /Rita Souza não veio/.test(await N.locator('#hLista').innerText()) && /Rita Souza veio, sim/.test(await N.locator('#hLista').innerText())), 'o histórico mostra o "não veio" e o desfazer');
+  await doMais(N, 'clientes');
+  ok(await aguarda(async () => /Rita Souza/.test(await N.locator('#cliLista').innerText())), 'a ficha das clientes continua abrindo');
   await c.close();
 }
 

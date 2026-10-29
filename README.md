@@ -103,6 +103,15 @@ Se o painel disser que as notificações não estão ligadas, ative a extensão 
 
 Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supabase/atualizacao.sql` no SQL Editor e toque em Run (se aparecer o aviso "Make sure you are not accidentally removing something important", toque em Run de novo: os `drop ... if exists` só recriam regras). Ele junta todas as atualizações (serviços editáveis, remarcar, lembretes, histórico completo e o guardião), não apaga nenhum horário e pode ser rodado quantas vezes quiser.
 
+## Seus números (atendimentos e faturamento)
+
+No Início do painel, um cartão mostra o faturamento do mês, quantos atendimentos ela fez e quanto falta para a meta (ou para passar o mês anterior, enquanto não houver meta). Em Mais › Seus números ficam a meta do mês, cada serviço, os últimos 6 meses e o total desde o começo. Só ela vê, e o olho do cartão esconde os valores quando alguém estiver olhando a tela.
+
+- Conta cada atendimento confirmado assim que o horário começa. Pedido sem confirmar não conta.
+- O valor é o preço do serviço no dia em que a cliente marcou. Desconto, pacote ou cortesia (0): no horário, Editar dados › Valor cobrado.
+- Se a cliente não veio: **Não veio**, no próprio horário (no dia) ou em Seus números › Últimos 7 dias (se lembrar depois). Sai da conta, fica no histórico e na ficha da cliente, e dá para desfazer.
+- Atendimento de serviço sem preço conta como atendimento, mas só entra no faturamento quando o serviço ganhar preço.
+
 ## Mudar textos e serviços
 
 - **Serviços e preços:** pelo painel, em Mais › Serviços e preços › Editar: nome, preço (com o preço antigo riscado, se quiser), observação do preço, frase curta, texto do site, os 3 benefícios principais, duração, data de estreia e se aparece no site. O site muda na hora. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.

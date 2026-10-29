@@ -237,11 +237,65 @@ $$;
 -- Lembrete: guarda quando a Amanda mandou o lembrete para a cliente
 -- ---------------------------------------------------------------------
 alter table public.horarios add column if not exists lembrete_em timestamptz;
+
+-- ---------------------------------------------------------------------
+-- Seus números: quanto rendeu cada atendimento e se a cliente não veio
+-- ---------------------------------------------------------------------
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'horarios' and column_name = 'valor') then
+    alter table public.horarios add column valor numeric(8,2) check (valor is null or valor between 0 and 99999);
+    -- quem já estava marcado fica com o preço atual do serviço (se ele tiver preço)
+    update public.horarios h set valor = s.preco
+      from public.servicos s
+     where h.status <> 'livre' and lower(s.nome) = lower(btrim(coalesce(h.servico, '')));
+  end if;
+end $$;
+alter table public.horarios add column if not exists faltou boolean not null default false;
+
 alter table public.horarios drop constraint if exists dados_coerentes;
 alter table public.horarios add constraint dados_coerentes check (
-  (status = 'livre' and nome is null and servico is null and telefone is null and pedido_em is null and lembrete_em is null)
+  (status = 'livre' and nome is null and servico is null and telefone is null and pedido_em is null and lembrete_em is null
+   and valor is null and not faltou)
   or (status <> 'livre' and nome is not null)
 );
+
+-- O valor é o preço do serviço quando a cliente marcou; a Amanda pode ajustar
+-- (desconto, pacote, cortesia = 0). Mudou o serviço sem mexer no valor: vale o
+-- preço do serviço novo. Horário livre não tem valor nem falta, e "não veio" só
+-- vale para atendimento confirmado que já começou.
+create or replace function public.ajusta_atendimento()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status = 'livre' then
+    new.valor := null;
+    new.faltou := false;
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and old.status <> 'livre' and new.servico is distinct from old.servico
+     and new.valor is not distinct from old.valor then
+    new.valor := null;
+  end if;
+  if new.valor is null then
+    new.valor := (select s.preco from public.servicos s
+                   where lower(s.nome) = lower(btrim(coalesce(new.servico, ''))) limit 1);
+  end if;
+  if new.faltou and (new.status <> 'confirmado' or (new.data + new.hora::time) > public.agora_sp()) then
+    new.faltou := false;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_ajusta_atendimento on public.horarios;
+create trigger trg_ajusta_atendimento
+  before insert or update on public.horarios
+  for each row execute function public.ajusta_atendimento();
 
 -- ---------------------------------------------------------------------
 -- Horário nunca vai para o passado: ao abrir é descartado;
@@ -491,8 +545,10 @@ begin
         v_obs := 'mudou de ' || old.data::text || ' ' || old.hora;
       elsif old.lembrete_em is null and new.lembrete_em is not null then
         v_obs := 'lembrete';
+      elsif old.status = new.status and old.faltou is distinct from new.faltou then
+        v_obs := case when new.faltou then 'faltou' else 'veio' end;
       elsif old.status = new.status
-            and (old.nome, old.telefone, old.servico) is distinct from (new.nome, new.telefone, new.servico) then
+            and (old.nome, old.telefone, old.servico, old.valor) is distinct from (new.nome, new.telefone, new.servico, new.valor) then
         v_obs := 'editado';
       end if;
     end if;
@@ -687,7 +743,7 @@ begin
   perform set_config('agenda.motivo', 'remarcado', true);
   update public.horarios h
      set status = o.status, servico = o.servico, nome = o.nome, telefone = o.telefone,
-         pedido_em = coalesce(o.pedido_em, now()), lembrete_em = null
+         pedido_em = coalesce(o.pedido_em, now()), lembrete_em = null, valor = o.valor
    where h.id = p_para;
   update public.horarios h
      set status = 'livre', servico = null, nome = null, telefone = null, pedido_em = null, lembrete_em = null
@@ -1051,11 +1107,12 @@ begin
         select k.chave,
                (array_agg(h.nome order by h.data desc, h.hora desc))[1] as nome,
                max(h.telefone) as telefone,
-               count(*) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()) as atendimentos,
-               max(h.data) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()) as ultima,
+               count(*) filter (where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()) as atendimentos,
+               max(h.data) filter (where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()) as ultima,
                min(h.data + h.hora::time) filter (where (h.data + h.hora::time) > public.agora_sp()) as proxima,
                array_agg(distinct h.servico) filter (where h.servico is not null and h.servico not in ('Combinado por fora', 'Manual')) as servicos,
-               (array_agg(h.servico order by h.data desc, h.hora desc) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()))[1] as ultimo_servico,
+               (array_agg(h.servico order by h.data desc, h.hora desc) filter (where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()))[1] as ultimo_servico,
+               count(*) filter (where h.faltou) as faltas,
                min(h.data) as desde,
                max(h.data) as recente,
                c.obs
@@ -1082,6 +1139,91 @@ begin
   insert into public.clientes (chave, obs, atualizado_em)
   values (left(btrim(p_chave), 80), nullif(left(btrim(coalesce(p_obs, '')), 500), ''), now())
   on conflict (chave) do update set obs = excluded.obs, atualizado_em = now();
+  return true;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- Seus números: atendimentos e faturamento, só para a Amanda
+-- ---------------------------------------------------------------------
+create table if not exists public.painel_config (
+  id boolean primary key default true check (id),
+  meta_mensal numeric(9,2) check (meta_mensal is null or meta_mensal between 1 and 9999999)
+);
+alter table public.painel_config enable row level security;
+revoke all on public.painel_config from anon, authenticated;
+insert into public.painel_config (id) values (true) on conflict (id) do nothing;
+
+-- Atendimento = horário confirmado que já começou e em que a cliente veio.
+-- Valor = o que ficou no horário; sem valor, o preço atual do serviço.
+create or replace function public.meus_numeros()
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_agora timestamp := public.agora_sp();
+  v_mes date := date_trunc('month', public.agora_sp())::date;
+  v_ant date := (date_trunc('month', public.agora_sp()) - interval '1 month')::date;
+  v_prox date := (date_trunc('month', public.agora_sp()) + interval '1 month')::date;
+begin
+  if not public.sou_admin() then
+    return null;
+  end if;
+  return (
+    with a as (
+      select h.data, h.servico, h.nome, h.telefone, h.faltou,
+             coalesce(h.valor, (select s.preco from public.servicos s
+                                 where lower(s.nome) = lower(btrim(coalesce(h.servico, ''))) limit 1)) as valor,
+             (h.data + h.hora::time) <= v_agora as feito
+        from public.horarios h
+       where h.status = 'confirmado'
+    ),
+    f as (select * from a where feito and not faltou)
+    select json_build_object(
+      'hoje', v_agora::date,
+      'mes', (select json_build_object('atendimentos', count(*), 'faturamento', coalesce(sum(valor), 0),
+                                       'sem_valor', count(*) filter (where valor is null))
+                from f where data >= v_mes),
+      'marcados', (select json_build_object('atendimentos', count(*), 'faturamento', coalesce(sum(valor), 0))
+                     from a where not feito and data < v_prox),
+      'anterior', (select json_build_object('atendimentos', count(*), 'faturamento', coalesce(sum(valor), 0))
+                     from f where data >= v_ant and data < v_mes),
+      'meses', (select json_agg(json_build_object('mes', m.mes, 'atendimentos', coalesce(x.n, 0), 'faturamento', coalesce(x.v, 0)) order by m.mes)
+                  from (select g::date as mes from generate_series(v_mes - interval '5 months', v_mes::timestamp, interval '1 month') g) m
+                  left join (select date_trunc('month', data)::date as mes, count(*) as n, sum(valor) as v from f group by 1) x on x.mes = m.mes),
+      'servicos', (select coalesce(json_agg(json_build_object('servico', t.servico, 'atendimentos', t.n, 'faturamento', t.v) order by t.n desc, t.servico), '[]'::json)
+                     from (select coalesce(servico, 'Combinado por fora') as servico, count(*) as n, coalesce(sum(valor), 0) as v
+                             from f where data >= v_mes group by 1) t),
+      'total', (select json_build_object('atendimentos', count(*), 'faturamento', coalesce(sum(valor), 0),
+                                         'clientes', count(distinct coalesce(telefone, 'nome:' || lower(btrim(nome)))) filter (where nome <> 'Marcado por fora'),
+                                         'desde', min(data))
+                  from f),
+      'faltas', (select count(*) from a where faltou),
+      'meta', (select c.meta_mensal from public.painel_config c where c.id)
+    )
+  );
+end;
+$$;
+
+-- Meta do mês (vazia tira a meta)
+create or replace function public.definir_meta(p_valor numeric)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_admin() then
+    return false;
+  end if;
+  if p_valor is not null and (p_valor < 1 or p_valor > 9999999) then
+    return false;
+  end if;
+  insert into public.painel_config (id, meta_mensal) values (true, round(p_valor, 2))
+  on conflict (id) do update set meta_mensal = excluded.meta_mensal;
   return true;
 end;
 $$;
@@ -1121,6 +1263,9 @@ revoke all on function public.resumo_do_dia() from public, anon, authenticated;
 revoke all on function public.resumo_ligado() from public, anon, authenticated;
 revoke all on function public.enviar_resumo_agora() from public, anon, authenticated;
 revoke all on function public.salvar_cliente(text, text) from public, anon, authenticated;
+revoke all on function public.ajusta_atendimento() from public, anon, authenticated;
+revoke all on function public.meus_numeros() from public, anon, authenticated;
+revoke all on function public.definir_meta(numeric) from public, anon, authenticated;
 
 grant execute on function public.agenda_publica() to anon, authenticated;
 grant execute on function public.pedir_horario(uuid, text, text, text) to anon, authenticated;
@@ -1138,3 +1283,5 @@ grant execute on function public.enviar_resumo_agora() to authenticated;
 -- a regra dos benefícios roda quando a Amanda salva um serviço
 grant execute on function public.beneficios_ok(text[]) to authenticated;
 grant execute on function public.salvar_cliente(text, text) to authenticated;
+grant execute on function public.meus_numeros() to authenticated;
+grant execute on function public.definir_meta(numeric) to authenticated;

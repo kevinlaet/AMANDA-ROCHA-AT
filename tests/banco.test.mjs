@@ -384,4 +384,104 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok(hc.t === 'sábado, 14/11 às 13h30' && hc.u === 'sábado, 14/11 às 9h', 'texto do dia e hora: ' + hc.t + ' / ' + hc.u);
 }
 
+// 10. Seus números: atendimentos e faturamento (relógio fixo em 20/10/2026 às 15h)
+{
+  const nb = await criarBanco();
+  const nq = async (s, p) => (await nb.db.query(s, p)).rows;
+  const comoAmanda = (s, p) => nb.como('authenticated', EMAIL_ADMIN, () => nq(s, p));
+  await nb.db.exec(`create or replace function public.agora_sp() returns timestamp language sql stable set search_path = '' as $$ select timestamp '2026-10-20 15:00' $$`);
+  await nb.db.exec(`update servicos set preco = 80 where id = 'auriculo'; update servicos set desde = null where id = 'limpeza'; update guardiao set max_10min = 1000, max_hora = 1000, max_origem_hora = 1000;
+    insert into servicos (id, nome, ativo, ordem, duracao) values ('massagem', 'Massagem', true, 3, 60)`);
+  await nb.db.exec(`alter table horarios disable trigger trg_horario_passado`);
+  const marca = async (data, hora, status, nome, tel, servico, extra = {}) => (await nq(
+    `insert into horarios (data, hora, status, nome, telefone, servico, pedido_em, valor) values ($1, $2, $3, $4, $5, $6, now(), $7) returning id, valor`,
+    [data, hora, status, nome, tel, servico, extra.valor ?? null]))[0];
+  await marca('2026-10-05', '10:00', 'confirmado', 'Maria Silva', '11911110001', 'Auriculoterapia');
+  const cortesia = await marca('2026-10-12', '10:00', 'confirmado', 'Maria Silva', '11911110001', 'Auriculoterapia', { valor: 0 });
+  const limpezaOut = await marca('2026-10-15', '14:00', 'confirmado', 'Joana Lima', '11911110002', 'Limpeza de pele');
+  await marca('2026-10-18', '09:00', 'confirmado', 'Marcado por fora', null, 'Combinado por fora');
+  const rita = await marca('2026-10-19', '11:00', 'confirmado', 'Rita Souza', '11911110003', 'Auriculoterapia');
+  await marca('2026-10-20', '14:30', 'confirmado', 'Bia', null, 'Auriculoterapia');
+  await marca('2026-10-20', '16:00', 'confirmado', 'Cris Melo', '11911110005', 'Limpeza de pele');
+  await marca('2026-10-28', '10:00', 'confirmado', 'Duda Reis', '11911110006', 'Auriculoterapia');
+  await marca('2026-11-03', '10:00', 'confirmado', 'Eva Nunes', '11911110007', 'Auriculoterapia');
+  await marca('2026-10-25', '10:00', 'pedido', 'Fê Rocha', '11911110008', 'Auriculoterapia');
+  await marca('2026-09-10', '10:00', 'confirmado', 'Joana Lima', '11911110002', 'Auriculoterapia', { valor: 70 });
+  await marca('2026-09-20', '10:00', 'confirmado', 'Gabi Prado', '11911110004', 'Limpeza de pele');
+  const massagem = await marca('2026-08-15', '10:00', 'confirmado', 'Helô', null, 'Massagem');
+  await nb.db.exec(`alter table horarios enable trigger trg_horario_passado`);
+  ok(cortesia.valor == 0 && limpezaOut.valor == 75 && massagem.valor === null, 'cada atendimento guarda o preço do serviço na hora em que foi marcado (cortesia fica 0; serviço sem preço fica sem valor)');
+  await nb.db.exec(`update servicos set preco = 100 where id = 'massagem'`);
+
+  // "não veio"
+  const futuro = (await nq(`select id from horarios where nome = 'Duda Reis'`))[0].id;
+  await comoAmanda(`update horarios set faltou = true where id = $1`, [futuro]);
+  ok((await nq(`select faltou from horarios where id = $1`, [futuro]))[0].faltou === false, '"não veio" não vale para atendimento que ainda não aconteceu');
+  await comoAmanda(`update horarios set faltou = true where id = $1`, [rita.id]);
+  ok((await nq(`select faltou from horarios where id = $1`, [rita.id]))[0].faltou === true, 'a Amanda marca que a cliente não veio');
+  ok((await nq(`select obs, quem from historico where horario_id = $1 order by id desc limit 1`, [rita.id]))[0]?.obs === 'faltou', 'o histórico registra que a cliente não veio');
+  const cli = (await comoAmanda(`select public.clientes_resumo() j`))[0].j;
+  const ritaCli = cli.find((x) => x.nome === 'Rita Souza');
+  ok(ritaCli && ritaCli.atendimentos === 0 && ritaCli.faltas === 1 && ritaCli.ultima === null, 'na ficha da cliente, a falta não conta como atendimento nem como última vez');
+
+  const n = (await comoAmanda(`select public.meus_numeros() j`))[0].j;
+  ok(n.hoje === '2026-10-20', 'números calculados no dia de São Paulo');
+  ok(n.mes.atendimentos === 5 && Number(n.mes.faturamento) === 235 && n.mes.sem_valor === 1, `mês: 5 atendimentos e R$ 235 (cortesia conta R$ 0, falta fica de fora, horário que já começou conta) — veio ${n.mes.atendimentos} e R$ ${n.mes.faturamento}`);
+  ok(n.marcados.atendimentos === 2 && Number(n.marcados.faturamento) === 155, `ainda marcados no mês: 2 (R$ 155); pedido sem confirmar e mês que vem ficam de fora — veio ${n.marcados.atendimentos} e R$ ${n.marcados.faturamento}`);
+  ok(n.anterior.atendimentos === 2 && Number(n.anterior.faturamento) === 145, 'mês passado: 2 atendimentos e R$ 145');
+  ok(n.meses.length === 6 && n.meses[0].mes === '2026-05-01' && n.meses[5].mes === '2026-10-01' && n.meses[3].atendimentos === 1 && Number(n.meses[3].faturamento) === 100, 'últimos 6 meses; atendimento sem valor usa o preço atual do serviço (massagem de agosto = R$ 100)');
+  ok(n.servicos.map((s) => s.servico + ':' + s.atendimentos + ':' + Number(s.faturamento)).join() === 'Auriculoterapia:3:160,Combinado por fora:1:0,Limpeza de pele:1:75', 'mês separado por serviço: ' + n.servicos.map((s) => s.servico + ' ' + s.atendimentos).join(', '));
+  ok(n.total.atendimentos === 8 && Number(n.total.faturamento) === 480 && n.total.clientes === 5 && n.total.desde === '2026-08-15', `desde o começo: 8 atendimentos, R$ 480, 5 clientes diferentes ("marcado por fora" não conta como cliente) — veio ${n.total.atendimentos}, R$ ${n.total.faturamento}, ${n.total.clientes}`);
+  ok(n.faltas === 1 && n.meta === null, 'conta as faltas; sem meta definida');
+
+  // meta do mês
+  ok((await comoAmanda(`select public.definir_meta(0) r`))[0].r === false && (await comoAmanda(`select public.definir_meta(-5) r`))[0].r === false, 'meta zero ou negativa é recusada');
+  ok((await comoAmanda(`select public.definir_meta(2000) r`))[0].r === true && Number((await comoAmanda(`select public.meus_numeros() j`))[0].j.meta) === 2000, 'a Amanda define a meta do mês (R$ 2.000)');
+  await nb.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8'));
+  ok(Number((await comoAmanda(`select public.meus_numeros() j`))[0].j.meta) === 2000 && (await nq(`select valor from horarios where id = $1`, [cortesia.id]))[0].valor == 0, 'rodar a atualização de novo mantém a meta e os valores');
+
+  // privacidade
+  ok(!!(await nb.como('anon', null, () => tenta(nq(`select public.meus_numeros()`)))).erro && !!(await nb.como('anon', null, () => tenta(nq(`select public.definir_meta(1)`)))).erro, 'visitante não vê os números nem muda a meta');
+  ok((await nb.como('authenticated', 'outra@pessoa.com', () => nq(`select public.meus_numeros() j, public.definir_meta(1) m`)))[0].j === null && Number((await comoAmanda(`select public.meus_numeros() j`))[0].j.meta) === 2000, 'outra conta recebe nada e não muda a meta');
+  ok(!!(await nb.como('authenticated', 'outra@pessoa.com', () => tenta(nq(`select * from painel_config`)))).erro && !!(await nb.como('anon', null, () => tenta(nq(`select * from painel_config`)))).erro, 'a tabela da meta não abre direto para ninguém');
+  ok(!Object.keys((await nb.como('anon', null, () => nq(`select * from public.agenda_publica() limit 1`)))[0] || {}).some((k) => /valor|falt/.test(k)), 'a agenda pública não mostra valor nem falta');
+
+  // valor ao longo do caminho: pedido do site, confirmação, troca de serviço, ajuste, cancelamento e remarcação
+  await nb.db.exec(`insert into horarios (data, hora) values ('2026-10-30', '10:00'), ('2026-10-30', '13:00'), ('2026-10-31', '10:00')`);
+  const [l1, l2, l3] = (await nq(`select id from horarios where status = 'livre' and data >= '2026-10-30' order by data, hora`)).map((r) => r.id);
+  ok((await nb.como('anon', null, async () => (await nq(`select public.pedir_horario($1, 'Limpeza de pele', 'Lara Dias', '11911110009') r`, [l1]))[0].r)) === 'ok', 'pedido pelo site');
+  const val = async (id) => Number((await nq(`select valor from horarios where id = $1`, [id]))[0].valor);
+  ok(await val(l1) === 75, 'o pedido do site já guarda o preço que a cliente viu (R$ 75)');
+  await comoAmanda(`update servicos set preco = 120 where id = 'limpeza'`);
+  await comoAmanda(`update horarios set status = 'confirmado' where id = $1`, [l1]);
+  ok(await val(l1) === 75, 'o preço do serviço sobe para R$ 120, mas quem já tinha marcado continua com R$ 75');
+  await comoAmanda(`update horarios set servico = 'Auriculoterapia' where id = $1`, [l1]);
+  ok(await val(l1) === 80, 'trocou o serviço sem mexer no valor: vale o preço do serviço novo');
+  await comoAmanda(`update horarios set valor = 50 where id = $1`, [l1]);
+  ok(await val(l1) === 50 && (await nq(`select obs from historico where horario_id = $1 order by id desc limit 1`, [l1]))[0].obs === 'editado', 'a Amanda ajusta o valor (desconto) e o histórico registra a edição');
+  await comoAmanda(`update horarios set servico = 'Limpeza de pele', valor = 60 where id = $1`, [l1]);
+  ok(await val(l1) === 60, 'trocou o serviço e escreveu o valor: vale o que ela escreveu');
+  ok((await comoAmanda(`select public.remarcar($1, $2) r`, [l1, l2]))[0].r === 'ok' && await val(l2) === 60 && (await nq(`select valor from horarios where id = $1`, [l1]))[0].valor === null, 'remarcar leva o valor combinado para o novo horário');
+  await comoAmanda(`update horarios set status = 'livre', nome = null, servico = null, telefone = null, pedido_em = null, lembrete_em = null where id = $1`, [l2]);
+  ok((await nq(`select valor, faltou from horarios where id = $1`, [l2]))[0].valor === null, 'horário cancelado volta a ficar sem valor');
+  ok(!!(await comoAmanda(`select 1`).then(() => tenta(nq(`update horarios set valor = -1 where nome = 'Cris Melo'`)))).erro, 'valor negativo é recusado');
+  await comoAmanda(`update horarios set faltou = false where id = $1`, [rita.id]);
+  ok((await nq(`select obs from historico where horario_id = $1 order by id desc limit 1`, [rita.id]))[0].obs === 'veio', 'desfazer o "não veio" fica no histórico');
+}
+
+// 11. Banco antigo: quem já estava marcado ganha o valor do serviço
+{
+  const velho = await criarBanco({ schema: path.join(RAIZ, 'tests/fixtures/schema-antes-da-atualizacao-2.sql') });
+  await velho.db.exec(`alter table horarios disable trigger all`);
+  await velho.db.exec(`insert into horarios (data, hora, status, nome, telefone, servico, pedido_em) values
+    ((public.agora_sp() + interval '5 days')::date, '10:00', 'confirmado', 'Lia Antiga', '11922220001', 'Limpeza de pele', now()),
+    ((public.agora_sp() + interval '5 days')::date, '13:00', 'confirmado', 'Ana Antiga', '11922220002', 'Auriculoterapia', now()),
+    ((public.agora_sp() + interval '5 days')::date, '15:00', 'livre', null, null, null, null)`);
+  await velho.db.exec(`alter table horarios enable trigger all`);
+  const r = await tenta(velho.db.exec(ATUALIZACAO));
+  ok(!r.erro, 'atualização com os números roda em cima de um banco antigo' + (r.erro ? ': ' + r.erro : ''));
+  const v = await velho.db.query(`select hora, valor, faltou from horarios order by hora`);
+  ok(v.rows.map((x) => x.hora + ':' + (x.valor === null ? '-' : Number(x.valor)) + ':' + x.faltou).join() === '10:00:75:false,13:00:-:false,15:00:-:false', 'limpeza já marcada ganha R$ 75; auriculoterapia ainda sem preço fica sem valor; horário livre fica vazio');
+}
+
 fim('banco');

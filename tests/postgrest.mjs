@@ -8,7 +8,7 @@ export const ANON_KEY = 'sb_publishable_chave_de_teste';
 export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa' };
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao', 'preco', 'preco_antes', 'preco_obs', 'descricao', 'beneficios']) };
+const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora', 'valor', 'faltou']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao', 'preco', 'preco_antes', 'preco_obs', 'descricao', 'beneficios']) };
 
 export function criarApi({ db, como, opcoes = {} }) {
   let fila = Promise.resolve();
@@ -24,6 +24,8 @@ export function criarApi({ db, como, opcoes = {} }) {
       if (k === 'status' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`status = $${params.length}`); }
       if (k === 'status' && v.startsWith('in.(')) { params.push(v.slice(4, -1).split(',')); w.push(`status = any($${params.length})`); }
       if (k === 'data' && v.startsWith('gte.')) { params.push(v.slice(4)); w.push(`data >= $${params.length}::date`); }
+      if (k === 'data' && v.startsWith('lte.')) { params.push(v.slice(4)); w.push(`data <= $${params.length}::date`); }
+      if (k === 'data' && v.startsWith('lt.')) { params.push(v.slice(3)); w.push(`data < $${params.length}::date`); }
     }
     return w.length ? ' where ' + w.join(' and ') : '';
   }
@@ -98,6 +100,8 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/clientes_resumo') return json(route, (await db.query('select public.clientes_resumo() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/salvar_cliente') { const b = req.postDataJSON() || {}; return json(route, (await db.query('select public.salvar_cliente($1, $2) j', [b.p_chave, b.p_obs])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/definir_protecao') return json(route, (await db.query('select public.definir_protecao($1) j', [!!(req.postDataJSON() || {}).p_pausar])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/meus_numeros') return json(route, (await db.query('select public.meus_numeros() j')).rows[0].j);
+        if (caminho === '/rest/v1/rpc/definir_meta') { const b = req.postDataJSON() || {}; return json(route, (await db.query('select public.definir_meta($1) j', [b.p_valor ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/remarcar') { const b = req.postDataJSON(); return json(route, (await db.query('select public.remarcar($1, $2) j', [b.p_de, b.p_para])).rows[0].j); }
         if (caminho === '/rest/v1/servicos') {
           const params = [];
@@ -155,5 +159,7 @@ export function criarApi({ db, como, opcoes = {} }) {
       }
     }, { sessao: sessao ? sessao.id : undefined, cabecalhos }));
   }
-  return { tratar, estat };
+  // consulta direta do teste, na mesma fila dos pedidos (nunca roda no meio de um pedido, com o papel dele)
+  const sql = (texto, params) => emSerie(() => db.query(texto, params));
+  return { tratar, estat, sql };
 }
