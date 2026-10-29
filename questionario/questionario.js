@@ -58,6 +58,7 @@
       {k:'pr.ideias',t:'area',l:'Outras promoções que você gostaria de fazer?',c:'Ideias de promoção',ph:'Ex.: aniversariante do mês, pacote mãe e filha, traga uma amiga e as duas ganham...'}]}]},
     {em:'👩‍⚕️',t:'Sua história',sub:'Para o “Sobre mim” do site: cliente confia em quem conhece.',blocos:[{campos:[
       {k:'hs.apresentacao',t:'area',l:'Como você quer ser apresentada? (1 ou 2 frases)',c:'Apresentação',ph:'Ex.: Sou enfermeira há X anos e cuido de pessoas com ansiedade e dores...'},
+      {k:'hs.coren',t:'txt',l:'Seu número de inscrição no COREN',c:'COREN',aj:'O COFEN pede que todo anúncio de enfermagem mostre o nome, o número do COREN e a categoria (Resolução 554/2017). Vai no rodapé do site e nos folders.',ph:'Ex.: COREN-SP 123456'},
       {k:'hs.formacao',t:'area',l:'Formação, cursos e certificados',c:'Formação'},
       {k:'hs.tempo',t:'txt',l:'Há quanto tempo você atende com auriculoterapia?',c:'Tempo de auriculoterapia'},
       {k:'hs.frase',t:'txt',l:'Uma frase que te define',c:'Frase que me define',ph:'Ex.: Cuidar é o que eu faço de melhor.'},
@@ -95,7 +96,7 @@
       {k:'id.aniversario',t:'ops',l:'🎂 Aniversário das clientes',c:'Aniversário das clientes',aj:'O painel avisa no dia e prepara uma mensagem com um mimo (ex.: 10% no mês do aniversário).',ops:IDEIA},
       {k:'id.mes',t:'ops',l:'📊 Resumo do mês',c:'Resumo do mês',aj:'Quantas clientes vieram, quantas voltaram, quanto entrou e o serviço mais procurado.',ops:IDEIA},
       {k:'id.ficha',t:'ops',l:'📝 Ficha de saúde (anamnese)',c:'Ficha de saúde',aj:'Antes da 1ª sessão, a cliente responde pelo celular: alergias, remédios, gestação, pele sensível. Fica só no seu painel.',ops:IDEIA},
-      {k:'id.antesDepois',t:'ops',l:'📸 Fotos de antes e depois',c:'Fotos de antes e depois',aj:'Da limpeza de pele, só com autorização por escrito da cliente, para o Instagram e o site.',ops:IDEIA},
+      {k:'id.antesDepois',t:'ops',l:'📸 Fotos de antes e depois',c:'Fotos de antes e depois',aj:'Da limpeza de pele, para o Instagram e o site. Só com autorização por escrito da cliente e sem prometer resultado, como pede o COFEN.',ops:IDEIA},
       {k:'id.obs',t:'area',l:'Quer mudar alguma dessas ideias?',c:'Ajustes nas ideias',ph:'Ex.: no cartão fidelidade, a cada 4 sessões a 5ª sai pela metade'}]}]},
     {em:'💡',t:'Suas sugestões',sub:'Ideias novas ou mudanças: tudo vale.',sug:1,
       dica:'<b>Aqui vale tudo.</b> Cada sugestão pode ser <b>uma ideia nova</b> ou <b>uma mudança</b> em algo que já existe (site, painel, folders, mensagens...). Escreva como se estivesse falando com a gente: o que você quer e, se souber, por quê.<br><br><i>Exemplos:</i><br>• <i>Sugestão 1 · Mudança · Site: trocar a frase do topo por “Cuidado que você sente”.</i><br>• <i>Sugestão 2 · Ideia nova · Painel: mostrar quais clientes mais indicaram amigas.</i>'},
