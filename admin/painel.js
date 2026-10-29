@@ -78,7 +78,7 @@
   var DOZE_HORAS=12*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
   function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>DOZE_HORAS)}
-  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;hist.ok=false;irAba('inicio');mostrar(msg);return fim}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;irAba('inicio');mostrar(msg);return fim}
   var MSG_12H='Por segurança, o painel pede a senha a cada 12 horas. Entre de novo, por favor.';
   var renovando=null;
   function token(){
@@ -174,7 +174,7 @@
       .then(function(j){rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
         return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){servs=sv||[];bancoVelho=false},function(e){if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
       .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){guard=g;semGuardiao=false;if(acessoEstranho())throw 'estranho'},function(e){if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
-      .then(function(){$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar()})
+      .then(function(){$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes()})
       .catch(function(e){
         if(e==='estranho'){encerrar('Encontrei um acesso estranho ao seu painel e desconectei todos os aparelhos por segurança. Entre de novo e depois troque sua senha em Mais › Minha conta.','global');return}
         if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
@@ -709,7 +709,7 @@
   function acessoEstranho(){return !!(guard&&guard.aparelhos&&guard.aparelhos.some(function(x){return !x.atual&&automatico(x.aparelho)}))}
 
   // ---------- clientes ----------
-  var clientes=null;
+  var clientes=null,cliFiltro='todas',DIAS_SEM_VIR=10;
   function carregarClientes(){
     if(!clientes)$('cliLista').innerHTML='<p class="vazio">Carregando…</p>';
     api('POST','rpc/clientes_resumo',{}).then(function(j){clientes=j||[];desenharClientes()},function(e){
@@ -717,26 +717,54 @@
       $('cliLista').innerHTML='<p class="vazio">'+(e==='ausente'?'Para ver as clientes aqui, falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).':e==='rede'?'Sem conexão. Tente de novo quando a internet voltar.':'Não consegui carregar as clientes agora.')+'</p>'});
   }
   function diasDesde(d){return Math.round((utc(hojeSP())-utc(d))/864e5)}
+  // sem horário marcado e sem vir há mais de 10 dias
+  function sumida(x){return !x.proxima&&!!x.ultima&&diasDesde(x.ultima)>DIAS_SEM_VIR}
+  function semAcento(t){t=String(t||'').toLowerCase();try{return t.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(e){return t}}
+  document.addEventListener('click',function(e){var f=e.target.closest('[data-cli-f]');if(!f)return;cliFiltro=f.getAttribute('data-cli-f');desenharClientes()});
+
+  // ---------- sugestão de nomes: ao digitar, mostra clientes que já existem ----------
+  var CAMPO_TEL={fNome:'fTel',envNome:'envTel'};
+  document.addEventListener('input',function(e){var t=e.target;if(t&&CAMPO_TEL[t.id])sugerir(t)});
+  function sugerir(inp){
+    var box=document.getElementById('sug-'+inp.id);
+    if(!box){box=document.createElement('div');box.className='sug';box.id='sug-'+inp.id;box.setAttribute('role','listbox');inp.insertAdjacentElement('afterend',box)}
+    var v=semAcento(inp.value.trim());
+    var l=v.length<2||!clientes?[]:clientes.filter(function(x){var n=semAcento(x.nome);return n.indexOf(v)>=0&&n!==v}).slice(0,5);
+    box.hidden=!l.length;
+    box.innerHTML=l.map(function(x){return '<button type="button" role="option" data-sug="'+esc(x.chave)+'" data-para="'+inp.id+'">'+esc(x.nome)+'<small>'+(x.telefone?esc(fmtTel(x.telefone)):'sem WhatsApp')+'</small></button>'}).join('');
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-sug]');if(!b)return;
+    var x=cliPorChave(b.getAttribute('data-sug')),id=b.getAttribute('data-para'),inp=$(id),tel=$(CAMPO_TEL[id]);if(!x||!inp)return;
+    inp.value=x.nome;if(tel&&x.telefone)tel.value=fmtTel(x.telefone);
+    var box=$('sug-'+id);if(box)box.hidden=true;
+    if(id==='envNome')desenharEnvio();
+    (tel||inp).focus();
+  });
   function zapCliente(x,volta){if(!x.telefone)return '';var n=primeiro(x.nome);
     var t=volta?'Oi, '+n+'! Aqui é a Amanda. Faz um tempinho que você não vem, estou com horários abertos. Quer que eu separe um para você?':'Oi, '+n+'! Aqui é a Amanda.';
     return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t)}
   function desenharClientes(){
     var el=$('cliLista'),b=$('cliBusca').value.trim().toLowerCase(),bd=b.replace(/\D/g,'');
-    var l=(clientes||[]).filter(function(x){return !b||String(x.nome).toLowerCase().indexOf(b)>=0||(bd&&String(x.telefone||'').indexOf(bd)>=0)});
+    var nSum=(clientes||[]).filter(sumida).length;
+    $('cliSumidas').textContent='Mais de '+DIAS_SEM_VIR+' dias sem vir'+(clientes?' ('+nSum+')':'');
+    [].forEach.call(document.querySelectorAll('[data-cli-f]'),function(c){c.setAttribute('aria-pressed',c.getAttribute('data-cli-f')===cliFiltro)});
+    var l=(clientes||[]).filter(function(x){return (cliFiltro!=='sumidas'||sumida(x))&&(!b||semAcento(x.nome).indexOf(semAcento(b))>=0||(bd&&String(x.telefone||'').indexOf(bd)>=0))});
+    if(cliFiltro==='sumidas')l.sort(function(a,c){return a.ultima<c.ultima?-1:1});
     var total=(clientes||[]).length;
-    $('cliResumo').textContent=total?total+(total>1?' clientes':' cliente')+(b?' · '+l.length+' encontrada'+(l.length===1?'':'s'):''):'';
-    if(!l.length){el.innerHTML='<p class="vazio">'+(b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui assim que marcarem o primeiro horário.')+'</p>';return}
+    $('cliResumo').textContent=cliFiltro==='sumidas'?(nSum?'Clientes sem horário marcado e que não vêm há mais de '+DIAS_SEM_VIR+' dias. Que tal chamar?':''):total?total+(total>1?' clientes':' cliente')+(b?' · '+l.length+' encontrada'+(l.length===1?'':'s'):''):'';
+    if(!l.length){el.innerHTML='<p class="vazio">'+(cliFiltro==='sumidas'&&!b?'Nenhuma cliente há mais de '+DIAS_SEM_VIR+' dias sem vir. Ótimo sinal!':b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui assim que marcarem o primeiro horário.')+'</p>';return}
     el.innerHTML=l.map(function(x){
       var prox=x.proxima?String(x.proxima).replace('T',' '):'',pd=prox.slice(0,10),ph=prox.slice(11,16);
-      var sumida=!prox&&x.ultima&&diasDesde(x.ultima)>=45,z=zapCliente(x,sumida);
+      var sumiu=sumida(x),z=zapCliente(x,sumiu);
       return '<div class="card cli"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+'</div>'+
         '<div class="cli-d">'+(x.telefone?esc(fmtTel(x.telefone)):'Sem WhatsApp')+(x.servicos&&x.servicos.length?' · '+esc(x.servicos.join(', ')):'')+'</div>'+
         '<div class="cli-n"><div><b>'+x.atendimentos+'</b>'+(x.atendimentos===1?'atendimento':'atendimentos')+'</div>'+
           '<div><b>'+(x.ultima?esc(curta(x.ultima)):'—')+'</b>última vez'+(x.ultima?' ('+(diasDesde(x.ultima)===0?'hoje':'há '+diasDesde(x.ultima)+' dia'+(diasDesde(x.ultima)===1?'':'s'))+')':'')+'</div>'+
           '<div><b>'+(prox?esc(curta(pd)):'—')+'</b>'+(prox?'próximo, '+esc(hh(ph)):'sem horário marcado')+'</div></div>'+
-        (sumida?'<div class="cli-volta">Faz '+diasDesde(x.ultima)+' dias que ela não vem. Que tal chamar?</div>':'')+
+        (sumiu?'<div class="cli-volta">Faz '+diasDesde(x.ultima)+' dias que ela não vem. Que tal chamar?</div>':'')+
         (x.obs?'<div class="cli-obs">'+esc(x.obs)+'</div>':'')+
-        '<div class="row">'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">'+(sumida?'Convidar a voltar':'WhatsApp')+'</a>':'<span></span>')+
+        '<div class="row">'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">'+(sumiu?'Convidar a voltar':'WhatsApp')+'</a>':'<span></span>')+
         '<button class="btn ghost" type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+(x.obs?'Editar anotação':'Anotar')+'</button></div></div>'}).join('');
   }
   $('cliBusca').oninput=desenharClientes;

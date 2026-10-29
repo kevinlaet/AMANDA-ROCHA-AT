@@ -638,7 +638,35 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await M.waitForFunction(() => /Anotação salva/.test(document.getElementById('toast').innerText));
   ok((await q(`select obs from clientes where chave = '11955550000'`))[0]?.obs === 'Prefere sábado à tarde' && /Prefere sábado/.test(await bea.innerText()), 'Clientes: anotação salva e mostrada na ficha');
   await M.fill('#cliBusca', '');
+  // há mais de 10 dias sem vir
+  await db.exec(`alter table horarios disable trigger trg_horario_passado`);
+  await db.exec(`insert into horarios (data, hora, status, nome, telefone, servico, pedido_em) values ((public.agora_sp() - interval '15 days')::date, '10:00', 'confirmado', 'Glória Antiga', '11966660000', 'Auriculoterapia', now()), ((public.agora_sp() - interval '5 days')::date, '10:00', 'confirmado', 'Recente Cliente', '11966661111', 'Auriculoterapia', now())`);
+  await db.exec(`alter table horarios enable trigger trg_horario_passado`);
+  await doMais(M, 'clientes'); await M.waitForSelector('#cliLista .cli:has-text("Glória")');
+  ok(/\(1\)/.test(await M.locator('#cliSumidas').innerText()), 'Clientes: o botão "Mais de 10 dias sem vir" mostra quantas são (1)');
+  await M.click('#cliSumidas');
+  const sum = await M.locator('#cliLista .cli').allInnerTexts();
+  ok(sum.length === 1 && /Glória Antiga/.test(sum[0]) && /15 dias/.test(sum[0]) && /Convidar a voltar/.test(sum[0]), 'Clientes: só aparece quem está há mais de 10 dias sem vir, com o convite pronto');
+  ok((await M.locator('#cliLista .cli a.btn').getAttribute('href')).includes('Faz%20um%20tempinho'), 'Clientes: o convite já vai escrito no WhatsApp');
+  await M.click('[data-cli-f=todas]');
   await foto(M, 'painel-clientes');
+
+  // sugestão de nomes ao digitar (marcar por fora e enviar horários)
+  await aba(M, 'agenda');
+  await M.click('#agenda .s.livre >> nth=0');
+  await M.click('#sheet [data-a=perg-ocupar]');
+  await M.locator('#fNome').pressSequentially('glo');
+  await M.waitForSelector('#sug-fNome button');
+  ok(/Glória Antiga/.test(await M.locator('#sug-fNome').innerText()), 'ao digitar "glo", o painel sugere "Glória Antiga" (sem precisar de acento)');
+  await M.click('#sug-fNome button >> nth=0');
+  ok((await M.inputValue('#fNome')) === 'Glória Antiga' && (await M.inputValue('#fTel')) === '(11) 96666-0000', 'tocar na sugestão preenche o nome e o WhatsApp');
+  await M.click('#sheet [data-a=voltar]'); await M.click('#sheet [data-a=fechar]');
+  await aba(M, 'enviar');
+  await M.locator('#envNome').pressSequentially('Bea');
+  await M.waitForSelector('#sug-envNome button');
+  await M.click('#sug-envNome button >> nth=0');
+  ok((await M.inputValue('#envNome')) === 'Beatriz Nunes' && (await M.inputValue('#envTel')) === '(11) 95555-0000', 'em Enviar, a sugestão também preenche nome e WhatsApp');
+  await M.fill('#envNome', ''); await M.fill('#envTel', '');
 
   // histórico
   await doMais(M, 'historico');
