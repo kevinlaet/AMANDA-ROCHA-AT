@@ -218,6 +218,7 @@ await noPainel(P, D3, '15:00');
 await P.click('#sheet [data-a=perg-ocupar]'); await P.fill('#nomeFora', 'Dona Edilva'); await P.click('#sheet [data-a=ocupar]');
 await P.waitForSelector('#sheet', { state: 'hidden' });
 ok((await horario(D3, '15:00')).nome === 'Dona Edilva', 'marcar como ocupado guarda o nome digitado');
+await P.waitForSelector(`[data-abrir]:has-text("Dona")`, { timeout: 5000 }).catch(() => {});
 ok(await P.locator(`[data-abrir]:has-text("Dona")`).count() === 1, 'e o nome aparece na agenda');
 
 // cancelar um confirmado
@@ -401,6 +402,25 @@ const publico = await (await fetch(BASE)).text();
 ok(!/Joana|Maria Silva|Rita Lima|Edilva|988887777|912345678|955554444/.test(publico), 'o HTML público não tem nome nem telefone de cliente');
 const respostaPublica = await banco.como('anon', null, () => q('select * from public.agenda_publica()'));
 ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912345678/), 'a agenda pública não entrega nome nem telefone');
+// assinatura no fim de todas as páginas (os moldes de imagem em folders/ ficam de fora)
+{
+  const paginas = [];
+  const varrer = (dir) => { for (const n of fs.readdirSync(dir)) { const f = path.join(dir, n); if (['node_modules', '.git', 'folders', 'tests'].includes(n)) continue; if (fs.statSync(f).isDirectory()) varrer(f); else if (n.endsWith('.html')) paginas.push(path.relative(RAIZ, f)); } };
+  varrer(RAIZ);
+  const sem = paginas.filter((f) => !fs.readFileSync(path.join(RAIZ, f), 'utf8').includes('Desenvolvido por Kevin Laet'));
+  ok(paginas.length >= 5 && !sem.length, `assinatura "Desenvolvido por Kevin Laet" em todas as ${paginas.length} páginas` + (sem.length ? ' (faltando: ' + sem.join(', ') + ')' : ''));
+  const c = await contexto(IPHONE);
+  const p = await c.newPage();
+  for (const f of paginas) {
+    await p.goto(BASE + f.replace(/index\.html$/, ''), { waitUntil: 'networkidle' });
+    await p.waitForTimeout(300);
+    await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await p.waitForTimeout(200);
+    const v = await p.evaluate(() => { const e = [...document.querySelectorAll('.credito')].find((x) => x.offsetParent !== null); if (!e) return false; const r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return r.bottom <= innerHeight && (t === e || e.contains(t)); });
+    ok(v, `assinatura visível e sem nada por cima no fim de ${f}`);
+  }
+  await c.close();
+}
 ok(erros.length === 0, 'nenhum erro de JavaScript nas páginas' + (erros.length ? ': ' + erros.join(' | ') : ''));
 
 await navegador.close();
