@@ -247,7 +247,7 @@ create policy "admin_servicos" on public.servicos
 
 insert into public.servicos (id, nome, detalhe, novidade, desde, ordem) values
   ('auriculo', 'Auriculoterapia', 'Ansiedade, sono e bem-estar', false, null, 1),
-  ('limpeza', 'Limpeza de pele', 'Novidade no salão', true, '2026-11-14', 2)
+  ('limpeza', 'Limpeza de pele', 'R$ 75 na inauguração', true, '2026-11-14', 2)
 on conflict (id) do nothing;
 
 -- O site vê só os serviços visíveis.

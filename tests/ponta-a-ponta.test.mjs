@@ -43,8 +43,12 @@ await db.exec(`alter table horarios enable trigger trg_horario_passado`);
 // a estreia da limpeza de pele vem do banco (editável pelo painel); no teste ela fica para daqui a 5 dias
 await db.query(`update servicos set desde = $1 where id = 'limpeza'`, [D5]);
 const horario = async (data, hora) => (await q(`select * from horarios where data = $1 and hora = $2`, [data, hora]))[0];
-// abre um horário específico no painel (pelo id, sem depender do texto do botão)
-const noPainel = async (pagina, data, hora) => pagina.click(`[data-abrir="${(await horario(data, hora)).id}"]`);
+// o painel tem 4 abas (Início, Agenda, Enviar, Serviços), trocadas pela barra de baixo
+const aba = async (pagina, nome) => { await pagina.click(`[data-aba-btn="${nome}"]`); await pagina.waitForSelector(`[data-aba="${nome}"]:not([hidden])`); };
+// abre um horário específico na Agenda (pelo id, sem depender do texto do botão)
+const noPainel = async (pagina, data, hora) => { await aba(pagina, 'agenda'); await pagina.click(`#agenda [data-abrir="${(await horario(data, hora)).id}"]`); };
+// abre o formulário "Abrir novos horários" da Agenda
+const formAbrir = async (pagina) => { await aba(pagina, 'agenda'); if (await pagina.locator('#cardAbrir').isHidden()) await pagina.click('#bMostrarAbrir'); };
 // espera a animação de subida do painel de ações terminar e devolve a posição dele
 const caixaDoPainel = async (pagina) => { await pagina.locator('#sheet').evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished))); return pagina.locator('#sheet').boundingBox(); };
 
@@ -168,6 +172,11 @@ await P.waitForSelector('#pedidos .ped');
 ok((await P.locator('#pedidos .ped').count()) === 3, 'painel mostra os 3 pedidos');
 ok((await P.title()).startsWith('(3)'), 'a aba mostra (3) pedidos');
 ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 'mostra a hora da última atualização');
+// simples para quem nunca usou painel: abre no Início, com guia e abas
+ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
+ok(await P.locator('#boasVindas').isVisible(), 'primeira vez: aparece o guia de boas-vindas');
+ok((await P.locator('#nPedNav').innerText()) === '3', 'a barra de baixo mostra 3 pedidos no botão Início');
+ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('details.ajuda').count()) === 4, 'são 4 abas, cada uma com "Como usar esta parte"');
 await foto(P, 'painel-pedidos');
 
 // confirmar pelo cartão do pedido
@@ -233,6 +242,7 @@ ok((await horario(D3, '14:00')).status === 'livre', 'cancelado: horário volta a
 ok(/desmarcar/.test(decodeURIComponent(await P.locator('#toast a.btn').getAttribute('href'))), 'aviso traz a mensagem de cancelamento pronta');
 
 // sem internet no meio de uma ação
+await aba(P, 'inicio');
 await P.route(SUPABASE_URL + '/rest/v1/horarios?**', (r) => (r.request().method() === 'PATCH' ? r.abort() : r.fallback()));
 await P.locator('#pedidos .ped', { hasText: 'Rita' }).locator('[data-a=confirmar]').click();
 await P.waitForFunction(() => /Sem conexão. Nada foi alterado/.test(document.getElementById('toast').innerText));
@@ -242,6 +252,7 @@ await P.unroute(SUPABASE_URL + '/rest/v1/horarios?**');
 
 // abrir horários: vários sábados, horário quebrado, prévia antes
 const inicio = await dia(14);
+await formAbrir(P);
 await P.fill('#novaData', inicio);
 await P.selectOption('#repetir', '4');
 await P.fill('#horaExtra', '13:30'); await P.click('#bExtra');
@@ -265,16 +276,22 @@ const criadosHoje = await q(`select hora from horarios where data = $1 and hora 
 ok(criadosHoje.every((r) => r.hora > horaAgora), `abrir hoje (${horaAgora}): nenhum horário passado foi criado`);
 
 // o painel de ações abre na tela mesmo com muitos dias abertos
-await P.click('[data-abrir] >> nth=0');
+await P.click('#agenda [data-abrir] >> nth=0');
 const caixa2 = await caixaDoPainel(P);
 ok(caixa2 && caixa2.y >= 0 && caixa2.y + caixa2.height <= vp.height + 1, 'com muitos dias na agenda, o painel de ações continua dentro da tela');
 await foto(P, 'painel-acoes', false);
 await P.keyboard.press('Escape');
 await foto(P, 'painel-completo');
+await aba(P, 'inicio');
+await P.click('#boasVindas [data-guia-ok]:not([data-ir])');
+ok(await P.locator('#boasVindas').isHidden(), '"Já entendi" esconde o guia');
+await aba(P, 'agenda');
 
 // sessão
 await P.reload(); await P.waitForSelector('#vApp:not([hidden])');
 ok(true, 'continua logada depois de recarregar');
+ok(await P.locator('[data-aba="agenda"]').isVisible() && (await P.getAttribute('[data-aba-btn="agenda"]', 'aria-current')) === 'page', 'ao recarregar, continua na aba em que estava');
+ok(await P.locator('#boasVindas').isHidden(), 'o guia não volta depois de "Já entendi"');
 await P.click('#bSair');
 ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
 
@@ -289,6 +306,11 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   const p = await c.newPage();
   await p.goto(BASE + 'admin/');
   await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', 'certa'); await p.click('#bLogin');
+  await p.waitForSelector('#vApp:not([hidden])');
+  // botão do guia leva direto para abrir horários
+  await p.click('#boasVindas [data-abrir-form]');
+  ok(await p.locator('[data-aba="agenda"]').isVisible() && await p.locator('#cardAbrir').isVisible() && await p.locator('#boasVindas').isHidden(), 'guia: "Abrir meus horários" vai para a Agenda com o formulário aberto');
+  await aba(p, 'enviar');
   await p.waitForSelector('#envDias [data-env]');
   const chips = await p.locator('#envDias [data-env]').evaluateAll((els) => els.map((e) => e.getAttribute('data-env')));
   ok(chips.length >= 2, 'envio: o painel lista os dias que têm horário livre (' + chips.length + ' dias)');
@@ -390,6 +412,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   await foto(P2, 'painel-lembretes', false);
 
   // editar dados
+  await aba(P2, 'agenda');
   await P2.click(`[data-abrir="${await idDe(D20, '10:00')}"]`);
   await P2.click('#sheet [data-a=perg-editar]');
   ok((await P2.inputValue('#fNome')) === 'Beatriz Nunes' && (await P2.inputValue('#fTel')) === '(11) 94444-3333', 'editar: o formulário vem preenchido com os dados da cliente');
@@ -454,6 +477,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   ok((await horario(D21, '10:00')).nome === 'Beatriz Nunes', 'dia: horários com cliente de outros dias continuam intactos');
 
   // serviços
+  await aba(P2, 'servicos');
   await P2.waitForSelector('#servicos .serv');
   ok((await P2.locator('#servicos .serv').count()) === 2, 'serviços: o painel mostra os 2 serviços do banco');
   await P2.click('#bNovoServ');
@@ -476,6 +500,11 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   await P2.click('[data-acao=serv-remover-perg]'); await P2.click('[data-acao=serv-remover]');
   ok(await espera(async () => (await q(`select count(*)::int n from servicos where id = $1`, [idMass]))[0].n === 0), 'serviços: remover');
   await foto(P2, 'painel-autonomia');
+  // a assinatura fica acima da barra de abas, sem nada por cima (fechando o aviso passageiro)
+  if (await P2.locator('#toast').isVisible()) await P2.click('#toast [data-fechar]');
+  await P2.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await P2.waitForTimeout(200);
+  const ass = await P2.evaluate(() => { const e = document.querySelector('.credito'), rg = document.createRange(); rg.selectNodeContents(e); const r = rg.getBoundingClientRect(), n = document.querySelector('.abas').getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { ok: r.bottom <= n.top && (t === e || e.contains(t)), info: JSON.stringify({ top: r.top, bottom: r.bottom, nav: n.top, h: innerHeight, y: scrollY, sh: document.documentElement.scrollHeight, bh: document.body.offsetHeight, por: t && (t.id || t.className || t.tagName) }) }; });
+  ok(ass.ok, 'painel logado: assinatura visível acima da barra de abas' + (ass.ok ? '' : ' ' + ass.info));
   await c.close();
 }
 

@@ -20,7 +20,7 @@ window.AGENDA = {
   servicos: [
     { id: "auriculo", nome: "Auriculoterapia", detalhe: "Ansiedade, sono e bem-estar" },
     // "desde": primeiro dia em que o serviço pode ser marcado
-    { id: "limpeza", nome: "Limpeza de pele", detalhe: "Novidade no salão", novidade: true, desde: "2026-11-14" }
+    { id: "limpeza", nome: "Limpeza de pele", detalhe: "R$ 75 na inauguração", novidade: true, desde: "2026-11-14" }
   ],
 
   dias: [

@@ -125,6 +125,34 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 .destinos .chips{margin-bottom:8px}
 .destinos h4{font-size:14px;margin:10px 0 6px}
 .chip[data-destino][aria-pressed=true]{background:var(--teal);color:var(--cream);border-color:var(--teal)}
+/* abas: o painel funciona como um aplicativo de 4 partes */
+.abas{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#fff;border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(11,95,89,.08)}
+.abas button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;border:0;border-radius:14px;background:none;font-weight:700;font-size:12px;color:var(--muted)}
+.abas svg{width:24px;height:24px}
+.abas button[aria-current=page]{background:#E9F4F1;color:var(--teal-d)}
+.nb{position:absolute;top:4px;right:calc(50% - 22px);min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--warn);color:#fff;font-style:normal;font-size:12px;font-weight:800;line-height:20px}
+.aba-topo{margin-top:18px}
+.aba-t{margin:0!important;font-size:24px!important}
+.aba-topo p{color:var(--muted);font-size:15px}
+.ajuda{margin:12px 0 4px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.ajuda summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:700;font-size:15px;color:var(--teal);min-height:48px;display:flex;align-items:center;gap:8px}
+.ajuda summary::-webkit-details-marker{display:none}
+.ajuda summary:before{content:"?";display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:14px}
+.ajuda ol{margin:0 14px 14px 32px;display:grid;gap:8px;font-size:15px}
+.boas{margin-top:16px;padding:18px;border-radius:18px;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:var(--cream)}
+.boas b{font-size:19px;color:var(--peach)}
+.boas p{margin-top:8px;font-size:15px}
+.boas ul{margin:8px 0 0 18px;font-size:15px;display:grid;gap:4px}
+.boas ul b{font-size:15px;color:var(--peach-l)}
+.boas .btn.ghost{background:transparent;color:var(--cream);border-color:rgba(255,248,241,.4)}
+.boas .btn.main{background:var(--peach);color:var(--teal-d)}
+.atalhos{display:grid;gap:10px;margin-top:22px}
+#bMostrarAbrir{margin-top:14px}
+.card-t{font-size:17px;font-weight:800;color:var(--teal-d);margin-bottom:2px}
+#cardAbrir{margin-top:14px}
+.toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+/* com uma janela de baixo aberta, o aviso vai para o topo e não cobre os botões dela */
+.sheet:not([hidden])~.toast{top:calc(12px + env(safe-area-inset-top));bottom:auto}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -153,34 +181,32 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
     <div class="banner" id="bancoVelho" role="alert" hidden>Falta atualizar o banco para usar serviços, remarcar e lembretes. Rode o arquivo de atualização no Supabase (passo no README).</div>
     <div class="banner" id="semNet" role="alert" hidden>Sem conexão. O que você vê pode estar desatualizado. Não confirme nada até a internet voltar.</div>
 
+    <section class="aba" data-aba="inicio">
+    <div class="boas" id="boasVindas" hidden>
+      <b>Bem-vinda, Amanda!</b>
+      <p>O painel tem 4 partes, nos botões aqui embaixo:</p>
+      <ul><li><b>Início:</b> o que precisa de você hoje</li><li><b>Agenda:</b> seus dias e horários</li><li><b>Enviar:</b> mandar horários para uma cliente</li><li><b>Serviços:</b> o que aparece no site</li></ul>
+      <p>Para começar, abra seus horários na Agenda.</p>
+      <div class="row"><button class="btn main" type="button" data-ir="agenda" data-abrir-form data-guia-ok>Abrir meus horários</button><button class="btn ghost" type="button" data-guia-ok>Já entendi</button></div>
+    </div>
+    <div class="aba-topo"><h2 class="aba-t">Início</h2><p>O que precisa de você agora.</p></div>
+    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Quando uma cliente pede um horário pelo site, ele aparece em <b>Pedidos</b>. Toque em <b>Confirmar</b>.</li><li>Logo depois, toque em <b>Avisar no WhatsApp</b>: a mensagem já vai pronta.</li><li>Um dia antes do atendimento, toque em <b>Mandar lembrete</b>.</li></ol></details>
     <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
     <div id="pedidos"><p class="vazio">Carregando…</p></div>
 
     <h2>Próximos atendimentos</h2>
-    <p class="dica" style="margin:-6px 0 10px">Confirmados nos próximos 7 dias. Toque em “Mandar lembrete” um dia antes.</p>
+    <p class="dica" style="margin:-6px 0 10px">Confirmados nos próximos 7 dias. Um dia antes, toque em “Mandar lembrete”.</p>
     <div id="proximos"></div>
 
-    <h2>Enviar horários para uma cliente</h2>
-    <div class="card" id="envCard">
-      <p class="dica">Escolha os dias. Depois escolha como enviar: <b>link</b> (ela agenda sozinha) ou <b>imagem</b> (ela só olha e responde).</p>
-      <label for="envNome">Nome da cliente (opcional)</label>
-      <input type="text" id="envNome" maxlength="60" autocomplete="off" placeholder="Ex.: Dona Maria">
-      <label for="envTel">WhatsApp da cliente (opcional)</label>
-      <input type="tel" id="envTel" inputmode="tel" autocomplete="off" placeholder="(11) 90000-0000">
-      <p class="dica">Com o número, o WhatsApp já abre direto na conversa dela.</p>
-      <label for="envServ">Serviço (opcional)</label>
-      <select id="envServ"><option value="">Qualquer um</option></select>
-      <span class="label" id="lEnvDias">Quais dias?</span>
-      <div class="chips" id="envDias" role="group" aria-labelledby="lEnvDias"></div>
-      <div class="previa" id="envPrevia" aria-live="polite">Carregando…</div>
-      <div class="env-bt">
-        <button class="btn zap dupla" id="bLink" type="button" disabled><span>Enviar link</span><small>ela escolhe e agenda sozinha</small></button>
-        <button class="btn main dupla" id="bImg" type="button" disabled><span>Enviar imagem</span><small>ela vê os horários e responde</small></button>
-      </div>
-    </div>
+    <div class="atalhos"><button class="btn ghost" type="button" data-ir="agenda" data-abrir-form>Abrir novos horários</button><button class="btn ghost" type="button" data-ir="enviar">Enviar horários para uma cliente</button></div>
+    </section>
 
-    <h2>Abrir horários</h2>
-    <div class="card">
+    <section class="aba" data-aba="agenda" hidden>
+    <div class="aba-topo"><h2 class="aba-t">Agenda</h2><p>Seus dias e horários.</p></div>
+    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Toque em <b>Abrir novos horários</b>, escolha o dia e os horários e confirme.</li><li>Toque em qualquer horário da lista para <b>marcar uma cliente, mudar, remarcar ou apagar</b>.</li><li>Em <b>Opções do dia</b> você adiciona um horário avulso ou limpa os horários livres do dia.</li></ol></details>
+    <button class="btn main" type="button" id="bMostrarAbrir">Abrir novos horários</button>
+    <div class="card" id="cardAbrir" hidden>
+      <h3 class="card-t">Abrir novos horários</h3>
       <label for="novaData">Dia</label>
       <input type="date" id="novaData">
       <span class="label" id="lHoras">Horários (toque para escolher)</span>
@@ -202,11 +228,44 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
     <div class="legenda"><span><i style="background:var(--livre)"></i>livre</span><span><i style="background:var(--warn)"></i>pedido</span><span><i style="background:var(--ok)"></i>confirmado</span></div>
     <div id="agenda"></div>
 
-    <h2>Serviços</h2>
-    <p class="dica" style="margin:-6px 0 10px">O que aparece no site para a cliente escolher.</p>
+    </section>
+
+    <section class="aba" data-aba="enviar" hidden>
+    <div class="aba-topo"><h2 class="aba-t">Enviar horários</h2><p>Para uma cliente que pediu dias específicos.</p></div>
+    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Escolha os dias que servem para ela.</li><li>Toque em <b>Enviar link</b>: ela escolhe e marca sozinha pelo site.</li><li>Ou toque em <b>Enviar imagem</b>, para quem prefere só olhar e responder.</li></ol></details>
+    <div class="card" id="envCard">
+      <p class="dica">Escolha os dias. Depois escolha como enviar: <b>link</b> (ela agenda sozinha) ou <b>imagem</b> (ela só olha e responde).</p>
+      <label for="envNome">Nome da cliente (opcional)</label>
+      <input type="text" id="envNome" maxlength="60" autocomplete="off" placeholder="Ex.: Dona Maria">
+      <label for="envTel">WhatsApp da cliente (opcional)</label>
+      <input type="tel" id="envTel" inputmode="tel" autocomplete="off" placeholder="(11) 90000-0000">
+      <p class="dica">Com o número, o WhatsApp já abre direto na conversa dela.</p>
+      <label for="envServ">Serviço (opcional)</label>
+      <select id="envServ"><option value="">Qualquer um</option></select>
+      <span class="label" id="lEnvDias">Quais dias?</span>
+      <div class="chips" id="envDias" role="group" aria-labelledby="lEnvDias"></div>
+      <div class="previa" id="envPrevia" aria-live="polite">Carregando…</div>
+      <div class="env-bt">
+        <button class="btn zap dupla" id="bLink" type="button" disabled><span>Enviar link</span><small>ela escolhe e agenda sozinha</small></button>
+        <button class="btn main dupla" id="bImg" type="button" disabled><span>Enviar imagem</span><small>ela vê os horários e responde</small></button>
+      </div>
+    </div>
+
+    </section>
+
+    <section class="aba" data-aba="servicos" hidden>
+    <div class="aba-topo"><h2 class="aba-t">Serviços</h2><p>O que aparece no site para a cliente escolher.</p></div>
+    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Toque em <b>Editar</b> para mudar o nome, a descrição ou o preço.</li><li>Desmarque <b>Aparece no site</b> para esconder um serviço que você não está oferecendo.</li><li><b>Adicionar serviço</b> cria um novo. Ele aparece no site na hora.</li></ol></details>
     <div id="servicos"></div>
     <button class="btn ghost" id="bNovoServ" type="button">Adicionar serviço</button>
+    </section>
   </div>
+  <nav class="abas" aria-label="Partes do painel">
+    <button type="button" data-aba-btn="inicio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Início<i class="nb" id="nPedNav" hidden></i></button>
+    <button type="button" data-aba-btn="agenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</button>
+    <button type="button" data-aba-btn="enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Enviar</button>
+    <button type="button" data-aba-btn="servicos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Serviços</button>
+  </nav>
 </section>
 
 <footer class="credito">Desenvolvido por Kevin Laet</footer>
@@ -335,6 +394,24 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
   };
   $('bSair').onclick=function(){salvar(null);rows=[];mostrar()};
 
+  // ---------- abas ----------
+  function irAba(n){
+    [].forEach.call(document.querySelectorAll('[data-aba]'),function(x){x.hidden=x.getAttribute('data-aba')!==n});
+    [].forEach.call(document.querySelectorAll('[data-aba-btn]'),function(b){b.setAttribute('aria-current',b.getAttribute('data-aba-btn')===n?'page':'false')});
+    try{sessionStorage.setItem('amanda-aba',n)}catch(e){}
+    window.scrollTo(0,0);
+  }
+  function mostrarAbrir(sim,parado){$('cardAbrir').hidden=!sim;$('bMostrarAbrir').textContent=sim?'Fechar':'Abrir novos horários';$('bMostrarAbrir').className='btn '+(sim?'ghost':'main');if(sim&&!parado)$('cardAbrir').scrollIntoView({block:'start'})}
+  $('bMostrarAbrir').onclick=function(){mostrarAbrir($('cardAbrir').hidden)};
+  document.addEventListener('click',function(e){
+    var g=e.target.closest('[data-guia-ok]');if(g){$('boasVindas').hidden=true;try{localStorage.setItem('amanda-guia','1')}catch(x){}}
+    var b=e.target.closest('[data-aba-btn],[data-ir]');if(!b)return;
+    irAba(b.getAttribute('data-aba-btn')||b.getAttribute('data-ir'));
+    if(b.hasAttribute('data-abrir-form'))mostrarAbrir(true);
+  });
+  (function(){var vista=null;try{vista=localStorage.getItem('amanda-guia')}catch(e){}$('boasVindas').hidden=!!vista;
+    var a=null;try{a=sessionStorage.getItem('amanda-aba')}catch(e){}if(a&&document.querySelector('[data-aba="'+a+'"]'))irAba(a)})();
+
   // ---------- carregar ----------
   function carregar(){
     return api('POST','rpc/agora_sp',{})
@@ -356,7 +433,7 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
     var x=ultimo||agoraSP();
     $('atualizado').textContent='Atualizado às '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes());
     var ped=rows.filter(function(r){return r.status==='pedido'});
-    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+'Agenda da Amanda';
+    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;$('nPedNav').hidden=!ped.length;$('nPedNav').textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+'Agenda da Amanda';
     $('pedidos').innerHTML=ped.length?ped.map(function(r){
       var min=r.pedido_em?(Date.now()-new Date(r.pedido_em).getTime())/60000:0,z=zapUrl(r,'falar');
       return '<div class="card ped"><div class="nome">'+esc(r.nome)+'</div>'+
@@ -373,7 +450,8 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
       return '<div class="dia"><h3><span>'+dia(d)+'</span><button class="dia-op" type="button" data-acao="dia" data-dia="'+d+'">Opções do dia</button></h3><div class="resumo">'+resumo+'</div><div class="chips">'+por[d].map(function(r){
         var rot=r.status==='livre'?'livre':esc(primeiro(r.nome));
         return '<button class="s '+r.status+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?'livre':r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
-      '<p class="vazio">Nenhum horário aberto. Use “Abrir horários” acima.</p>';
+      '<p class="vazio">Nenhum horário aberto ainda. Toque em “Abrir novos horários” acima.</p>';
+    if(!rows.length&&$('cardAbrir').hidden)mostrarAbrir(true,true);
     var ate=somaDias(hojeSP(),7),prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
     $('proximos').innerHTML=prox.length?prox.map(function(r){var z=zapUrl(r,'lembrar');
       return '<div class="card prox"><div class="pl"><b>'+esc(r.nome)+'</b><span>'+esc(servRot(r))+'</span><span class="quando">'+dia(r.data)+' às '+hh(r.hora)+'</span>'+
@@ -548,7 +626,7 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
   function desenharEnvio(){
     opcoesEnvio();
     var ds=diasLivres(),vivo={};ds.forEach(function(d){vivo[d.data]=1});Object.keys(envSel).forEach(function(k){if(!vivo[k])delete envSel[k]});
-    $('envDias').innerHTML=ds.length?ds.map(function(d){return '<button class="chip dd" type="button" data-env="'+d.data+'" aria-pressed="'+(!!envSel[d.data])+'"><b>'+esc(curto(d.data))+'</b><small>'+d.horas.length+(d.horas.length>1?' horários':' horário')+'</small></button>'}).join(''):'<p class="vazio">Nenhum horário livre para enviar. Abra horários logo abaixo.</p>';
+    $('envDias').innerHTML=ds.length?ds.map(function(d){return '<button class="chip dd" type="button" data-env="'+d.data+'" aria-pressed="'+(!!envSel[d.data])+'"><b>'+esc(curto(d.data))+'</b><small>'+d.horas.length+(d.horas.length>1?' horários':' horário')+'</small></button>'}).join(''):'<p class="vazio">Nenhum horário livre para enviar. Abra horários na parte Agenda.</p>';
     var sel=selecionados(),el=$('envPrevia');
     el.innerHTML=sel.length?sel.map(function(d){return '<b>'+esc(cap(dataLonga(d.data)))+'</b><br>'+d.horas.map(hh).join(' · ')}).join('<br><br>'):(ds.length?'Toque nos dias que você quer oferecer.':'Sem horários livres no momento.');
     $('bLink').disabled=$('bImg').disabled=!sel.length;
@@ -697,7 +775,7 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
     var h='<div><span class="estado livre">Serviço</span><div class="t" id="envT">'+(x?esc(x.nome):'Novo serviço')+'</div></div>';
     if(perguntar)h+='<div class="pergunta">Remover o serviço '+esc(x.nome)+'? Ele some do site. Os horários já marcados com ele continuam.</div><button class="btn bad-solid" data-acao="serv-remover" data-serv="'+esc(x.id)+'" type="button">Sim, remover</button><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Voltar</button>';
     else h+='<label for="sNome">Nome</label><input type="text" id="sNome" maxlength="40" value="'+esc(x?x.nome:'')+'" placeholder="Ex.: Massagem relaxante">'+
-      '<label for="sDet">Descrição curta (opcional)</label><input type="text" id="sDet" maxlength="60" value="'+esc(x&&x.detalhe||'')+'" placeholder="Ex.: Alívio de tensão e estresse">'+
+      '<label for="sDet">Descrição curta (opcional)</label><input type="text" id="sDet" maxlength="60" value="'+esc(x&&x.detalhe||'')+'" placeholder="Ex.: R$ 75 na inauguração">'+
       '<label class="check"><input type="checkbox" id="sAtivo"'+(!x||x.ativo?' checked':'')+'> Aparece no site</label>'+
       '<label class="check"><input type="checkbox" id="sNov"'+(x&&x.novidade?' checked':'')+'> Mostrar o selo “Novidade”</label>'+
       '<label for="sDesde">Pode ser marcado a partir de (opcional)</label><input type="date" id="sDesde" value="'+esc(x&&x.desde||'')+'">'+
