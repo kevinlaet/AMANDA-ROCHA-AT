@@ -25,6 +25,14 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 4. No painel, a Amanda toca em **Confirmar** ou **Recusar**. Depois de cada ação, aparece o botão para avisar a cliente no WhatsApp com a mensagem já escrita.
 5. Horário combinado por fora: toque nele e em "Marcar como ocupado".
 
+**O que a Amanda consegue fazer sozinha no painel:**
+
+- **Agendamentos:** confirmar, recusar, editar nome, telefone e serviço, remarcar para outro horário livre (a cliente vai inteira, sem perder dados), cancelar e liberar, ou cancelar e apagar.
+- **Horários livres:** marcar como ocupado (com nome, telefone e serviço), mudar o dia ou a hora, remover.
+- **Dias:** em "Opções do dia", adicionar um horário avulso ou remover todos os horários livres do dia (quem tem cliente continua).
+- **Serviços:** adicionar, renomear, mudar a descrição, esconder do site, marcar como novidade e definir a partir de quando pode ser marcado. O site atualiza sozinho.
+- **Lembretes:** "Próximos atendimentos" lista os confirmados dos próximos 7 dias. "Mandar lembrete" abre o WhatsApp da cliente com a mensagem pronta ("Passando para lembrar do seu horário amanhã...") e registra que foi enviado.
+
 **Enviar horários para uma cliente específica** (no painel, seção do mesmo nome):
 
 1. Escolha os dias (por exemplo 3 e 4 de novembro). O painel mostra só dias com horário livre.
@@ -67,9 +75,13 @@ Se um dia usarem domínio próprio, troquem o endereço nas tags `og:` e `canoni
 
 Abra `…/admin/` no celular dela e escolha "Adicionar à tela de início" (no Safari, pelo botão de compartilhar). O painel vira um ícone como de aplicativo. Ele se atualiza sozinho a cada 30 segundos e quando ela volta para a tela.
 
+## Atualizar um banco que já existe
+
+Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supabase/atualizacao-2.sql` no SQL Editor e toque em Run. Ele acrescenta serviços editáveis, remarcar e lembretes, sem apagar nenhum horário, e pode ser rodado mais de uma vez.
+
 ## Mudar textos e serviços
 
-- **Serviços**, ou a data de estreia da limpeza de pele (`desde`): `agenda.js`
+- **Serviços:** pelo painel, na seção Serviços. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
 - **Textos do site**: `index.html`
 - **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5.
 

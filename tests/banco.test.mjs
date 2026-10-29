@@ -112,10 +112,61 @@ ok(hist[3] && hist[3].para === 'livre' && hist[3].nome === 'Maria Silva', 'liber
 ok((await como('authenticated', EMAIL_ADMIN, () => q('select * from historico'))).length > 0, 'Amanda consegue ler o histórico');
 ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`delete from historico`)))).erro, 'nem a Amanda consegue apagar o histórico');
 
+// 6b. Serviços
+const pubServ = await como('anon', null, () => q('select * from public.servicos_publicos()'));
+ok(pubServ.length === 2 && pubServ[0].id === 'auriculo', 'site recebe os 2 serviços na ordem certa');
+ok(!!(await como('anon', null, () => tenta(q('select * from servicos')))).erro, 'visitante não lê a tabela de serviços');
+await como('authenticated', EMAIL_ADMIN, () => q(`update servicos set ativo = false where id = 'limpeza'`));
+ok((await como('anon', null, () => q('select * from public.servicos_publicos()'))).length === 1, 'serviço escondido some do site');
+await como('authenticated', EMAIL_ADMIN, () => q(`insert into servicos (id, nome, detalhe, ordem) values ('massagem', 'Massagem', 'Relaxante', 3)`));
+ok((await como('anon', null, () => q('select * from public.servicos_publicos()'))).some((x) => x.id === 'massagem'), 'Amanda adiciona um serviço e ele aparece no site');
+ok(!!(await como('authenticated', 'outra@pessoa.com', () => tenta(q(`insert into servicos (id, nome) values ('xx', 'Invasor')`)))).erro, 'outra pessoa não cria serviço');
+ok(!!(await tenta(q(`insert into servicos (id, nome) values ('Com Espaço', 'Nome')`))).erro, 'código de serviço inválido é recusado');
+await como('authenticated', EMAIL_ADMIN, () => q(`update servicos set ativo = true where id = 'limpeza'`));
+
+// 6c. Remarcar
+await db.exec(`insert into horarios (data, hora) select (public.agora_sp() + interval '6 days')::date, h from unnest(array['10:00', '11:00', '12:00']) h`);
+const d6 = await q(`select id, hora from horarios where data = (public.agora_sp() + interval '6 days')::date order by hora`);
+await pedir(d6[0].id, 'Auriculoterapia', 'Rosa Lima', '11933334444');
+await como('authenticated', EMAIL_ADMIN, () => q(`update horarios set status = 'confirmado', lembrete_em = now() where id = $1`, [d6[0].id]));
+const rem = (id1, id2, email = EMAIL_ADMIN) => como('authenticated', email, async () => (await q('select public.remarcar($1, $2) r', [id1, id2]))[0].r);
+ok(await rem(d6[0].id, d6[1].id) === 'ok', 'remarcar para um horário livre funciona');
+const [de, para] = [(await q('select * from horarios where id = $1', [d6[0].id]))[0], (await q('select * from horarios where id = $1', [d6[1].id]))[0]];
+ok(de.status === 'livre' && de.nome === null && para.status === 'confirmado' && para.nome === 'Rosa Lima' && para.telefone === '11933334444', 'a cliente vai inteira para o novo horário e o antigo fica livre');
+ok(para.lembrete_em === null, 'o lembrete volta a ficar pendente no novo horário');
+await pedir(d6[2].id, 'Auriculoterapia', 'Outra Cliente', '11922223333');
+ok(await rem(d6[1].id, d6[2].id) === 'indisponivel', 'remarcar para horário ocupado é recusado');
+ok((await q('select nome from horarios where id = $1', [d6[1].id]))[0].nome === 'Rosa Lima', 'e a cliente continua no horário dela');
+ok(await rem(d6[0].id, d6[1].id) === 'origem', 'remarcar a partir de horário livre é recusado');
+ok(!!(await como('authenticated', 'outra@pessoa.com', () => tenta(q('select public.remarcar($1, $2)', [d6[1].id, d6[0].id])))).erro, 'outra pessoa não consegue remarcar');
+ok(!!(await como('anon', null, () => tenta(q('select public.remarcar($1, $2)', [d6[1].id, d6[0].id])))).erro, 'visitante não consegue remarcar');
+
+// 6d. Mudar dia ou hora
+ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`update horarios set data = current_date - 2 where id = $1`, [d6[0].id])))).erro, 'mudar um horário para o passado é recusado');
+const mv = await como('authenticated', EMAIL_ADMIN, () => tenta(q(`update horarios set hora = '10:30' where id = $1 returning hora`, [d6[0].id])));
+ok(mv.linhas && mv.linhas[0].hora === '10:30', 'mudar a hora de um horário livre funciona');
+ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`update horarios set hora = '11:00' where id = $1`, [d6[0].id])))).erro, 'mudar para um horário que já existe é recusado');
+ok(!!(await tenta(q(`update horarios set lembrete_em = now() where id = $1`, [d6[0].id]))).erro, 'horário livre não pode ter lembrete marcado');
+
 // 7. Rodar o schema de novo não perde nada
 const antes = (await q('select count(*)::int n from horarios'))[0].n;
 const r2 = await tenta(db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/schema.sql'), 'utf8').replaceAll('SEU_EMAIL_AQUI', EMAIL_ADMIN)));
 ok(!r2.erro, 'rodar o schema de novo não dá erro' + (r2.erro ? ': ' + r2.erro : ''));
 ok((await q('select count(*)::int n from horarios'))[0].n === antes, 'e não perde nenhum horário');
+
+// 8. Atualização 2 aplicada em um banco que já existia (caso real do Supabase da Amanda)
+{
+  const velho = await criarBanco({ schema: path.join(RAIZ, 'tests/fixtures/schema-antes-da-atualizacao-2.sql') });
+  await velho.db.exec(`insert into horarios (data, hora) values ((public.agora_sp() + interval '4 days')::date, '13:00'), ((public.agora_sp() + interval '4 days')::date, '14:00')`);
+  const ids = (await velho.db.query(`select id from horarios order by hora`)).rows.map((r) => r.id);
+  await velho.como('anon', null, () => velho.db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Ana Paula', '11955556666')`, [ids[0]]));
+  const r = await tenta(velho.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao-2.sql'), 'utf8')));
+  ok(!r.erro, 'atualização 2 roda em cima do banco antigo sem erro' + (r.erro ? ': ' + r.erro : ''));
+  ok((await velho.db.query(`select nome from horarios where id = $1`, [ids[0]])).rows[0].nome === 'Ana Paula', 'e não perde o pedido que já existia');
+  const r2 = await tenta(velho.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao-2.sql'), 'utf8')));
+  ok(!r2.erro, 'rodar a atualização 2 duas vezes não dá erro');
+  ok((await velho.como('authenticated', EMAIL_ADMIN, async () => (await velho.db.query('select public.remarcar($1, $2) r', [ids[0], ids[1]])).rows[0].r)) === 'ok', 'depois da atualização, remarcar funciona');
+  ok((await velho.como('anon', null, async () => (await velho.db.query('select * from public.servicos_publicos()')).rows)).length === 2, 'depois da atualização, o site recebe os serviços');
+}
 
 fim('banco');

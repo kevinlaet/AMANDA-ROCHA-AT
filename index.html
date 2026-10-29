@@ -436,13 +436,20 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
   function load(){
     if(!live){slots=[];var h=hojeLocal();A.dias.forEach(function(d){if(d.data<h)return;d.horarios.forEach(function(x){
       slots.push({id:d.data+' '+x,data:d.data,hora:x,status:(A.ocupados[d.data]||[]).indexOf(x)<0?'livre':'ocupado'})})});return Promise.resolve()}
-    return fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:cab(),body:'{}'})
+    // serviços: os que a Amanda cadastrou no painel; se o banco ainda não tiver a tabela, ficam os do agenda.js
+    var serv=fetch(C.url+'/rest/v1/rpc/servicos_publicos',{method:'POST',headers:cab(),body:'{}'})
+      .then(function(r){if(!r.ok)throw 0;return r.json()})
+      .then(function(j){if(Array.isArray(j))A.servicos=j.map(function(x){return {id:x.id,nome:x.nome,detalhe:x.detalhe||'',novidade:!!x.novidade,desde:x.desde||null}})})
+      .catch(function(){});
+    var ag=fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:cab(),body:'{}'})
       .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j||[];falhou=false}).catch(function(){falhou=true});
+    return Promise.all([serv,ag]);
   }
   function dias(){var m={},out=[];slots.forEach(function(x){if(FILTRO&&!verTodos&&FILTRO.indexOf(x.data)<0)return;if(!m[x.data]){m[x.data]=[];out.push(x.data)}m[x.data].push(x)});
     return out.map(function(d){return {data:d,slots:m[d]}})}
   // depois de recarregar, desfaz escolhas que deixaram de valer
   function conferir(){
+    if(S.servico&&!servico())S.servico=null;
     var ds=dias(),d=ds.filter(function(x){return x.data===S.dia})[0];
     if(S.dia&&(!d||cedoDemais(S.dia))){S.dia=null;S.hora=null}
     var q=slot();if(S.hora&&(!q||q.status!=='livre'))S.hora=null;
@@ -462,6 +469,7 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
   function render(){
     conferir();convite();
     var o=$('o-servico');o.innerHTML='';
+    if(!A.servicos.length)o.innerHTML='<p class="empty">'+CAL+'<span>Os serviços estão sendo atualizados. <a class="js-wa" href="https://wa.me/'+A.whatsapp+'">Chame a Amanda no WhatsApp</a>.</span></p>';
     A.servicos.forEach(function(s){var el=opt(s.nome,s.detalhe,s.novidade?'NOVIDADE':'',S.servico===s.id);el.onclick=function(){S.servico=s.id;aviso='';render()};o.appendChild(el)});
 
     var ds=dias();o=$('o-dia');o.innerHTML='';
@@ -507,7 +515,8 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
 
   $('stTel').hidden=!live;
   if(NOME_CONV)$('nome').value=NOME_CONV;
-  (function(){var id=QS.get('s');if(id&&A.servicos.some(function(x){return x.id===id}))S.servico=id})();
+  var SERV_CONV=QS.get('s')||'';
+  function servicoDoLink(){if(SERV_CONV&&!S.servico&&A.servicos.some(function(x){return x.id===SERV_CONV}))S.servico=SERV_CONV;SERV_CONV=''}
   if(live)$('hint').textContent='Para garantir o horário, toque no botão abaixo e envie a mensagem de confirmação pelo WhatsApp. Ele fica guardado para você enquanto a Amanda confirma.';
   $('nome').oninput=function(){aviso='';render()};
   $('tel').oninput=function(){aviso='';render()};
@@ -538,7 +547,7 @@ footer .links a{display:inline-flex;align-items:center;min-height:46px;padding:0
 
   var hi=encodeURIComponent('Olá Amanda! Vim pelo site e queria tirar uma dúvida.');
   function linksWa(){[].forEach.call(document.querySelectorAll('.js-wa'),function(a){a.href='https://wa.me/'+A.whatsapp+'?text='+hi})}
-  load().then(function(){render();linksWa()});
+  load().then(function(){servicoDoLink();render();linksWa()});
   linksWa();
   // quem deixa a página aberta e volta depois vê os horários atualizados
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&live&&!enviando&&!reservado)load().then(function(){render();linksWa()})});

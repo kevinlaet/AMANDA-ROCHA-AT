@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const EMAIL_ADMIN = 'amanda@teste.com';
 
-export async function criarBanco() {
+export async function criarBanco({ schema } = {}) {
   const db = new PGlite();
   await db.exec(`
     create role anon nologin;
@@ -22,7 +22,7 @@ export async function criarBanco() {
     alter default privileges in schema public grant all on tables to anon, authenticated;
     alter default privileges in schema public grant all on functions to anon, authenticated;
   `);
-  const sql = fs.readFileSync(path.join(RAIZ, 'supabase/schema.sql'), 'utf8').replaceAll('SEU_EMAIL_AQUI', EMAIL_ADMIN);
+  const sql = fs.readFileSync(schema || path.join(RAIZ, 'supabase/schema.sql'), 'utf8').replaceAll('SEU_EMAIL_AQUI', EMAIL_ADMIN);
   await db.exec(sql);
 
   // Executa fn como um papel do Supabase (anon, ou authenticated com e-mail).

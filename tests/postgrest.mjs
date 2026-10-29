@@ -8,7 +8,7 @@ export const ANON_KEY = 'sb_publishable_chave_de_teste';
 export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa' };
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-const COLUNAS = new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em']);
+const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem']) };
 
 export function criarApi({ db, como, opcoes = {} }) {
   let fila = Promise.resolve();
@@ -16,10 +16,11 @@ export function criarApi({ db, como, opcoes = {} }) {
   const json = (route, corpo, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(corpo) });
   const lista = async (sql, params) => (await db.query(`with t as (${sql}) select coalesce(json_agg(t), '[]'::json) j from t`, params)).rows[0].j;
 
-  function filtros(url, params) {
+  function filtros(url, params, tabela = 'horarios') {
     const w = [];
     for (const [k, v] of url.searchParams) {
-      if (k === 'id' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`id = $${params.length}::uuid`); }
+      if (k === 'id' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(tabela === 'servicos' ? `id = $${params.length}` : `id = $${params.length}::uuid`); }
+      if (k === 'data' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`data = $${params.length}::date`); }
       if (k === 'status' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`status = $${params.length}`); }
       if (k === 'status' && v.startsWith('in.(')) { params.push(v.slice(4, -1).split(',')); w.push(`status = any($${params.length})`); }
       if (k === 'data' && v.startsWith('gte.')) { params.push(v.slice(4)); w.push(`data >= $${params.length}::date`); }
@@ -60,6 +61,24 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/agenda_publica') return json(route, await lista('select * from public.agenda_publica()'));
         if (caminho === '/rest/v1/rpc/agora_sp') return json(route, (await db.query('select to_json(public.agora_sp()) j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/sou_admin') return json(route, (await db.query('select public.sou_admin() j')).rows[0].j);
+        if (caminho === '/rest/v1/rpc/servicos_publicos') return json(route, await lista('select * from public.servicos_publicos()'));
+        if (caminho === '/rest/v1/rpc/remarcar') { const b = req.postDataJSON(); return json(route, (await db.query('select public.remarcar($1, $2) j', [b.p_de, b.p_para])).rows[0].j); }
+        if (caminho === '/rest/v1/servicos') {
+          const params = [];
+          if (metodo === 'GET') return json(route, await lista(`select * from public.servicos${filtros(url, params, 'servicos')} order by ordem, nome`, params));
+          if (metodo === 'POST') {
+            const corpo = req.postDataJSON(), linhas = Array.isArray(corpo) ? corpo : [corpo], out = [];
+            for (const n of linhas) { const cols = Object.keys(n).filter((k) => COLUNAS.servicos.has(k)); out.push(...await lista(`insert into public.servicos (${cols.join(', ')}) values (${cols.map((_, i) => '$' + (i + 1)).join(', ')}) returning *`, cols.map((k) => n[k]))); }
+            return prefer.includes('return=representation') ? json(route, out, 201) : route.fulfill({ status: 201, headers: CORS });
+          }
+          if (metodo === 'PATCH') {
+            const b = req.postDataJSON(), sets = [];
+            for (const k of Object.keys(b)) { if (!COLUNAS.servicos.has(k)) throw new Error('coluna não permitida: ' + k); params.push(b[k]); sets.push(`${k} = $${params.length}`); }
+            const r = await lista(`update public.servicos set ${sets.join(', ')}${filtros(url, params, 'servicos')} returning *`, params);
+            return prefer.includes('return=representation') ? json(route, r) : route.fulfill({ status: 204, headers: CORS });
+          }
+          if (metodo === 'DELETE') { const r = await lista(`delete from public.servicos${filtros(url, params, 'servicos')} returning *`, params); return prefer.includes('return=representation') ? json(route, r) : route.fulfill({ status: 204, headers: CORS }); }
+        }
         if (caminho === '/rest/v1/rpc/pedir_horario') {
           const b = req.postDataJSON();
           return json(route, (await db.query('select public.pedir_horario($1, $2, $3, $4) j', [b.p_id, b.p_servico, b.p_nome, b.p_telefone])).rows[0].j);
@@ -76,7 +95,7 @@ export function criarApi({ db, como, opcoes = {} }) {
           }
           if (metodo === 'PATCH') {
             const b = req.postDataJSON(), sets = [];
-            for (const k of Object.keys(b)) { if (!COLUNAS.has(k)) throw new Error('coluna não permitida: ' + k); params.push(b[k]); sets.push(`${k} = $${params.length}`); }
+            for (const k of Object.keys(b)) { if (!COLUNAS.horarios.has(k)) throw new Error('coluna não permitida: ' + k); params.push(b[k]); sets.push(`${k} = $${params.length}`); }
             const r = await lista(`update public.horarios set ${sets.join(', ')}${filtros(url, params)} returning *`, params);
             return prefer.includes('return=representation') ? json(route, r) : route.fulfill({ status: 204, headers: CORS });
           }
@@ -88,7 +107,7 @@ export function criarApi({ db, como, opcoes = {} }) {
         return json(route, { message: 'não encontrado' }, 404);
       } catch (e) {
         if (process.env.DEPURAR) console.log('   [api]', metodo, caminho + url.search, e.message);
-        const status = e.code === '42501' ? (email ? 403 : 401) : 400;
+        const status = e.code === '42501' ? (email ? 403 : 401) : e.code === '23505' ? 409 : 400;
         return json(route, { code: e.code, message: e.message }, status);
       }
     }));

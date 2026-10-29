@@ -40,6 +40,8 @@ await db.exec(`insert into horarios (data, hora) select '${D3}'::date, h from un
 await db.exec(`insert into horarios (data, hora) select '${D10}'::date, h from unnest(array['13:00','16:00']) h`);
 await db.exec(`insert into horarios (data, hora) select d::date, to_char(d, 'HH24:MI') from (select public.agora_sp() - interval '2 hours' d union all select public.agora_sp() + interval '30 minutes') t on conflict do nothing`);
 await db.exec(`alter table horarios enable trigger trg_horario_passado`);
+// a estreia da limpeza de pele vem do banco (editável pelo painel); no teste ela fica para daqui a 5 dias
+await db.query(`update servicos set desde = $1 where id = 'limpeza'`, [D5]);
 const horario = async (data, hora) => (await q(`select * from horarios where data = $1 and hora = $2`, [data, hora]))[0];
 // abre um horário específico no painel (pelo id, sem depender do texto do botão)
 const noPainel = async (pagina, data, hora) => pagina.click(`[data-abrir="${(await horario(data, hora)).id}"]`);
@@ -194,7 +196,7 @@ ok(caixa && caixa.y >= 0 && caixa.y + caixa.height <= vp.height + 1, `o painel d
 const id13 = (await horario(D3, '13:00')).id;
 await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Cliente Atrasada', '11977776666')`, [id13]));
 await P.click('#sheet [data-a=perg-ocupar]');
-await P.fill('#nomeFora', 'Dona Edilva');
+await P.fill('#fNome', 'Dona Edilva');
 await P.click('#sheet [data-a=ocupar]');
 await P.waitForFunction(() => /mudou enquanto você olhava/.test(document.getElementById('toast').innerText));
 const h13 = await horario(D3, '13:00');
@@ -215,7 +217,7 @@ await P.click('#sheet [data-a=fechar]').catch(() => {});
 // marcar como ocupado com nome
 await P.click('#bAtualizar');
 await noPainel(P, D3, '15:00');
-await P.click('#sheet [data-a=perg-ocupar]'); await P.fill('#nomeFora', 'Dona Edilva'); await P.click('#sheet [data-a=ocupar]');
+await P.click('#sheet [data-a=perg-ocupar]'); await P.fill('#fNome', 'Dona Edilva'); await P.click('#sheet [data-a=ocupar]');
 await P.waitForSelector('#sheet', { state: 'hidden' });
 ok((await horario(D3, '15:00')).nome === 'Dona Edilva', 'marcar como ocupado guarda o nome digitado');
 await P.waitForSelector(`[data-abrir]:has-text("Dona")`, { timeout: 5000 }).catch(() => {});
@@ -355,6 +357,126 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   await foto(p, 'envio-imagem', false);
   await p.keyboard.press('Escape');
   await c.close(); await cli.close();
+}
+
+// ===== 4d. Autonomia da Amanda: editar, remarcar, mudar, apagar, dias, serviços e lembretes =====
+{
+  const espera = async (fn, ms = 6000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await new Promise((r) => setTimeout(r, 120)); } return false; };
+  const D20 = await dia(20), D21 = await dia(21), AMANHA = await dia(1);
+  await db.exec(`insert into horarios (data, hora) select '${D20}'::date, h from unnest(array['10:00','11:00','12:00','13:00']) h`);
+  await db.exec(`insert into horarios (data, hora) values ('${D21}', '10:00'), ('${AMANHA}', '23:30') on conflict do nothing`);
+  const idDe = async (d, h) => (await horario(d, h)).id;
+  // uma cliente confirmada em D20 10h e outra amanhã (para o lembrete)
+  const [idB, idC] = [await idDe(D20, '10:00'), await idDe(AMANHA, '23:30')];
+  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Beatriz Nunes', '11944443333')`, [idB]));
+  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Carla Dias', '11977771111')`, [idC]));
+  await db.exec(`update horarios set status = 'confirmado' where nome in ('Beatriz Nunes', 'Carla Dias')`);
+
+  const c = await contexto(IPHONE);
+  const P2 = await c.newPage();
+  await P2.goto(BASE + 'admin/');
+  await P2.fill('#email', EMAIL_ADMIN); await P2.fill('#senha', 'certa'); await P2.click('#bLogin');
+  await P2.waitForSelector('#vApp:not([hidden])');
+  await P2.waitForSelector('#proximos .prox');
+
+  // lembrete
+  const cartao = P2.locator('#proximos .prox', { hasText: 'Carla' });
+  const hrefL = await cartao.locator('a[data-lembrete]').getAttribute('href');
+  ok(/5511977771111/.test(hrefL) && /lembrar do seu horário de Limpeza de pele amanhã/.test(decodeURIComponent(hrefL)), 'lembrete: mensagem pronta com "amanhã", serviço e número da cliente');
+  ok(/ainda não enviado/.test(await cartao.innerText()), 'lembrete: mostra que ainda não foi enviado');
+  await cartao.locator('a[data-lembrete]').click();
+  ok(await espera(async () => !!(await horario(AMANHA, '23:30')).lembrete_em), 'lembrete: ao tocar, fica registrado no banco');
+  ok(await espera(async () => /Lembrete enviado/.test(await P2.locator('#proximos .prox', { hasText: 'Carla' }).innerText())), 'lembrete: o painel mostra "Lembrete enviado"');
+  await foto(P2, 'painel-lembretes', false);
+
+  // editar dados
+  await P2.click(`[data-abrir="${await idDe(D20, '10:00')}"]`);
+  await P2.click('#sheet [data-a=perg-editar]');
+  ok((await P2.inputValue('#fNome')) === 'Beatriz Nunes' && (await P2.inputValue('#fTel')) === '(11) 94444-3333', 'editar: o formulário vem preenchido com os dados da cliente');
+  await P2.fill('#fTel', '11 95555-0000'); await P2.selectOption('#fServ', 'Limpeza de pele');
+  await P2.click('#sheet [data-a=editar]');
+  ok(await espera(async () => { const r = await horario(D20, '10:00'); return r.telefone === '11955550000' && r.servico === 'Limpeza de pele'; }), 'editar: telefone e serviço atualizados no banco');
+  await P2.click(`[data-abrir="${await idDe(D20, '10:00')}"]`); await P2.click('#sheet [data-a=perg-editar]');
+  await P2.fill('#fTel', '123'); await P2.click('#sheet [data-a=editar]');
+  await P2.waitForFunction(() => /Confira o WhatsApp/.test(document.getElementById('toast').innerText));
+  ok((await horario(D20, '10:00')).telefone === '11955550000', 'editar: telefone inválido não é salvo');
+  await P2.click('#sheet [data-a=voltar]'); await P2.click('#sheet [data-a=fechar]');
+
+  // remarcar
+  await P2.click(`[data-abrir="${await idDe(D20, '10:00')}"]`);
+  await P2.click('#sheet [data-a=perg-remarcar]');
+  ok(await P2.locator('#sheet [data-a=remarcar]').isDisabled(), 'remarcar: o botão só libera depois de escolher o novo horário');
+  await P2.click(`#sheet [data-destino="${await idDe(D21, '10:00')}"]`);
+  await P2.click('#sheet [data-a=remarcar]');
+  ok(await espera(async () => (await horario(D21, '10:00')).nome === 'Beatriz Nunes' && (await horario(D20, '10:00')).status === 'livre'), 'remarcar: a cliente vai para o novo horário e o antigo fica livre');
+  await P2.waitForFunction(() => /Remarcado/.test(document.getElementById('toast').innerText));
+  ok(/mudou para/.test(decodeURIComponent(await P2.locator('#toast a.btn').getAttribute('href'))), 'remarcar: aviso traz a mensagem da nova data para a cliente');
+
+  // mudar dia ou horário de um horário livre
+  await P2.click(`[data-abrir="${await idDe(D20, '12:00')}"]`);
+  await P2.click('#sheet [data-a=perg-mover]');
+  await P2.fill('#fHora', '12:30'); await P2.click('#sheet [data-a=mover]');
+  ok(await espera(async () => !!(await horario(D20, '12:30'))), 'mudar: horário livre passa de 12h para 12h30');
+  await P2.waitForSelector(`[data-abrir="${await idDe(D20, '12:30')}"]`);
+  await P2.click(`[data-abrir="${await idDe(D20, '12:30')}"]`);
+  await P2.click('#sheet [data-a=perg-mover]');
+  await P2.fill('#fHora', '11:00'); await P2.click('#sheet [data-a=mover]');
+  await P2.waitForFunction(() => /já existe um horário/.test(document.getElementById('toast').innerText));
+  ok(!!(await horario(D20, '12:30')), 'mudar: para um horário que já existe é recusado com explicação');
+  await P2.click('#sheet [data-a=voltar]').catch(() => {}); await P2.click('#sheet [data-a=fechar]').catch(() => {});
+
+  // marcar como ocupado com telefone e serviço
+  await P2.click(`[data-abrir="${await idDe(D20, '13:00')}"]`);
+  await P2.click('#sheet [data-a=perg-ocupar]');
+  await P2.fill('#fNome', 'Dona Lurdes'); await P2.fill('#fTel', '(11) 93333-2222'); await P2.selectOption('#fServ', 'Auriculoterapia');
+  await P2.click('#sheet [data-a=ocupar]');
+  ok(await espera(async () => { const r = await horario(D20, '13:00'); return r.status === 'confirmado' && r.telefone === '11933332222' && r.servico === 'Auriculoterapia'; }), 'marcar por fora: guarda nome, telefone e serviço');
+
+  // cancelar e apagar
+  await P2.waitForSelector(`[data-abrir="${await idDe(D20, '13:00')}"]`);
+  await P2.click(`[data-abrir="${await idDe(D20, '13:00')}"]`);
+  await P2.click('#sheet [data-a=perg-excluir]');
+  ok(await P2.locator('#sheet .pergunta').isVisible(), 'apagar: pede confirmação antes');
+  await P2.click('#sheet [data-a=excluir]');
+  ok(await espera(async () => !(await horario(D20, '13:00'))), 'apagar: o horário com cliente é cancelado e some da agenda');
+  ok((await q(`select count(*)::int n from historico where hora = '13:00' and data = $1 and para = 'removido' and nome = 'Dona Lurdes'`, [D20]))[0].n === 1, 'apagar: fica registrado no histórico com o nome da cliente');
+
+  // opções do dia
+  await P2.click(`[data-acao=dia][data-dia="${D20}"]`);
+  await P2.fill('#dHora', '15:45'); await P2.click('[data-acao=dia-add]');
+  ok(await espera(async () => !!(await horario(D20, '15:45'))), 'dia: adicionar um horário avulso (15h45)');
+  await P2.waitForSelector(`[data-acao=dia][data-dia="${D21}"]`);
+  await P2.click(`[data-acao=dia][data-dia="${D20}"]`);
+  await P2.click('[data-acao=dia-limpar-perg]');
+  ok(/Os horários com cliente continuam/.test(await P2.locator('#envio .pergunta').innerText()), 'dia: remover livres pede confirmação e avisa que clientes ficam');
+  await P2.click('[data-acao=dia-limpar]');
+  ok(await espera(async () => (await q(`select count(*)::int n from horarios where data = $1 and status = 'livre'`, [D20]))[0].n === 0), 'dia: todos os horários livres do dia foram removidos');
+  ok((await horario(D21, '10:00')).nome === 'Beatriz Nunes', 'dia: horários com cliente de outros dias continuam intactos');
+
+  // serviços
+  await P2.waitForSelector('#servicos .serv');
+  ok((await P2.locator('#servicos .serv').count()) === 2, 'serviços: o painel mostra os 2 serviços do banco');
+  await P2.click('#bNovoServ');
+  await P2.fill('#sNome', 'Massagem relaxante'); await P2.fill('#sDet', 'Alívio de tensão');
+  await P2.click('[data-acao=serv-salvar]');
+  ok(await espera(async () => (await q(`select count(*)::int n from servicos where nome = 'Massagem relaxante'`))[0].n === 1), 'serviços: adicionar um novo serviço');
+  const site1 = await (await contexto(ANDROID)).newPage();
+  await site1.goto(BASE); await site1.waitForSelector('#o-servico .opt');
+  ok((await site1.locator('#o-servico .opt', { hasText: 'Massagem relaxante' }).count()) === 1, 'serviços: o novo serviço aparece no site para as clientes');
+  const idMass = (await q(`select id from servicos where nome = 'Massagem relaxante'`))[0].id;
+  ok(idMass === 'massagem-relaxante', 'serviços: o código é criado a partir do nome (' + idMass + ')');
+  await P2.waitForSelector(`[data-acao=serv-editar][data-serv="${idMass}"]`);
+  await P2.click(`[data-acao=serv-editar][data-serv="${idMass}"]`);
+  await P2.uncheck('#sAtivo'); await P2.click('[data-acao=serv-salvar]');
+  ok(await espera(async () => (await q(`select ativo from servicos where id = $1`, [idMass]))[0].ativo === false), 'serviços: esconder do site');
+  await site1.reload(); await site1.waitForSelector('#o-servico .opt');
+  ok((await site1.locator('#o-servico .opt', { hasText: 'Massagem' }).count()) === 0, 'serviços: escondido some do site');
+  await P2.waitForSelector(`#servicos .serv:has-text("Escondido do site")`);
+  await P2.click(`[data-acao=serv-editar][data-serv="${idMass}"]`);
+  await P2.click('[data-acao=serv-remover-perg]'); await P2.click('[data-acao=serv-remover]');
+  ok(await espera(async () => (await q(`select count(*)::int n from servicos where id = $1`, [idMass]))[0].n === 0), 'serviços: remover');
+  await foto(P2, 'painel-autonomia');
+  await c.close();
 }
 
 // ===== 4b. Página de diagnóstico =====
