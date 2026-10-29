@@ -71,14 +71,22 @@
       .then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok){var e=new Error('auth');e.status=r.status;throw e}return j})},
             function(){var e=new Error('rede');e.rede=true;throw e});
   }
+  // novo login (email informado) começa a contar as 12 horas; renovar o token mantém o início
   function paraSessao(j,email){return {token:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-120000,
-    email:String(email||(j.user&&j.user.email)||(sess&&sess.email)||'').toLowerCase()}}
+    email:String(email||(j.user&&j.user.email)||(sess&&sess.email)||'').toLowerCase(),inicio:email||!sess?Date.now():(sess.inicio||Date.now())}}
+  // por segurança, a cada 12 horas o painel pede a senha de novo
+  var DOZE_HORAS=12*3600*1000;
+  if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
+  function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>DOZE_HORAS)}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;hist.ok=false;irAba('inicio');mostrar(msg);return fim}
+  var MSG_12H='Por segurança, o painel pede a senha a cada 12 horas. Entre de novo, por favor.';
   var renovando=null;
   function token(){
     if(!sess)return Promise.reject('sessao');
+    if(expirou()){var s0=sess;salvar(null);fetch(C.url+'/auth/v1/logout',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+s0.token}}).catch(function(){});rows=[];mostrar(MSG_12H);return Promise.reject('sessao')}
     if(Date.now()<sess.exp)return Promise.resolve(sess.token);
     if(!renovando)renovando=auth('token?grant_type=refresh_token',{refresh_token:sess.refresh})
-      .then(function(j){salvar(paraSessao(j));return sess.token},function(e){if(e.rede)throw 'rede';salvar(null);throw 'sessao'})
+      .then(function(j){if(!sess)throw 'sessao';salvar(paraSessao(j));return sess.token},function(e){if(e.rede)throw 'rede';salvar(null);throw 'sessao'})
       .then(function(t){renovando=null;return t},function(e){renovando=null;throw e});
     return renovando;
   }
@@ -129,10 +137,10 @@
     if(sess&&sess.email)return sess.email;
     try{var b=sess.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return String(JSON.parse(decodeURIComponent(escape(atob(b)))).email||'').toLowerCase()}catch(e){return ''}
   }
-  $('bSair').onclick=function(){sairServidor();salvar(null);rows=[];guard=null;hist.ok=false;irAba('inicio');mostrar()};
+  $('bSair').onclick=function(){encerrar()};
 
   // ---------- abas ----------
-  var DO_MAIS={servicos:1,historico:1,seguranca:1,ajuda:1,conta:1};
+  var DO_MAIS={clientes:1,servicos:1,historico:1,seguranca:1,ajuda:1,conta:1};
   function irAba(n){
     if(!document.querySelector('[data-aba="'+n+'"]'))n='inicio';
     abaAtual=n;var nav=DO_MAIS[n]?'mais':n;
@@ -141,6 +149,7 @@
     try{sessionStorage.setItem('amanda-aba',n)}catch(e){}
     window.scrollTo(0,0);
     if(n==='historico'&&sess)carregarHist(true);
+    if(n==='clientes'&&sess)carregarClientes();
     if(n==='conta')$('cEmail').textContent=sess&&emailSessao()?'Conectada como '+emailSessao():'Conectada';
     if(n==='seguranca')verSeguranca();
     desenharSelos();
@@ -164,11 +173,13 @@
       .then(function(){return api('GET','horarios?select=*&data=gte.'+hojeSP()+'&order=data.asc,hora.asc')})
       .then(function(j){rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
         return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){servs=sv||[];bancoVelho=false},function(e){if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
-      .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){guard=g;semGuardiao=false},function(e){if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
+      .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){guard=g;semGuardiao=false;if(acessoEstranho())throw 'estranho'},function(e){if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
       .then(function(){$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar()})
-      .catch(function(e){if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
+      .catch(function(e){
+        if(e==='estranho'){encerrar('Encontrei um acesso estranho ao seu painel e desconectei todos os aparelhos por segurança. Entre de novo e depois troque sua senha em Mais › Minha conta.','global');return}
+        if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
   }
-  setInterval(function(){if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
+  setInterval(function(){if(sess&&expirou()){encerrar(MSG_12H);return}if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
   document.addEventListener('visibilitychange',function(){if(sess&&!document.hidden&&!ocupado)carregar()});
   window.addEventListener('online',function(){if(sess)carregar()});
   $('bAtualizar').onclick=function(){carregar()};
@@ -474,6 +485,8 @@
     if(a==='fecharEnvio')fecharEnvio();if(a==='copiar')copiar(envTexto);if(a==='compartilhar')compartilhar();
     if(a==='protecao')protecao(b.getAttribute('data-ligar')==='1',b);
     if(a==='sair-outros')sairOutros(b);
+    if(a==='cli-obs')abrirObs(b.getAttribute('data-chave'));
+    if(a==='cli-salvar')salvarObs(b.getAttribute('data-chave'),b);
     if(a==='dia')abrirDia(b.getAttribute('data-dia'));
     if(a==='dia-add')diaAdicionar(b.getAttribute('data-dia'),b);
     if(a==='dia-limpar-perg')abrirDia(b.getAttribute('data-dia'),true);
@@ -691,6 +704,52 @@
   var tBusca;
   $('hBusca').oninput=function(){var v=this.value;clearTimeout(tBusca);tBusca=setTimeout(function(){hist.busca=v.trim();carregarHist(true)},350)};
   $('hMais').onclick=function(){carregarHist(false)};
+
+  // um programa automático (não um celular ou computador) logado com a senha dela é sinal de invasão
+  function acessoEstranho(){return !!(guard&&guard.aparelhos&&guard.aparelhos.some(function(x){return !x.atual&&automatico(x.aparelho)}))}
+
+  // ---------- clientes ----------
+  var clientes=null;
+  function carregarClientes(){
+    if(!clientes)$('cliLista').innerHTML='<p class="vazio">Carregando…</p>';
+    api('POST','rpc/clientes_resumo',{}).then(function(j){clientes=j||[];desenharClientes()},function(e){
+      if(e==='sessao')return;
+      $('cliLista').innerHTML='<p class="vazio">'+(e==='ausente'?'Para ver as clientes aqui, falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).':e==='rede'?'Sem conexão. Tente de novo quando a internet voltar.':'Não consegui carregar as clientes agora.')+'</p>'});
+  }
+  function diasDesde(d){return Math.round((utc(hojeSP())-utc(d))/864e5)}
+  function zapCliente(x,volta){if(!x.telefone)return '';var n=primeiro(x.nome);
+    var t=volta?'Oi, '+n+'! Aqui é a Amanda. Faz um tempinho que você não vem, estou com horários abertos. Quer que eu separe um para você?':'Oi, '+n+'! Aqui é a Amanda.';
+    return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t)}
+  function desenharClientes(){
+    var el=$('cliLista'),b=$('cliBusca').value.trim().toLowerCase(),bd=b.replace(/\D/g,'');
+    var l=(clientes||[]).filter(function(x){return !b||String(x.nome).toLowerCase().indexOf(b)>=0||(bd&&String(x.telefone||'').indexOf(bd)>=0)});
+    var total=(clientes||[]).length;
+    $('cliResumo').textContent=total?total+(total>1?' clientes':' cliente')+(b?' · '+l.length+' encontrada'+(l.length===1?'':'s'):''):'';
+    if(!l.length){el.innerHTML='<p class="vazio">'+(b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui assim que marcarem o primeiro horário.')+'</p>';return}
+    el.innerHTML=l.map(function(x){
+      var prox=x.proxima?String(x.proxima).replace('T',' '):'',pd=prox.slice(0,10),ph=prox.slice(11,16);
+      var sumida=!prox&&x.ultima&&diasDesde(x.ultima)>=45,z=zapCliente(x,sumida);
+      return '<div class="card cli"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+'</div>'+
+        '<div class="cli-d">'+(x.telefone?esc(fmtTel(x.telefone)):'Sem WhatsApp')+(x.servicos&&x.servicos.length?' · '+esc(x.servicos.join(', ')):'')+'</div>'+
+        '<div class="cli-n"><div><b>'+x.atendimentos+'</b>'+(x.atendimentos===1?'atendimento':'atendimentos')+'</div>'+
+          '<div><b>'+(x.ultima?esc(curta(x.ultima)):'—')+'</b>última vez'+(x.ultima?' ('+(diasDesde(x.ultima)===0?'hoje':'há '+diasDesde(x.ultima)+' dia'+(diasDesde(x.ultima)===1?'':'s'))+')':'')+'</div>'+
+          '<div><b>'+(prox?esc(curta(pd)):'—')+'</b>'+(prox?'próximo, '+esc(hh(ph)):'sem horário marcado')+'</div></div>'+
+        (sumida?'<div class="cli-volta">Faz '+diasDesde(x.ultima)+' dias que ela não vem. Que tal chamar?</div>':'')+
+        (x.obs?'<div class="cli-obs">'+esc(x.obs)+'</div>':'')+
+        '<div class="row">'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">'+(sumida?'Convidar a voltar':'WhatsApp')+'</a>':'<span></span>')+
+        '<button class="btn ghost" type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+(x.obs?'Editar anotação':'Anotar')+'</button></div></div>'}).join('');
+  }
+  $('cliBusca').oninput=desenharClientes;
+  function cliPorChave(k){return (clientes||[]).filter(function(x){return x.chave===k})[0]}
+  function abrirObs(k){var x=cliPorChave(k);if(!x)return;
+    abrirEnvio('<div><span class="estado livre">Cliente</span><div class="t" id="envT">'+esc(x.nome)+'</div><div class="d">Só você vê esta anotação.</div></div>'+
+      '<label for="oTexto">Anotação</label><textarea id="oTexto" maxlength="500" placeholder="Ex.: pele sensível, prefere sábado à tarde, alergia a…">'+esc(x.obs||'')+'</textarea>'+
+      '<button class="btn main" type="button" data-acao="cli-salvar" data-chave="'+esc(k)+'">Salvar anotação</button>'+
+      '<button class="btn ghost" type="button" data-acao="fecharEnvio">Fechar</button>');
+    $('oTexto').focus()}
+  function salvarObs(k,b){var t=$('oTexto').value;b.disabled=true;
+    api('POST','rpc/salvar_cliente',{p_chave:k,p_obs:t}).then(function(ok){if(!ok){toast('Não deu certo. Tente de novo.',true);return}
+      var x=cliPorChave(k);if(x)x.obs=t.trim()||null;fecharEnvio();desenharClientes();toast('Anotação salva.')},falha).then(function(){b.disabled=false})}
 
   desenharHoras();
   $('novaData').min=hojeSP();

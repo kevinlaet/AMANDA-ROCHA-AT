@@ -36,7 +36,7 @@ h2{font-size:18px;font-weight:800;color:var(--teal);margin:26px 0 12px;display:f
 .banner{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
 .msg{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
 label,.label{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
-input[type=email],input[type=password],input[type=date],input[type=time],input[type=text],input[type=tel],select{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
+input[type=email],input[type=password],input[type=date],input[type=time],input[type=text],input[type=tel],input[type=search],select{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
 input:focus,select:focus{border-color:var(--teal)}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 18px;border-radius:14px;border:2px solid transparent;font-weight:700;width:100%;text-align:center;text-decoration:none}
 .btn.main{background:var(--teal);color:var(--cream)}
@@ -211,6 +211,18 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 .faq summary:after{content:"+";font-size:22px;color:var(--teal);line-height:1}
 .faq[open] summary:after{content:"–"}
 .faq p{padding:0 16px 14px;font-size:15px;color:var(--muted)}
+/* clientes */
+.cli{display:grid;gap:8px;margin-bottom:10px}
+.cli-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cli-t b{font-size:17px}
+.cli-d{font-size:14px;color:var(--muted)}
+.cli-n{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cli-n div{background:var(--sand);border-radius:12px;padding:8px 10px;font-size:12px;color:var(--muted);line-height:1.3}
+.cli-n b{display:block;font-size:15px;color:var(--ink)}
+.cli-obs{font-size:14px;background:#FFF6E8;border-radius:12px;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+.cli-volta{font-size:13px;font-weight:700;color:var(--warn)}
+.cli .row{margin-top:2px}.cli .row .btn{min-height:46px;padding:8px 12px;font-size:15px}
+textarea{width:100%;min-height:120px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;font:inherit;resize:vertical;outline:none}
+textarea:focus{border-color:var(--teal)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -314,14 +326,24 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
     </section>
 
     <section class="aba" data-aba="mais" hidden>
-    <div class="aba-topo"><h2 class="aba-t">Mais</h2><p>Preços, histórico, segurança e ajuda.</p></div>
+    <div class="aba-topo"><h2 class="aba-t">Mais</h2><p>Clientes, preços, histórico, segurança e ajuda.</p></div>
     <div class="lista">
+        <button type="button" data-ir="clientes"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c1-4 4-6 7-6s6 2 7 6"/><path d="M16 4a4 4 0 0 1 0 8M22 21c-.5-2.5-2-4.3-4-5.3"/></svg></span><span class="li-tx"><b>Clientes</b><small>Ficha de cada cliente: última vez, próximo horário e anotações</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="servicos"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span class="li-tx"><b>Serviços e preços</b><small>O que aparece no site para a cliente escolher</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="historico"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="li-tx"><b>Histórico</b><small>Tudo o que aconteceu na agenda</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="seguranca"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="li-tx"><b>Segurança</b><small>Guardião do site e aparelhos conectados</small></span><em class="st" id="mSeg" hidden></em><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="ajuda"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 3.7M12 17h.01"/></svg></span><span class="li-tx"><b>Como funciona</b><small>Respostas rápidas sobre o painel e o site</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="conta"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><span class="li-tx"><b>Minha conta</b><small>Trocar senha e sair</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
+    </section>
+
+    <section class="aba" data-aba="clientes" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Clientes</h2><p>Cada cliente que já marcou com você, com o que importa para o atendimento.</p></div>
+    <label class="label" for="cliBusca">Buscar cliente</label>
+    <input type="search" id="cliBusca" placeholder="Nome ou WhatsApp" autocomplete="off" maxlength="40">
+    <p class="dica" id="cliResumo"></p>
+    <div id="cliLista"><p class="vazio">Carregando…</p></div>
     </section>
 
     <section class="aba" data-aba="servicos" hidden>

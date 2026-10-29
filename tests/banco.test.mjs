@@ -287,6 +287,22 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
     ok(!!(await como('anon', null, () => tenta(q(`select ${f}`)))).erro, `visitante não chama ${f.split('(')[0]}`);
   }
   ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`select public.alerta('x', 'grave', 'falso', 'falso', null)`)))).erro, 'nem a Amanda cria alertas falsos diretamente');
+
+  // clientes
+  await db.exec(`alter table horarios disable trigger trg_horario_passado`);
+  await db.exec(`insert into horarios (data, hora, status, nome, telefone, servico, pedido_em) values
+    ((public.agora_sp() - interval '60 days')::date, '10:00', 'confirmado', 'Helena Prado', '11950000002', 'Limpeza de pele', now()),
+    ((public.agora_sp() - interval '20 days')::date, '10:00', 'confirmado', 'Helena Prado', '11950000002', 'Auriculoterapia', now())`);
+  await db.exec(`alter table horarios enable trigger trg_horario_passado`);
+  const cli = (await como('authenticated', EMAIL_ADMIN, () => q('select public.clientes_resumo() c')))[0].c;
+  const helena = cli.find((x) => x.telefone === '11950000002');
+  ok(helena && helena.atendimentos === 2 && helena.proxima && helena.servicos.length === 2, 'ficha da cliente: 2 atendimentos, próximo horário e serviços feitos (' + JSON.stringify(helena) + ')');
+  ok(!cli.some((x) => x.nome === 'Marcado por fora'), 'horários "marcado por fora" sem nome não viram cliente');
+  ok((await como('authenticated', EMAIL_ADMIN, () => q(`select public.salvar_cliente('11950000002', 'Pele sensível') r`)))[0].r === true, 'Amanda salva uma anotação');
+  ok((await como('authenticated', EMAIL_ADMIN, () => q('select public.clientes_resumo() c')))[0].c.find((x) => x.telefone === '11950000002').obs === 'Pele sensível', 'a anotação aparece na ficha');
+  ok(!!(await como('anon', null, () => tenta(q('select public.clientes_resumo()')))).erro && !!(await como('anon', null, () => tenta(q(`select public.salvar_cliente('x1', 'y')`)))).erro, 'visitante não vê nem altera clientes');
+  ok((await como('authenticated', 'outra@pessoa.com', () => q('select public.clientes_resumo() c')))[0].c === null && (await como('authenticated', 'outra@pessoa.com', () => q(`select public.salvar_cliente('x1', 'y') r`)))[0].r === false, 'outra conta não vê nem altera clientes');
+  ok(!!(await como('anon', null, () => tenta(q('select * from clientes')))).erro, 'a tabela de clientes é fechada');
 }
 
 fim('banco');

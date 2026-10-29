@@ -621,8 +621,24 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok((await M.locator('#selo').innerText()) === 'Protegido', 'topo do painel mostra o selo "Protegido" do guardião');
   ok(await M.locator('#bancoVelho').isHidden(), 'com o banco atualizado, não aparece aviso de atualização');
   await aba(M, 'mais');
-  ok((await M.locator('[data-aba="mais"] .lista [data-ir]').count()) === 5, 'Mais tem 5 páginas: Serviços, Histórico, Segurança, Como funciona e Minha conta');
+  ok((await M.locator('[data-aba="mais"] .lista [data-ir]').count()) === 6, 'Mais tem 6 páginas: Clientes, Serviços, Histórico, Segurança, Como funciona e Minha conta');
   ok(await M.locator('#nMais').isVisible(), 'o botão Mais avisa que há alertas novos (logins de outros aparelhos nos testes)');
+
+  // clientes
+  await doMais(M, 'clientes');
+  await M.waitForSelector('#cliLista .cli');
+  const bea = M.locator('#cliLista .cli', { hasText: 'Beatriz Nunes' });
+  ok((await bea.count()) === 1 && /\(11\) 95555-0000/.test(await bea.innerText()) && /próximo/.test(await bea.innerText()), 'Clientes: ficha com WhatsApp e próximo horário');
+  ok((await bea.locator('a.btn').getAttribute('href')).startsWith('https://wa.me/5511955550000'), 'Clientes: botão abre o WhatsApp da cliente');
+  await M.fill('#cliBusca', 'beat');
+  ok((await M.locator('#cliLista .cli').count()) === 1, 'Clientes: busca pelo nome');
+  await bea.locator('[data-acao=cli-obs]').click();
+  await M.fill('#oTexto', 'Prefere sábado à tarde');
+  await M.click('[data-acao=cli-salvar]');
+  await M.waitForFunction(() => /Anotação salva/.test(document.getElementById('toast').innerText));
+  ok((await q(`select obs from clientes where chave = '11955550000'`))[0]?.obs === 'Prefere sábado à tarde' && /Prefere sábado/.test(await bea.innerText()), 'Clientes: anotação salva e mostrada na ficha');
+  await M.fill('#cliBusca', '');
+  await foto(M, 'painel-clientes');
 
   // histórico
   await doMais(M, 'historico');
@@ -691,8 +707,25 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   const c3 = await contexto(IPHONE);
   await entrar(c3, 'novaSenha2026');
   ok(true, 'a senha nova funciona para entrar');
-  await c3.close(); await c.close();
+  await c3.close();
   SENHAS[EMAIL_ADMIN] = 'certa';
+
+  // sessão de 12 horas
+  await M.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 13 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+  await M.reload();
+  await M.waitForSelector('#vLogin:not([hidden])');
+  ok(/a cada 12 horas/.test(await M.locator('#mLogin').innerText()), 'depois de 12 horas o painel pede a senha de novo, explicando o motivo');
+  await c.close();
+
+  // acesso estranho (um programa logado com a senha dela): desconecta todos os aparelhos
+  const c4 = await contexto(IPHONE);
+  const E = await entrar(c4);
+  await q(`insert into auth.sessions (user_id, user_agent) select id, 'python-requests/2.31' from auth.users where email = $1`, [EMAIL_ADMIN]);
+  await E.click('#bAtualizar');
+  await E.waitForSelector('#vLogin:not([hidden])');
+  ok(/acesso estranho/.test(await E.locator('#mLogin').innerText()), 'acesso de um programa automático: o painel desconecta e pede a senha');
+  ok((await q(`select count(*)::int n from auth.sessions s join auth.users u on u.id = s.user_id where u.email = $1`, [EMAIL_ADMIN]))[0].n === 0, 'e todas as sessões, inclusive a do invasor, são encerradas');
+  await c4.close();
 }
 
 // ===== 5. Privacidade e erros =====

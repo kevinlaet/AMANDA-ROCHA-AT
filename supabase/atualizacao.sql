@@ -570,6 +570,69 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------
+-- Clientes: a ficha de cada cliente é montada a partir da agenda;
+-- a Amanda só guarda anotações (alergias, preferências, observações).
+-- ---------------------------------------------------------------------
+create table if not exists public.clientes (
+  chave text primary key check (length(chave) between 2 and 80),  -- telefone, ou "nome:..." para quem não tem telefone
+  obs text check (length(obs) <= 500),
+  atualizado_em timestamptz not null default now()
+);
+alter table public.clientes enable row level security;
+revoke all on public.clientes from anon, authenticated;
+
+create or replace function public.clientes_resumo()
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_admin() then
+    return null;
+  end if;
+  return (
+    select coalesce(json_agg(t order by t.recente desc), '[]'::json)
+      from (
+        select k.chave,
+               (array_agg(h.nome order by h.data desc, h.hora desc))[1] as nome,
+               max(h.telefone) as telefone,
+               count(*) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()) as atendimentos,
+               max(h.data) filter (where h.status = 'confirmado' and (h.data + h.hora::time) <= public.agora_sp()) as ultima,
+               min(h.data + h.hora::time) filter (where (h.data + h.hora::time) > public.agora_sp()) as proxima,
+               array_agg(distinct h.servico) filter (where h.servico is not null and h.servico not in ('Combinado por fora', 'Manual')) as servicos,
+               min(h.data) as desde,
+               max(h.data) as recente,
+               c.obs
+          from public.horarios h
+          cross join lateral (select coalesce(h.telefone, 'nome:' || lower(btrim(h.nome))) as chave) k
+          left join public.clientes c on c.chave = k.chave
+         where h.status in ('pedido', 'confirmado') and h.nome is not null and h.nome <> 'Marcado por fora'
+         group by k.chave, c.obs
+      ) t
+  );
+end;
+$$;
+
+create or replace function public.salvar_cliente(p_chave text, p_obs text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_admin() then
+    return false;
+  end if;
+  insert into public.clientes (chave, obs, atualizado_em)
+  values (left(btrim(p_chave), 80), nullif(left(btrim(coalesce(p_obs, '')), 500), ''), now())
+  on conflict (chave) do update set obs = excluded.obs, atualizado_em = now();
+  return true;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- Permissões das funções
 -- (o Supabase dá acesso automático a funções novas; aqui tudo é fechado e
 -- depois liberado só para quem precisa)
@@ -590,6 +653,8 @@ revoke all on function public.situacao_guardiao() from public, anon, authenticat
 revoke all on function public.definir_protecao(boolean) from public, anon, authenticated;
 revoke all on function public.marcar_alertas_vistos() from public, anon, authenticated;
 revoke all on function public.guardiao_publico() from public, anon, authenticated;
+revoke all on function public.clientes_resumo() from public, anon, authenticated;
+revoke all on function public.salvar_cliente(text, text) from public, anon, authenticated;
 
 grant execute on function public.agenda_publica() to anon, authenticated;
 grant execute on function public.pedir_horario(uuid, text, text, text) to anon, authenticated;
@@ -601,3 +666,5 @@ grant execute on function public.remarcar(uuid, uuid) to authenticated;
 grant execute on function public.situacao_guardiao() to authenticated;
 grant execute on function public.definir_protecao(boolean) to authenticated;
 grant execute on function public.marcar_alertas_vistos() to authenticated;
+grant execute on function public.clientes_resumo() to authenticated;
+grant execute on function public.salvar_cliente(text, text) to authenticated;
