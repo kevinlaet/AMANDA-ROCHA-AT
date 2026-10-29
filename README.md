@@ -25,6 +25,14 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 4. No painel, a Amanda toca em **Confirmar** ou **Recusar**. Depois de cada ação, aparece o botão para avisar a cliente no WhatsApp com a mensagem já escrita.
 5. Horário combinado por fora: toque nele e em "Marcar como ocupado".
 
+**Enviar horários para uma cliente específica** (no painel, seção do mesmo nome):
+
+1. Escolha os dias (por exemplo 3 e 4 de novembro). O painel mostra só dias com horário livre.
+2. Opcional: nome da cliente, WhatsApp dela e o serviço.
+3. Escolha como enviar:
+   - **Enviar link:** a cliente abre uma página só com esses dias, já com o nome preenchido, e agenda sozinha. Se os horários acabarem, ela vê o aviso e pode pedir outros.
+   - **Enviar imagem:** o painel cria uma imagem com letras grandes, com os dias e horários, para clientes que preferem ver e responder pelo WhatsApp. Quando a cliente responder, a Amanda toca no horário e em "Marcar como ocupado", com o nome dela.
+
 **Regras que o banco garante:**
 
 - Horário que já passou, ou que começa em menos de 1 hora, some do site.

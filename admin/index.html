@@ -36,7 +36,7 @@ h2{font-size:18px;font-weight:800;color:var(--teal);margin:26px 0 12px;display:f
 .banner{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
 .msg{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
 label,.label{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
-input[type=email],input[type=password],input[type=date],input[type=time],input[type=text],select{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
+input[type=email],input[type=password],input[type=date],input[type=time],input[type=text],input[type=tel],select{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
 input:focus,select:focus{border-color:var(--teal)}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 18px;border-radius:14px;border:2px solid transparent;font-weight:700;width:100%;text-align:center;text-decoration:none}
 .btn.main{background:var(--teal);color:var(--cream)}
@@ -91,6 +91,16 @@ input:focus,select:focus{border-color:var(--teal)}
 .toast .fechar{background:rgba(255,255,255,.15);border:0;color:inherit;border-radius:12px;font-weight:700;padding:0 14px;flex:0 0 auto}
 .credito{font-family:Cormorant,Georgia,'Times New Roman',serif;font-weight:600;font-size:12px;letter-spacing:3px;text-transform:uppercase;text-align:center;opacity:.7;color:var(--muted);padding:0 16px calc(110px + env(safe-area-inset-bottom));margin-top:-80px}
 .credito:before{content:"";display:block;width:36px;height:1px;background:currentColor;opacity:.5;margin:0 auto 10px}
+.dica{font-size:14px;color:var(--muted);margin-top:4px}
+.chip.dd{display:flex;flex-direction:column;align-items:center;line-height:1.2;padding:8px 14px;min-width:92px}
+.chip.dd b{font-size:15px}.chip.dd small{font-weight:600;font-size:11px;color:var(--muted)}
+.chip.dd[aria-pressed=true] small{color:var(--teal)}
+.env-bt{display:grid;gap:10px;margin-top:14px}
+.btn.dupla{flex-direction:column;gap:2px}
+.btn small{display:block;font-weight:500;font-size:12px;opacity:.9}
+.sheet pre.txt{white-space:pre-wrap;word-break:break-word;font:inherit;font-size:14px;line-height:1.45;background:var(--sand);border:1px solid var(--line);border-radius:14px;padding:12px 14px;max-height:42vh;overflow:auto}
+.sheet img.previa-img{width:100%;max-height:48vh;object-fit:contain;border-radius:14px;background:var(--sand);border:1px solid var(--line)}
+.sheet .nota{font-size:13px;color:var(--muted)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -121,6 +131,25 @@ input:focus,select:focus{border-color:var(--teal)}
     <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
     <div id="pedidos"><p class="vazio">Carregando…</p></div>
 
+    <h2>Enviar horários para uma cliente</h2>
+    <div class="card" id="envCard">
+      <p class="dica">Escolha os dias. Depois escolha como enviar: <b>link</b> (ela agenda sozinha) ou <b>imagem</b> (ela só olha e responde).</p>
+      <label for="envNome">Nome da cliente (opcional)</label>
+      <input type="text" id="envNome" maxlength="60" autocomplete="off" placeholder="Ex.: Dona Maria">
+      <label for="envTel">WhatsApp da cliente (opcional)</label>
+      <input type="tel" id="envTel" inputmode="tel" autocomplete="off" placeholder="(11) 90000-0000">
+      <p class="dica">Com o número, o WhatsApp já abre direto na conversa dela.</p>
+      <label for="envServ">Serviço (opcional)</label>
+      <select id="envServ"><option value="">Qualquer um</option></select>
+      <span class="label" id="lEnvDias">Quais dias?</span>
+      <div class="chips" id="envDias" role="group" aria-labelledby="lEnvDias"></div>
+      <div class="previa" id="envPrevia" aria-live="polite">Carregando…</div>
+      <div class="env-bt">
+        <button class="btn zap dupla" id="bLink" type="button" disabled><span>Enviar link</span><small>ela escolhe e agenda sozinha</small></button>
+        <button class="btn main dupla" id="bImg" type="button" disabled><span>Enviar imagem</span><small>ela vê os horários e responde</small></button>
+      </div>
+    </div>
+
     <h2>Abrir horários</h2>
     <div class="card">
       <label for="novaData">Dia</label>
@@ -149,10 +178,12 @@ input:focus,select:focus{border-color:var(--teal)}
 <footer class="credito">Desenvolvido por Kevin Laet</footer>
 
 <div class="veu" id="veu" hidden></div>
+<div class="sheet" id="envio" role="dialog" aria-modal="true" aria-labelledby="envT" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="../config.js"></script>
+<script src="../agenda.js"></script>
 <script>
 (function(){
   var C=window.SUPABASE||{},$=function(i){return document.getElementById(i)};
@@ -298,6 +329,7 @@ input:focus,select:focus{border-color:var(--teal)}
         var rot=r.status==='livre'?'livre':esc(primeiro(r.nome));
         return '<button class="s '+r.status+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?'livre':r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
       '<p class="vazio">Nenhum horário aberto. Use “Abrir horários” acima.</p>';
+    desenharEnvio();
     // com uma pergunta aberta, não redesenha (não apaga o que ela está digitando);
     // a ação continua segura porque só vale se o horário não tiver mudado
     if(aberto&&!pergunta)desenharSheet();
@@ -397,6 +429,131 @@ input:focus,select:focus{border-color:var(--teal)}
         return carregar()},falha)
       .then(function(){$('bAbrir').disabled=false;$('bAbrir').textContent='Abrir horários'});
   };
+
+  // ---------- enviar horários para uma cliente ----------
+  var AG=window.AGENDA||{servicos:[],whatsapp:'5511948907302'};
+  var MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var SEMLONGA=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  var envSel={},envImg=null;
+  function limiteTxt(){var x=new Date(agoraSP().getTime()+60*60000);return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())+' '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())}
+  // só entram horários livres que o site também mostra (começam daqui a mais de 1 hora)
+  function diasLivres(){var m={},o=[],lim=limiteTxt();rows.forEach(function(r){if(r.status!=='livre'||(r.data+' '+r.hora)<=lim)return;if(!m[r.data]){m[r.data]=[];o.push(r.data)}m[r.data].push(r.hora)});
+    return o.map(function(d){return {data:d,horas:m[d].sort()}})}
+  function selecionados(){return diasLivres().filter(function(d){return envSel[d.data]})}
+  function dataLonga(d){var x=utc(d);return SEMLONGA[x.getUTCDay()]+', '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()]}
+  function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
+  function curto(d){return semana(d).slice(0,3)+' '+curta(d)}
+  function nomeEnv(){return $('envNome').value.trim().slice(0,60)}
+  function telEnv(){var t=$('envTel').value.replace(/\D/g,'');if(t.indexOf('55')===0&&(t.length===12||t.length===13))t=t.slice(2);return (t.length===10||t.length===11)?t:''}
+  function servEnv(){var id=$('envServ').value;return AG.servicos.filter(function(x){return x.id===id})[0]||null}
+  function saud(){var n=primeiro(nomeEnv());return 'Oi'+(n?', '+n:'')+'! Aqui é a Amanda.'}
+  function siteBase(){return location.origin+location.pathname.replace(/admin\/(index\.html)?$/,'')}
+  function linkCliente(sel){var q='?dias='+sel.map(function(d){return d.data}).join(',');var n=primeiro(nomeEnv());if(n)q+='&n='+encodeURIComponent(n);var sv=servEnv();if(sv)q+='&s='+encodeURIComponent(sv.id);return siteBase()+q+'#agendar'}
+  function zapEnvio(texto){var t=telEnv();return 'https://wa.me/'+(t?'55'+t:'')+'?text='+encodeURIComponent(texto)}
+  function linhasHoras(sel){return sel.map(function(d){return '• '+semana(d.data)+', '+curta(d.data)+': '+d.horas.map(hh).join(', ')}).join('\n')}
+  function textoLink(sel){return saud()+' Separei estes horários para você:\n\n'+linhasHoras(sel)+'\n\nPara escolher o seu e garantir o horário, é só tocar neste link:\n'+linkCliente(sel)+'\n\nSe preferir, me responda aqui com o dia e a hora.'}
+  function textoImagem(sel){var sv=servEnv();return saud()+' Estes são os horários que tenho disponíveis'+(sv?' para '+sv.nome.toLowerCase():'')+':\n\n'+linhasHoras(sel)+'\n\nÉ só me responder aqui com o dia e a hora que você preferir.'}
+
+  function desenharEnvio(){
+    var ds=diasLivres(),vivo={};ds.forEach(function(d){vivo[d.data]=1});Object.keys(envSel).forEach(function(k){if(!vivo[k])delete envSel[k]});
+    $('envDias').innerHTML=ds.length?ds.map(function(d){return '<button class="chip dd" type="button" data-env="'+d.data+'" aria-pressed="'+(!!envSel[d.data])+'"><b>'+esc(curto(d.data))+'</b><small>'+d.horas.length+(d.horas.length>1?' horários':' horário')+'</small></button>'}).join(''):'<p class="vazio">Nenhum horário livre para enviar. Abra horários logo abaixo.</p>';
+    var sel=selecionados(),el=$('envPrevia');
+    el.innerHTML=sel.length?sel.map(function(d){return '<b>'+esc(cap(dataLonga(d.data)))+'</b><br>'+d.horas.map(hh).join(' · ')}).join('<br><br>'):(ds.length?'Toque nos dias que você quer oferecer.':'Sem horários livres no momento.');
+    $('bLink').disabled=$('bImg').disabled=!sel.length;
+  }
+  $('envDias').onclick=function(e){var b=e.target.closest('[data-env]');if(!b)return;var d=b.getAttribute('data-env');envSel[d]=!envSel[d];desenharEnvio()};
+  AG.servicos.forEach(function(x){var o=document.createElement('option');o.value=x.id;o.textContent=x.nome;$('envServ').appendChild(o)});
+
+  function abrirEnvio(html){$('envio').innerHTML=html;$('envio').hidden=false;$('veu').hidden=false}
+  function fecharEnvio(){$('envio').hidden=true;if(!aberto)$('veu').hidden=true;if(envImg&&envImg.url){URL.revokeObjectURL(envImg.url)}envImg=null}
+  function copiar(texto){
+    var ok=function(){toast('Mensagem copiada.')},sem=function(){var pre=document.querySelector('#envio pre.txt');if(pre){var r=document.createRange();r.selectNodeContents(pre);var s2=getSelection();s2.removeAllRanges();s2.addRange(r)}toast('Selecionei o texto. Toque em Copiar.',true)};
+    try{navigator.clipboard.writeText(texto).then(ok,sem)}catch(e){sem()}
+  }
+
+  $('bLink').onclick=function(){
+    var sel=selecionados();if(!sel.length)return;var t=textoLink(sel);envImg=null;
+    abrirEnvio('<div><span class="estado livre">Link</span><div class="t" id="envT">Mensagem pronta</div><div class="d">Confira o texto. A cliente abre o link e vê só estes dias para escolher e agendar sozinha.</div></div>'+
+      '<pre class="txt">'+esc(t)+'</pre>'+
+      '<a class="btn zap" target="_blank" rel="noopener" href="'+esc(zapEnvio(t))+'">'+(telEnv()?'Abrir conversa com a cliente':'Escolher a cliente no WhatsApp')+'</a>'+
+      '<button class="btn ghost" data-acao="copiar" type="button">Copiar mensagem</button>'+
+      '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>');
+    envTexto=t;
+  };
+  var envTexto='';
+
+  // ---- imagem para a cliente ver e responder ----
+  function fmtZap(){var n=String(AG.whatsapp||'').replace(/\D/g,'').replace(/^55/,'');return n.length===11?'('+n.slice(0,2)+') '+n.slice(2,7)+'-'+n.slice(7):n.length===10?'('+n.slice(0,2)+') '+n.slice(2,6)+'-'+n.slice(6):n}
+  function criarImagem(sel,nome,sv){
+    var W=1080,P=48,F='Montserrat, system-ui, sans-serif';
+    var fontes=[document.fonts.load('48px "Great Vibes"'),document.fonts.load('800 40px Montserrat'),document.fonts.load('600 40px Montserrat'),document.fonts.load('600 28px Cormorant')];
+    return Promise.all(fontes).catch(function(){}).then(function(){return new Promise(function(res){var im=new Image();im.onload=function(){res(im)};im.onerror=function(){res(null)};im.src='../img/logo.svg'})}).then(function(logo){
+      var c=document.createElement('canvas'),x=c.getContext('2d');
+      function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+      function larg(t,f){x.font=f;return x.measureText(t).width}
+      // 1) mede cada cartão de dia
+      var util=W-2*P-72,GAP=16,PH=92;
+      var cards=sel.map(function(d){var linhas=[[]],cur=0;
+        d.horas.forEach(function(h){var t=hh(h),w=Math.max(150,larg(t,'800 52px '+F)+64);if(cur+w>util&&linhas[linhas.length-1].length){linhas.push([]);cur=0}linhas[linhas.length-1].push({t:t,w:w});cur+=w+GAP});
+        return {titulo:cap(dataLonga(d.data)),linhas:linhas,h:36+64+20+linhas.length*PH+(linhas.length-1)*GAP+36}});
+      var topo=546+(nome?64:0)+(sv?60:0),rodape=410,gap=26;
+      var H=Math.max(1350,topo+cards.reduce(function(a,k){return a+k.h+gap},0)+rodape);
+      c.width=W;c.height=H;
+      // 2) fundo
+      var g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#167469');g.addColorStop(.45,'#0B5F59');g.addColorStop(1,'#053F3A');x.fillStyle=g;x.fillRect(0,0,W,H);
+      x.strokeStyle='rgba(245,197,157,.18)';x.lineWidth=2;x.beginPath();x.arc(W+60,-40,380,0,7);x.stroke();x.beginPath();x.arc(-80,H-160,330,0,7);x.stroke();
+      // 3) cabeçalho
+      x.textAlign='center';x.textBaseline='alphabetic';
+      if(logo)x.drawImage(logo,W/2-80,56,160,160);
+      x.fillStyle='#F5C59D';x.font='400 112px "Great Vibes", cursive';x.fillText('Amanda Rocha',W/2,350);
+      x.fillStyle='#FBE3CE';x.font='600 30px Cormorant, Georgia, serif';x.fillText('AURICULOTERAPIA  ·  ESTÉTICA',W/2,400);
+      var y=490;x.fillStyle='#FFF8F1';x.font='800 70px '+F;x.fillText('Horários disponíveis',W/2,y);
+      if(nome){y+=64;x.fillStyle='#F5C59D';x.font='700 44px '+F;x.fillText('para '+nome,W/2,y)}
+      if(sv){y+=60;x.fillStyle='#FBE3CE';x.font='600 38px '+F;x.fillText(sv.nome,W/2,y)}
+      y=topo;
+      // 4) cartões dos dias
+      cards.forEach(function(k){
+        x.fillStyle='#FFF8F1';rr(P,y,W-2*P,k.h,36);x.fill();
+        x.textAlign='left';x.fillStyle='#053F3A';x.font='800 50px '+F;x.fillText(k.titulo,P+36,y+36+50);
+        var py=y+36+64+20;
+        k.linhas.forEach(function(ln){var px=P+36;ln.forEach(function(p){x.fillStyle='#0B5F59';rr(px,py,p.w,PH,28);x.fill();x.fillStyle='#FFF8F1';x.textAlign='center';x.font='800 52px '+F;x.fillText(p.t,px+p.w/2,py+PH/2+19);px+=p.w+GAP});x.textAlign='left';py+=PH+GAP});
+        y+=k.h+gap});
+      // 5) rodapé
+      var ry=H-rodape+16;x.fillStyle='#F5C59D';rr(P,ry,W-2*P,rodape-112,36);x.fill();
+      x.textAlign='center';x.fillStyle='#053F3A';x.font='800 46px '+F;x.fillText('Gostou de um horário?',W/2,ry+76);
+      x.font='600 36px '+F;x.fillText('Responda esta mensagem com',W/2,ry+130);x.fillText('o dia e a hora que você prefere.',W/2,ry+176);
+      x.font='800 64px '+F;x.fillText(fmtZap(),W/2,ry+246);
+      x.fillStyle='rgba(251,227,206,.8)';x.font='700 24px "JetBrains Mono", monospace';x.fillText('EQUILÍBRIO • BEM-ESTAR • SAÚDE',W/2,H-34);
+      return new Promise(function(res){c.toBlob(res,'image/png')});
+    });
+  }
+  $('bImg').onclick=function(){
+    var sel=selecionados();if(!sel.length)return;var nome=primeiro(nomeEnv()),sv=servEnv(),t=textoImagem(sel);
+    abrirEnvio('<div><span class="estado pedido">Imagem</span><div class="t" id="envT">Criando a imagem…</div></div>');
+    criarImagem(sel,nome,sv).then(function(blob){
+      if(!blob)throw 0;var url=URL.createObjectURL(blob);var file;try{file=new File([blob],'horarios-amanda.png',{type:'image/png'})}catch(e){file=null}
+      envImg={url:url,file:file,texto:t};envTexto=t;
+      abrirEnvio('<div><span class="estado pedido">Imagem</span><div class="t" id="envT">Imagem pronta</div><div class="d">Letras grandes, para a cliente ver com facilidade e responder qual horário prefere.</div></div>'+
+        '<img class="previa-img" alt="Horários disponíveis" src="'+url+'">'+
+        '<button class="btn zap" data-acao="compartilhar" type="button">Enviar pelo WhatsApp</button>'+
+        '<a class="btn ghost" href="'+url+'" download="horarios-amanda.png">Salvar imagem</a>'+
+        (telEnv()?'<a class="btn ghost" target="_blank" rel="noopener" href="'+esc(zapEnvio(t))+'">Abrir só a conversa com a cliente</a>':'')+
+        '<p class="nota">Se abrir uma tela com a imagem, segure o dedo sobre ela e toque em Salvar. Depois é só anexar na conversa.</p>'+
+        '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>');
+    }).catch(function(){abrirEnvio('<div><div class="t" id="envT">Não consegui criar a imagem</div><div class="d">Tente de novo. Se continuar, envie o link.</div></div><button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>')});
+  };
+  function compartilhar(){
+    if(!envImg||!envImg.file){toast('Este aparelho não envia imagem direto. Toque em Salvar imagem.',true);return}
+    var d={files:[envImg.file],text:envImg.texto};
+    if(navigator.share&&(!navigator.canShare||navigator.canShare(d))){navigator.share(d).catch(function(e){if(e&&e.name!=='AbortError')toast('Não consegui abrir o compartilhamento. Toque em Salvar imagem.',true)})}
+    else toast('Este aparelho não envia imagem direto. Toque em Salvar imagem e anexe no WhatsApp.',true);
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-acao]');if(!b)return;var a=b.getAttribute('data-acao');
+    if(a==='fecharEnvio')fecharEnvio();if(a==='copiar')copiar(envTexto);if(a==='compartilhar')compartilhar();
+  });
+  document.addEventListener('click',function(e){if(e.target===$('veu')&&!$('envio').hidden)fecharEnvio()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('envio').hidden)fecharEnvio()});
 
   desenharHoras();
   $('novaData').min=hojeSP();

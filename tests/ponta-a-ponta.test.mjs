@@ -275,6 +275,87 @@ ok(true, 'continua logada depois de recarregar');
 await P.click('#bSair');
 ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
 
+// ===== 4c. Enviar horários para uma cliente (link ou imagem) =====
+{
+  const c = await contexto(IPHONE);
+  await c.addInitScript(() => {
+    window.__share = null;
+    navigator.canShare = () => true;
+    navigator.share = async (d) => { window.__share = { n: d.files.length, tipo: d.files[0].type, tam: d.files[0].size, text: d.text }; };
+  });
+  const p = await c.newPage();
+  await p.goto(BASE + 'admin/');
+  await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', 'certa'); await p.click('#bLogin');
+  await p.waitForSelector('#envDias [data-env]');
+  const chips = await p.locator('#envDias [data-env]').evaluateAll((els) => els.map((e) => e.getAttribute('data-env')));
+  ok(chips.length >= 2, 'envio: o painel lista os dias que têm horário livre (' + chips.length + ' dias)');
+  ok(await p.locator('#bLink').isDisabled() && await p.locator('#bImg').isDisabled(), 'envio: os botões ficam bloqueados até escolher um dia');
+  const [d1, d2] = chips;
+  await p.click(`[data-env="${d1}"]`); await p.click(`[data-env="${d2}"]`);
+  ok(!(await p.locator('#bLink').isDisabled()) && !(await p.locator('#bImg').isDisabled()), 'envio: escolhendo dias, os dois botões liberam');
+  const previaEnvio = await p.locator('#envPrevia').innerText();
+  const livresD1 = (await q(`select hora from horarios where data = $1 and status = 'livre' order by hora`, [d1])).map((r) => r.hora);
+  ok(previaEnvio.includes(String(Number(livresD1[livresD1.length - 1].slice(0, 2)))), 'envio: a prévia lista os horários livres dos dias escolhidos');
+
+  // --- link ---
+  await p.fill('#envNome', 'Maria Souza'); await p.fill('#envTel', '(11) 91111-2222');
+  await p.selectOption('#envServ', 'auriculo');
+  await p.click('#bLink');
+  await p.waitForSelector('#envio pre.txt');
+  const texto = await p.locator('#envio pre.txt').innerText();
+  const urlLink = texto.match(/https?:\/\/\S+/)[0];
+  ok(texto.startsWith('Oi, Maria! Aqui é a Amanda.') && urlLink.includes(`dias=${d1},${d2}`) && /n=Maria/.test(urlLink) && /s=auriculo/.test(urlLink) && urlLink.endsWith('#agendar'), 'envio por link: mensagem com saudação, dias, nome e serviço no endereço');
+  const hrefZap = await p.locator('#envio a.btn.zap').getAttribute('href');
+  ok(hrefZap.startsWith('https://wa.me/5511911112222?text='), 'envio por link: o botão abre a conversa direto com o número da cliente');
+  await foto(p, 'envio-link', false);
+  await p.keyboard.press('Escape');
+  ok(await p.locator('#envio').isHidden(), 'envio: Escape fecha a janela');
+  await p.fill('#envTel', ''); await p.click('#bLink'); await p.waitForSelector('#envio pre.txt');
+  ok((await p.locator('#envio a.btn.zap').getAttribute('href')).startsWith('https://wa.me/?text='), 'envio por link: sem número, o WhatsApp deixa escolher a cliente');
+  await p.click('#envio [data-acao=fecharEnvio]');
+
+  // --- a cliente abre o link ---
+  const cli = await contexto(ANDROID);
+  const L = await cli.newPage();
+  await L.goto(urlLink);
+  await L.waitForSelector('#o-dia .opt');
+  ok((await L.locator('#o-dia .opt').count()) === 2, 'link: a cliente vê só os 2 dias separados');
+  ok(/separou estes dias para você/.test(await L.locator('#conv').innerText()) && /Maria/.test(await L.locator('#conv').innerText()), 'link: aparece o aviso com o nome da cliente');
+  ok((await L.inputValue('#nome')) === 'Maria', 'link: o nome já vem preenchido');
+  ok((await L.locator('#o-servico .opt[aria-pressed=true]').innerText()).includes('Auriculoterapia'), 'link: o serviço já vem escolhido');
+  await L.click('[data-cv=todos]');
+  ok((await L.locator('#o-dia .opt').count()) > 2, 'link: "Ver todos os dias" mostra os outros dias');
+  await L.click('[data-cv=voltar]');
+  ok((await L.locator('#o-dia .opt').count()) === 2, 'link: dá para voltar aos dias separados');
+  const L2 = await cli.newPage();
+  await L2.goto(BASE + '?dias=2020-01-01,xx,2026-13-45&n=%3Cb%3EX%3C%2Fb%3E');
+  await L2.waitForSelector('#o-dia .opt, #o-dia .empty');
+  ok(await L2.locator('#conv').isHidden() || (await L2.locator('#conv').innerHTML()).indexOf('<b>X') < 0, 'link: datas inválidas e nome com código são ignorados com segurança');
+  const L3 = await cli.newPage();
+  await L3.goto(BASE + '?dias=2020-01-01');
+  await L3.waitForSelector('#o-dia .empty');
+  ok(/já foram preenchidos/.test(await L3.locator('#o-dia').innerText()), 'link: dias que já passaram mostram "já foram preenchidos" e convidam a ver outros');
+
+  // --- imagem ---
+  await p.fill('#envTel', '');
+  await p.click('#bImg');
+  await p.waitForSelector('#envio img.previa-img');
+  await p.waitForFunction(() => { const i = document.querySelector('#envio img.previa-img'); return i && i.complete && i.naturalWidth > 0; });
+  const dim = await p.locator('#envio img.previa-img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight }));
+  ok(dim.w === 1080 && dim.h >= 1350, `envio por imagem: imagem criada com ${dim.w}x${dim.h}`);
+  if (CAPTURAS) {
+    const b64 = await p.locator('#envio img.previa-img').evaluate(async (i) => { const r = await fetch(i.src); const buf = new Uint8Array(await r.arrayBuffer()); let s = ''; for (const x of buf) s += String.fromCharCode(x); return btoa(s); });
+    fs.writeFileSync(path.join(CAPTURAS, 'imagem-horarios.png'), Buffer.from(b64, 'base64'));
+  }
+  await p.click('#envio [data-acao=compartilhar]');
+  const comp = await p.evaluate(() => window.__share);
+  ok(comp && comp.n === 1 && comp.tipo === 'image/png' && comp.tam > 20000, 'envio por imagem: o botão entrega um arquivo PNG ao compartilhamento do celular (' + (comp && comp.tam) + ' bytes)');
+  ok(/^Oi, Maria! Aqui é a Amanda\./.test(comp.text) && /responder aqui com o dia e a hora/.test(comp.text), 'envio por imagem: a mensagem acompanha a imagem');
+  await foto(p, 'envio-imagem', false);
+  await p.keyboard.press('Escape');
+  await c.close(); await cli.close();
+}
+
 // ===== 4b. Página de diagnóstico =====
 {
   const rotulos = async (p) => p.locator('#lista .item').evaluateAll((els) => els.map((e) => ({ ok: e.classList.contains('ok'), t: e.querySelector('.t').textContent, d: e.querySelector('.d').textContent })));
