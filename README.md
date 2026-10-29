@@ -7,6 +7,7 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 | `index.html` | Site das clientes: agenda, serviços, sobre, dúvidas |
 | `links/` | Página curta para a bio do Instagram |
 | `admin/` | Painel da Amanda (entra com e-mail e senha) |
+| `questionario/` | Questionário para a Amanda contar como quer o site, o painel e os folders |
 | `agenda.js` | Serviços (e os horários usados enquanto o Supabase não estiver ligado) |
 | `config.js` | Ligação com o Supabase |
 | `supabase/schema.sql` | Banco: tabelas, regras de horário e segurança |
@@ -104,9 +105,13 @@ Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supab
 
 ## Mudar textos e serviços
 
-- **Serviços:** pelo painel, na seção Serviços. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
+- **Serviços e preços:** pelo painel, em Mais › Serviços e preços › Editar: nome, preço (com o preço antigo riscado, se quiser), observação do preço, frase curta, texto do site, os 3 benefícios principais, duração, data de estreia e se aparece no site. O site muda na hora. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
 - **Textos do site**: `index.html`
 - **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5. Para gerar os PNGs de novo (e conferir que nada saiu da página), rode `node tests/render-folders.mjs`. As fotos ficam em `img/folder-*.jpg`; a do espaço é ilustrativa, então o ideal é trocar `img/folder-espaco.jpg` por uma foto real do salão.
+
+## Questionário da Amanda
+
+Abra [kevinlaet.github.io/AMANDA-ROCHA-AT/questionario/](https://kevinlaet.github.io/AMANDA-ROCHA-AT/questionario/) no celular dela. São 13 etapas curtas (tempo e preço de cada procedimento, os 10 benefícios de cada serviço com as 3 estrelas que vão para o site, agenda, regras, promoções, história, depoimentos, endereço, visual e domínio, painel, ideias para crescer e sugestões livres). As respostas ficam salvas só naquele celular, então ela pode parar e voltar quando quiser. Nada vai para servidor nenhum: no fim, o botão **Enviar pelo WhatsApp** (ou **Copiar respostas**) manda tudo como texto para o Kevin, que cola o texto aqui para atualizar o site, o painel e os folders. As perguntas ficam na lista `ETAPAS` de `questionario/questionario.js`.
 
 ## Testes
 

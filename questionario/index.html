@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- as respostas não saem do celular: a página não pode falar com servidor nenhum -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Questionário da Amanda</title>
+<meta name="theme-color" content="#0B5F59">
+<link rel="icon" href="../img/logo.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:'Great Vibes';src:url(../fonts/greatvibes.woff2) format('woff2');font-display:swap}
+@font-face{font-family:'Cormorant';src:url(../fonts/cormorant.woff2) format('woff2');font-weight:300 700;font-display:swap}
+@font-face{font-family:'Montserrat';src:url(../fonts/montserrat.woff2) format('woff2');font-weight:100 900;font-display:swap}
+:root{--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;--ok:#1B8A4B;--cobre:#B9774A;color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--cream);-webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.wrap{max-width:620px;margin:0 auto;padding:0 16px}
+/* topo */
+.capa{background:radial-gradient(600px 360px at 90% 0%,rgba(245,197,157,.35),transparent 70%),linear-gradient(160deg,#167469,var(--teal) 45%,var(--teal-d));color:var(--cream);padding:calc(28px + env(safe-area-inset-top)) 0 30px}
+.capa .tag{display:inline-flex;align-items:center;gap:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--peach);border:1px solid rgba(245,197,157,.45);border-radius:99px;padding:6px 12px}
+.capa .tag i{width:8px;height:8px;border-radius:50%;background:#5ED39A;box-shadow:0 0 0 3px rgba(94,211,154,.25)}
+.capa h1{font-family:'Great Vibes',cursive;font-weight:400;font-size:54px;line-height:1.05;color:var(--peach);margin-top:14px}
+.capa p{font-size:16px;color:var(--peach-l);margin-top:8px;max-width:34ch}
+.capa .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.capa .meta span{background:rgba(255,248,241,.1);border:1px solid rgba(255,248,241,.2);border-radius:12px;padding:6px 12px;font-size:13px;font-weight:600}
+/* barra de progresso fixa no alto */
+.barra{position:sticky;top:0;z-index:5;background:rgba(255,248,241,.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.barra .wrap{display:flex;align-items:center;gap:12px;padding-top:10px;padding-bottom:10px}
+.barra .num{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--teal);white-space:nowrap}
+.trilho{flex:1;height:8px;border-radius:99px;background:var(--sand);overflow:hidden}
+.trilho i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--teal),#2FA38F,var(--peach));transition:width .35s ease}
+.salvo{font-size:12px;font-weight:700;color:var(--ok);white-space:nowrap;opacity:0;transition:opacity .3s}
+.salvo.on{opacity:1}
+/* menu das etapas */
+.etapas{position:relative;display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:14px 16px 4px;scrollbar-width:none}
+.etapas::-webkit-scrollbar{display:none}
+.etapas button{flex:none;border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--muted);min-height:40px}
+.etapas button[aria-current=step]{border-color:var(--teal);background:#E9F4F1;color:var(--teal-d)}
+.etapas button.feita{color:var(--ok);border-color:#BFE6CD}
+/* etapa */
+.etapa{margin:14px 0 8px}
+.etapa .cab{display:flex;align-items:center;gap:14px}
+.etapa .em{flex:none;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--peach-l),var(--peach));display:grid;place-items:center;font-size:30px;box-shadow:0 10px 24px rgba(185,119,74,.25)}
+.etapa h2{font-family:Cormorant,Georgia,serif;font-weight:700;font-size:32px;line-height:1.05;color:var(--teal-d)}
+.etapa .sub{color:var(--muted);font-size:15px;margin-top:4px}
+.dica{margin-top:14px;background:#fff;border:1px dashed var(--peach);border-radius:16px;padding:12px 14px;font-size:14.5px;color:var(--ink)}
+.dica b{color:var(--teal-d)}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:14px;box-shadow:0 6px 18px rgba(11,95,89,.05)}
+.card>h3{font-size:16px;font-weight:800;color:var(--teal);letter-spacing:.3px;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+.campo{margin-top:16px}
+.campo:first-of-type{margin-top:8px}
+.campo>label,.campo>.lbl{display:block;font-weight:700;font-size:15px;margin-bottom:8px}
+.campo small.aj{display:block;font-weight:500;font-size:13px;color:var(--muted);margin-top:-4px;margin-bottom:8px}
+input[type=text],input[type=number],input[type=time],input[type=tel],textarea{width:100%;min-height:50px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none;font-size:16px;-webkit-appearance:none;appearance:none}
+input[type=time]{display:block;min-width:0;max-width:100%}
+textarea{min-height:96px;resize:vertical}
+input:focus,textarea:focus{border-color:var(--teal)}
+.reais{display:flex;align-items:center;gap:8px}.reais span{font-weight:800;color:var(--teal)}
+.dupla{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dupla>div{min-width:0}
+.dupla label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+/* botões de escolha */
+.ops{display:flex;flex-wrap:wrap;gap:8px}
+.op{min-height:44px;padding:9px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:15px}
+.op[aria-pressed=true]{border-color:var(--teal);background:var(--teal);color:var(--cream)}
+.outro{margin-top:8px}
+.nota{display:flex;gap:8px}
+.nota .op{flex:1;font-size:26px;padding:6px 0}
+.nota .op[aria-pressed=true]{background:#E9F4F1;color:inherit;transform:scale(1.06)}
+/* benefícios com estrela */
+.ben{display:grid;grid-template-columns:28px 1fr 44px;gap:8px;align-items:center;margin-top:8px}
+.ben .n{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--muted);text-align:center}
+.estrela{height:44px;border-radius:12px;border:2px solid var(--line);background:#fff;font-size:20px;line-height:1;filter:grayscale(1);opacity:.45}
+.estrela[aria-pressed=true]{filter:none;opacity:1;border-color:var(--peach);background:#FFF4E8}
+.cont{font-size:13px;font-weight:700;color:var(--cobre);margin-top:8px}
+/* depoimentos e sugestões */
+.bloco{border:1.5px solid var(--line);border-radius:16px;padding:12px;margin-top:12px;background:var(--cream);scroll-margin-top:70px}
+.bloco h4{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:800;color:var(--teal-d);margin-bottom:6px}
+.bloco h4 button{border:0;background:none;color:#B3392F;font-weight:700;font-size:13px;min-height:36px}
+.check{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;min-height:44px}
+.check input{width:22px;height:22px;accent-color:var(--teal)}
+.mais{width:100%;min-height:52px;margin-top:12px;border-radius:14px;border:2px dashed var(--teal);background:#fff;color:var(--teal);font-weight:800}
+/* navegação */
+.nav{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin:22px 0 10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:12px 18px;border-radius:16px;border:2px solid transparent;font-weight:800;text-decoration:none;text-align:center}
+.btn.main{background:var(--teal);color:var(--cream)}
+.btn.ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+.btn.zap{background:#1FAF5A;color:#fff}
+.btn:disabled{opacity:.4}
+.animo{text-align:center;font-weight:700;font-size:14px;color:var(--cobre);margin-top:6px;min-height:21px}
+/* final */
+.fim{text-align:center;margin-top:20px}
+.fim .em{margin:0 auto}
+.fim h2{margin-top:12px}
+.falta{margin-top:16px;text-align:left;font-size:14.5px}.falta b{display:block;margin-bottom:8px;color:var(--teal-d)}.falta .op{font-size:14px;min-height:40px;padding:7px 12px}
+.falta.tudo{text-align:center;font-weight:700;color:var(--ok)}
+.previa{text-align:left;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;max-height:46vh;overflow:auto;margin-top:14px}
+.acoes{display:grid;gap:10px;margin-top:14px}
+.aviso{font-size:13px;color:var(--muted);margin-top:8px}
+.limpar{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:13px;margin-top:14px;min-height:40px}
+.confete{position:fixed;top:-12px;width:10px;height:14px;border-radius:3px;z-index:50;pointer-events:none;animation:cai 2.6s ease-in forwards}
+@keyframes cai{to{transform:translateY(105vh) rotate(540deg);opacity:.2}}
+.credito{font-family:Cormorant,Georgia,'Times New Roman',serif;font-weight:600;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;text-align:center;opacity:.45;color:var(--muted);margin:36px 0 calc(28px + env(safe-area-inset-bottom))}
+.credito:before{content:"";display:block;width:36px;height:1px;background:currentColor;opacity:.5;margin:0 auto 10px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.trilho i{transition:none}.confete{display:none}}
+</style>
+</head>
+<body>
+<header class="capa">
+  <div class="wrap">
+    <span class="tag"><i></i>Questionário · versão 1</span>
+    <h1>Do seu jeito, Amanda</h1>
+    <p>Suas respostas viram o seu site, o seu painel e os seus folders. Responda com calma: nada aqui é prova. 😉</p>
+    <div class="meta"><span>⏱️ uns 20 minutos</span><span>💾 salva sozinho</span><span>⏸️ pode parar e voltar</span></div>
+  </div>
+</header>
+<div class="barra" aria-hidden="true"><div class="wrap"><span class="num" id="num">ETAPA 01/12</span><div class="trilho"><i id="trilho"></i></div><span class="salvo" id="salvo">✓ salvo</span></div></div>
+<main class="wrap">
+  <nav class="etapas" id="etapas" aria-label="Etapas do questionário"></nav>
+  <section id="tela"></section>
+  <p class="animo" id="animo" aria-live="polite"></p>
+  <p class="credito">Desenvolvido por Kevin Laet</p>
+</main>
+<script src="questionario.js"></script>
+</body>
+</html>

@@ -910,6 +910,102 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   servApi.close();
 }
 
+// ===== 4i. Questionário da Amanda (salva sozinho no celular e envia pelo WhatsApp) =====
+{
+  const c = await contexto(IPHONE);
+  await c.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const fora = [];
+  c.on('request', (r) => { if (new URL(r.url()).origin !== new URL(BASE).origin) fora.push(r.url()); });
+  const p = await c.newPage();
+  const etapa = async () => (await p.locator('#num').innerText()).replace('ETAPA ', '');
+  const chip = (nome) => p.locator('#etapas [data-ir]', { hasText: nome });
+  const op = (k, v) => p.locator(`.op[data-k="${k}"][data-v="${v}"]`);
+  await p.goto(BASE + 'questionario/');
+  await p.waitForSelector('#tela .etapa');
+  const total = await p.locator('#etapas [data-ir]').count();
+  ok((await etapa()) === '01/' + total && total >= 12, `questionário: abre na etapa 1 de ${total}`);
+  // responde, recarrega e continua tudo lá (inclusive a etapa em que parou)
+  await op('proc.auriculo.tempo', '1h').click();
+  await p.fill('[data-k="proc.auriculo.preco"]', '120');
+  await chip('Benefícios').click();
+  await p.reload();
+  await p.waitForSelector('#tela .etapa');
+  ok((await etapa()) === '02/' + total, 'questionário: ao voltar, abre na etapa em que ela parou');
+  await chip('Seus procedimentos').click();
+  ok((await op('proc.auriculo.tempo', '1h').getAttribute('aria-pressed')) === 'true' && (await p.inputValue('[data-k="proc.auriculo.preco"]')) === '120', 'questionário: respostas continuam salvas depois de recarregar');
+  // benefícios: estrela só em benefício escrito, e no máximo 3
+  await chip('Benefícios').click();
+  const estrela = (i) => p.locator(`.estrela[data-estrela="ben.auriculo"][data-i="${i}"]`);
+  await estrela(0).click();
+  ok((await estrela(0).getAttribute('aria-pressed')) === 'false' && /Escreva o benefício primeiro/.test(await p.locator('#animo').innerText()), 'questionário: não dá estrela para benefício em branco');
+  const bens = ['Alívio de dores', 'Menos ansiedade', 'Sono mais tranquilo', 'Mais disposição'];
+  for (const [i, t] of bens.entries()) await p.fill(`[data-k="ben.auriculo"][data-i="${i}"]`, t);
+  for (const i of [0, 1, 2, 3]) await estrela(i).click();
+  ok((await estrela(3).getAttribute('aria-pressed')) === 'false' && (await p.locator('[data-cont="ben.auriculo"]').innerText()) === '3 de 3 estrelas' && /Só 3 estrelas/.test(await p.locator('#animo').innerText()), 'questionário: no máximo 3 estrelas por serviço');
+  // ideias para crescer
+  await chip('Ideias para crescer').click();
+  await op('id.google', '😍 Quero!').click();
+  // sugestões: acrescentar, escolher tipo/lugar/prioridade e remover
+  await chip('Suas sugestões').click();
+  const blocos = () => p.locator('[id^="sug-b-"]').count();
+  ok((await blocos()) === 3, 'questionário: começa com 3 sugestões');
+  await p.fill('#sug-0', 'Ideia A');
+  await p.click('#sug-b-0 [data-c="tipo"][data-v="✨ Ideia nova"]');
+  await p.click('[data-sug-mais]');
+  const nova = await p.locator('#sug-b-3').boundingBox();
+  ok((await blocos()) === 4 && nova && nova.y >= 0 && nova.y < IPHONE.viewport.height, 'questionário: "Adicionar sugestão 4" cria a sugestão e mostra ela na tela (a página não pula para o topo)');
+  await p.fill('#sug-3', 'Trocar a foto do topo');
+  for (const [c2, v] of [['tipo', '🔧 Mudança'], ['onde', 'Site'], ['prio', '🔥 Urgente']]) await p.click(`#sug-b-3 [data-c="${c2}"][data-v="${v}"]`);
+  await p.click('[data-sug-tirar="1"]'); // em branco: sai sem perguntar
+  ok((await blocos()) === 3 && (await p.inputValue('#sug-2')) === 'Trocar a foto do topo', 'questionário: remover sugestão em branco renumera as outras');
+  let perguntou = false;
+  p.once('dialog', (d) => { perguntou = true; d.dismiss(); });
+  await p.click('[data-sug-tirar="0"]');
+  ok(perguntou && (await blocos()) === 3 && (await p.inputValue('#sug-0')) === 'Ideia A', 'questionário: remover sugestão escrita pede confirmação');
+  // nenhuma etapa passa da largura da tela
+  const largas = [];
+  for (let i = 0; i < total; i++) {
+    await p.click(`#etapas [data-ir="${i}"]`);
+    if (await p.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)) largas.push(i + 1);
+  }
+  ok(!largas.length, 'questionário: nenhuma etapa passa da largura do celular' + (largas.length ? ' (etapas ' + largas.join(', ') + ')' : ''));
+  // final: prévia, WhatsApp com o mesmo texto, etapas que faltam e copiar
+  await chip('Prontinho').click();
+  const previa = await p.locator('#previa').innerText();
+  const esperado = ['Auriculoterapia · Tempo (com preparo): 1h', 'Auriculoterapia · Preço normal: R$ 120', '1) Alívio de dores ⭐', '4) Mais disposição', 'Avaliações no Google: 😍 Quero!', 'Sugestão 1 (✨ Ideia nova): Ideia A', 'Sugestão 3 (🔧 Mudança · Site · 🔥 Urgente): Trocar a foto do topo'];
+  const faltando = esperado.filter((t) => !previa.includes(t));
+  ok(!faltando.length && !/4\) Mais disposição ⭐/.test(previa), 'questionário: o texto final traz as respostas, as estrelas e as sugestões' + (faltando.length ? ' (faltou: ' + faltando.join(' | ') + ')' : ''));
+  const zap = await p.getAttribute('#bZap', 'href');
+  ok(zap.startsWith('https://wa.me/?text=') && decodeURIComponent(zap.slice(20)) === previa, 'questionário: "Enviar pelo WhatsApp" leva exatamente o texto da prévia');
+  await p.click('[data-copiar]');
+  await p.waitForFunction(() => /Copiado/.test(document.getElementById('animo').textContent));
+  const copiado = await p.evaluate(() => navigator.clipboard.readText());
+  ok(copiado.split('\n').slice(2).join('\n') === previa.split('\n').slice(2).join('\n'), 'questionário: "Copiar respostas" copia o mesmo texto');
+  ok((await p.locator('.falta [data-ir]', { hasText: 'Sua agenda' }).count()) === 1 && !(await p.locator('.falta [data-ir]', { hasText: 'Benefícios' }).count()), 'questionário: o final mostra as etapas ainda sem resposta');
+  await p.click('.falta [data-ir]:has-text("Sua agenda")');
+  ok((await etapa()) === '03/' + total, 'questionário: tocar numa etapa que falta leva até ela');
+  ok(!fora.length, 'questionário: nada sai do celular (nenhum pedido para outro endereço)' + (fora.length ? ': ' + fora.join(', ') : ''));
+  // apagar tudo
+  await chip('Prontinho').click();
+  p.once('dialog', (d) => d.accept());
+  await p.click('[data-limpar]');
+  const salvo = await p.evaluate(() => JSON.parse(localStorage.getItem('amanda-questionario-v1')));
+  ok((await etapa()) === '01/' + total && (await op('proc.auriculo.tempo', '1h').getAttribute('aria-pressed')) === 'false' && JSON.stringify(salvo) === JSON.stringify({ sug: [{}, {}, {}], depo: [{}, {}, {}] }), 'questionário: "Apagar minhas respostas" limpa tudo e volta ao começo');
+  // dados estragados no celular não quebram a página
+  await p.evaluate(() => { localStorage.setItem('amanda-questionario-v1', '{"sug":5,"depo":[null,"x"],"ben.auriculo":"oi"}'); localStorage.setItem('amanda-questionario-v1-etapa', '99'); });
+  await p.reload();
+  await p.waitForSelector('#tela .etapa');
+  const inicio = await etapa();
+  await chip('Benefícios').click();
+  await p.fill('[data-k="ben.auriculo"][data-i="0"]', 'Alívio de dores');
+  await chip('Suas clientes').click();
+  await chip('Suas sugestões').click();
+  const sugs = await blocos();
+  await chip('Prontinho').click();
+  ok(inicio === '01/' + total && sugs === 3 && (await p.locator('#previa').innerText()).includes('1) Alívio de dores'), 'questionário: respostas estragadas no celular não quebram a página');
+  await c.close();
+}
+
 // ===== 5. Privacidade e erros =====
 const publico = await (await fetch(BASE)).text();
 ok(!/Joana|Maria Silva|Rita Lima|Edilva|988887777|912345678|955554444/.test(publico), 'o HTML público não tem nome nem telefone de cliente');

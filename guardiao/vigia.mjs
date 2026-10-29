@@ -19,7 +19,7 @@ const ESPERA = Number(process.env.GUARDIAO_ESPERA ?? 90) * 1000;
 // números de WhatsApp que podem aparecer no site (Amanda e Sandra)
 const WHATSAPP = ['5511948907302', '5511967682546'];
 // arquivos publicados que precisam estar iguais aos do GitHub
-const ARQUIVOS = ['index.html', 'site.js', 'config.js', 'agenda.js', 'links/index.html', 'admin/index.html', 'admin/painel.js', 'admin/diagnostico.html'];
+const ARQUIVOS = ['index.html', 'site.js', 'config.js', 'agenda.js', 'links/index.html', 'admin/index.html', 'admin/painel.js', 'admin/diagnostico.html', 'questionario/index.html', 'questionario/questionario.js'];
 const ZERO = '00000000-0000-0000-0000-000000000000';
 
 const problemas = [], notas = [];
