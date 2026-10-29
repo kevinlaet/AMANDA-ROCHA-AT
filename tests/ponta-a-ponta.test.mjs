@@ -454,7 +454,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await P2.fill('#fHora', '11:00'); await P2.click('#sheet [data-a=mover]');
   await P2.waitForFunction(() => /já existe um horário/.test(document.getElementById('toast').innerText));
   ok(!!(await horario(D20, '12:30')), 'mudar: para um horário que já existe é recusado com explicação');
-  await P2.click('#sheet [data-a=voltar]').catch(() => {}); await P2.click('#sheet [data-a=fechar]').catch(() => {});
+  await P2.click('#sheet [data-a=voltar]', { timeout: 1500 }).catch(() => {}); await P2.click('#sheet [data-a=fechar]', { timeout: 1500 }).catch(() => {});
 
   // marcar como ocupado com telefone e serviço
   await P2.click(`[data-abrir="${await idDe(D20, '13:00')}"]`);
@@ -543,6 +543,8 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(await P2.locator('#sDesdeBox').isHidden(), 'serviços: desmarcar "Só a partir de uma data" esconde a data');
   await P2.click('[data-acao=serv-salvar]');
   ok(await espera(async () => (await q(`select desde from servicos where id = 'limpeza'`))[0].desde === null), 'serviços: e o serviço passa a poder ser marcado desde já');
+  // logo depois de salvar, a lista já mostra o que foi salvo (sem esperar recarregar)
+  ok(await espera(async () => !/A partir de/.test(await P2.locator('#servicos .card', { has: P2.locator('[data-serv="limpeza"]') }).innerText())), 'serviços: a lista mostra a mudança assim que salva');
   await P2.click('[data-acao=serv-editar][data-serv="limpeza"]');
   await P2.check('#sTemDesde'); await P2.click('[data-acao=serv-salvar]');
   await P2.waitForFunction(() => /Escolha a partir de qual dia/.test(document.getElementById('toast').innerText));
@@ -550,6 +552,31 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await P2.fill('#sDesde', D5); await P2.click('[data-acao=serv-salvar]');
   ok(await espera(async () => (await q(`select desde::text d from servicos where id = 'limpeza'`))[0].d === D5), 'serviços: data de estreia salva de novo');
   await db.exec(`update servicos set preco = 75, preco_antes = null, preco_obs = 'valor de inauguração' where id = 'limpeza'`);
+  // uma atualização lenta que chega depois de ela salvar não pode desfazer a mudança na tela
+  {
+    const antes = (await q(`select detalhe from servicos where id = 'limpeza'`))[0].detalhe;
+    let segurar = true, pegou = false;
+    const daLista = (u) => u.pathname.endsWith('/rest/v1/servicos') && u.searchParams.get('select') === '*';
+    await P2.route(daLista, async (r) => {
+      if (r.request().method() !== 'GET' || !segurar) return api.tratar(r);
+      segurar = false; // a resposta sai do banco agora (antes de salvar) e só chega 1,5 s depois
+      let resposta;
+      await api.tratar({ request: () => r.request(), fulfill: async (o) => { resposta = o; } });
+      pegou = true;
+      await new Promise((ok2) => setTimeout(ok2, 1500));
+      return r.fulfill(resposta);
+    });
+    await P2.evaluate(() => document.getElementById('bAtualizar').click());
+    await espera(async () => pegou);
+    await P2.click('#servicos [data-acao=serv-editar][data-serv="limpeza"]');
+    await P2.fill('#sDet', 'Pele leve e iluminada');
+    await P2.click('[data-acao=serv-salvar]');
+    await espera(async () => (await q(`select detalhe from servicos where id = 'limpeza'`))[0].detalhe === 'Pele leve e iluminada');
+    await P2.waitForTimeout(2000);
+    ok(/Pele leve e iluminada/.test(await P2.locator('#servicos .card', { has: P2.locator('[data-serv="limpeza"]') }).innerText()), 'serviços: uma atualização lenta que chega depois de salvar não desfaz a mudança na tela');
+    await P2.unroute(daLista);
+    await q(`update servicos set detalhe = $1 where id = 'limpeza'`, [antes]);
+  }
   await foto(P2, 'painel-autonomia');
   // a assinatura fica acima da barra de abas, sem nada por cima (fechando o aviso passageiro)
   if (await P2.locator('#toast').isVisible()) await P2.click('#toast [data-fechar]');

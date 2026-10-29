@@ -166,17 +166,22 @@
     var a=null;try{a=sessionStorage.getItem('amanda-aba')}catch(e){}if(a&&document.querySelector('[data-aba="'+a+'"]'))irAba(a)})();
 
   // ---------- carregar ----------
+  // cada carga ganha um número; se outra começou depois (ou ela acabou de salvar algo), a resposta antiga é descartada
+  // e nunca aparece por cima da mais nova
+  var geracao=0;
   function carregar(){
+    var minha=++geracao,atual=function(){if(minha!==geracao)throw 'velho'};
     return api('POST','rpc/agora_sp',{})
-      .then(function(s){var m=/^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)(?::(\d\d))?/.exec(s||'');
+      .then(function(s){atual();var m=/^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)(?::(\d\d))?/.exec(s||'');
         if(m)relogio={srv:Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)),local:Date.now()}})
       .then(function(){return api('GET','horarios?select=*&data=gte.'+hojeSP()+'&order=data.asc,hora.asc')})
-      .then(function(j){rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
-        return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){servs=sv||[];bancoVelho=false},function(e){if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
-      .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){guard=g;semGuardiao=false;if(acessoEstranho())throw 'estranho'},function(e){if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
-      .then(function(){$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes()})
+      .then(function(j){atual();rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
+        return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){atual();servs=sv||[];bancoVelho=false},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
+      .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){atual();guard=g;semGuardiao=false;if(acessoEstranho())throw 'estranho'},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
+      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes()})
       .catch(function(e){
         if(e==='estranho'){encerrar('Encontrei um acesso estranho ao seu painel e desconectei todos os aparelhos por segurança. Entre de novo e depois troque sua senha em Mais › Minha conta.','global');return}
+        if(e==='velho'||minha!==geracao)return;
         if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
   }
   setInterval(function(){if(sess&&expirou()){encerrar(MSG_12H);return}if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
@@ -573,6 +578,9 @@
       '<p class="vazio">Nenhum serviço. Adicione o primeiro.</p>';
   }
   function servPorId(id){return (servs||[]).filter(function(x){return x.id===id})[0]}
+  // usa na hora o que o banco devolveu: se ela tocar em Editar antes de a lista recarregar, já vê o que acabou de salvar
+  function guardarServ(novo,tirar){geracao++;servs=(servs||[]).filter(function(x){return x.id!==(novo?novo.id:tirar)});if(novo)servs.push(novo);
+    servs.sort(function(a,b){return (a.ordem||0)-(b.ordem||0)||String(a.nome).localeCompare(String(b.nome))});desenharServicos()}
   // o banco só tem a coluna de duração (e preço, texto e benefícios) depois da atualização
   function temDuracao(){return !!(servs&&servs.length&&('duracao' in servs[0]))}
   function temPersonalizacao(){return !!(servs&&servs.length&&('preco' in servs[0]))}
@@ -631,13 +639,13 @@
     b.disabled=true;
     var req=id?api('PATCH','servicos?id=eq.'+encodeURIComponent(id),dados,{Prefer:'return=representation'})
               :api('POST','servicos',(dados.id=slug(nome),dados.ordem=(servs||[]).reduce(function(m,x){return Math.max(m,x.ordem||0)},0)+1,dados),{Prefer:'return=representation'});
-    req.then(function(j){if(!j||!j.length){toast(MUDOU,true);return}toast(id?'Serviço atualizado.':'Serviço adicionado. Ele já aparece no site.');fecharEnvio();return carregar()},falha)
+    req.then(function(j){if(!j||!j.length){toast(MUDOU,true);return}guardarServ(j[0]);toast(id?'Serviço atualizado.':'Serviço adicionado. Ele já aparece no site.');fecharEnvio();return carregar()},falha)
        .then(function(){b.disabled=false});
   }
   function removerServ(id,b){
     b.disabled=true;
     api('DELETE','servicos?id=eq.'+encodeURIComponent(id),undefined,{Prefer:'return=representation'})
-      .then(function(j){toast(j&&j.length?'Serviço removido.':MUDOU,!(j&&j.length));fecharEnvio();return carregar()},falha)
+      .then(function(j){if(j&&j.length)guardarServ(null,id);toast(j&&j.length?'Serviço removido.':MUDOU,!(j&&j.length));fecharEnvio();return carregar()},falha)
       .then(function(){b.disabled=false});
   }
   $('bNovoServ').onclick=function(){abrirServ(null)};
