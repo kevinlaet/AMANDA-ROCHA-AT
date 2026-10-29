@@ -1,5 +1,6 @@
 // Sobe um PostgreSQL real (PGlite) com o mínimo do ambiente do Supabase
-// (papéis anon/authenticated e auth.jwt()) e aplica o supabase/schema.sql.
+// (papéis anon/authenticated, auth.jwt(), auth.uid(), usuários e sessões)
+// e aplica o supabase/schema.sql.
 import { PGlite } from '@electric-sql/pglite';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,6 +18,19 @@ export async function criarBanco({ schema } = {}) {
     create function auth.jwt() returns jsonb language sql stable as $$
       select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
     $$;
+    create function auth.uid() returns uuid language sql stable as $$
+      select nullif(auth.jwt() ->> 'sub', '')::uuid
+    $$;
+    -- só as colunas de auth.users e auth.sessions que o schema usa
+    create table auth.users (id uuid primary key default gen_random_uuid(), email text unique);
+    create table auth.sessions (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid references auth.users (id) on delete cascade,
+      created_at timestamptz default now(),
+      updated_at timestamptz default now(),
+      user_agent text
+    );
+    insert into auth.users (email) values ('${EMAIL_ADMIN}'), ('outra@pessoa.com');
     grant usage on schema auth, public to anon, authenticated;
     -- o Supabase dá estes privilégios por padrão; o schema precisa se proteger mesmo assim
     alter default privileges in schema public grant all on tables to anon, authenticated;
@@ -26,10 +40,16 @@ export async function criarBanco({ schema } = {}) {
   await db.exec(sql);
 
   // Executa fn como um papel do Supabase (anon, ou authenticated com e-mail).
-  const como = async (papel, email, fn) => {
+  // sessao: id da sessão de login; cabecalhos: cabeçalhos HTTP do pedido (ex.: x-forwarded-for)
+  const como = async (papel, email, fn, { sessao, cabecalhos } = {}) => {
+    const sub = email ? (await db.query('select id from auth.users where email = lower($1)', [email])).rows[0]?.id : undefined;
+    const claims = email ? { email, role: papel, sub, session_id: sessao } : { role: papel };
     await db.exec(`set role ${papel}`);
-    await db.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify(email ? { email, role: papel } : { role: papel })]);
-    try { return await fn(); } finally { await db.exec('reset role'); await db.query(`select set_config('request.jwt.claims', '', false)`); }
+    await db.query(`select set_config('request.jwt.claims', $1, false), set_config('request.headers', $2, false)`, [JSON.stringify(claims), JSON.stringify(cabecalhos || {})]);
+    try { return await fn(); } finally {
+      await db.exec('reset role');
+      await db.query(`select set_config('request.jwt.claims', '', false), set_config('request.headers', '', false)`);
+    }
   };
   return { db, como };
 }

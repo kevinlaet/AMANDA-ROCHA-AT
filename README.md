@@ -77,7 +77,7 @@ Abra `…/admin/` no celular dela e escolha "Adicionar à tela de início" (no S
 
 ## Atualizar um banco que já existe
 
-Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supabase/atualizacao-2.sql` no SQL Editor e toque em Run. Ele acrescenta serviços editáveis, remarcar e lembretes, sem apagar nenhum horário, e pode ser rodado mais de uma vez.
+Quem já rodou o `schema.sql` antes não precisa rodar tudo de novo: cole `supabase/atualizacao.sql` no SQL Editor e toque em Run (se aparecer o aviso "Make sure you are not accidentally removing something important", toque em Run de novo: os `drop ... if exists` só recriam regras). Ele junta todas as atualizações (serviços editáveis, remarcar, lembretes, histórico completo e o guardião), não apaga nenhum horário e pode ser rodado quantas vezes quiser.
 
 ## Mudar textos e serviços
 

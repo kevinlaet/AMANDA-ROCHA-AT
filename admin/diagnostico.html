@@ -99,7 +99,10 @@ button:disabled{opacity:.5}
           rest('/rest/v1/rpc/sou_admin',{method:'POST',body:'{}'},t).then(function(x){marca('admin',x.json===true,x.json===true?'Sim.':'Não. O e-mail digitado aqui é diferente do que foi colocado no schema.sql. Para corrigir, rode no SQL Editor: insert into public.admins (email) values (\'e-mail-certo\');')}),
           rest('/rest/v1/horarios?select=id&limit=1',{},t).then(function(x){marca('ler',x.status===200,x.status===200?'Sim.':'Não (erro '+x.status+').')}),
           rest('/rest/v1/rpc/agora_sp',{method:'POST',body:'{}'},t).then(function(x){marca('hora',x.status===200&&/^\d{4}-\d\d-\d\dT/.test(x.json||''),x.status===200?String(x.json).replace('T',' ').slice(0,16):'Erro '+x.status)})
-        ]);
+        ]).then(function(){
+          // encerra o login de conferência, para não ficar um "aparelho" aberto
+          return fetch(C.url+'/auth/v1/logout',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+t}}).catch(function(){});
+        });
       })
       .catch(function(){marca('login',false,'Sem conexão.')})
       .then(function(){fim();$('bt').disabled=false});

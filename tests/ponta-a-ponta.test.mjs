@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, devices } from 'playwright';
 import { criarBanco, placar, RAIZ, EMAIL_ADMIN } from './banco.mjs';
-import { criarApi, SUPABASE_URL, ANON_KEY } from './postgrest.mjs';
+import { criarApi, SUPABASE_URL, ANON_KEY, SENHAS } from './postgrest.mjs';
 
 const { ok, fim } = placar();
 const CAPTURAS = process.env.CAPTURAS || '';
@@ -32,6 +32,8 @@ const BASE = `http://localhost:${servidor.address().port}${PREFIXO}/`;
 const banco = await criarBanco();
 const { db } = banco;
 const api = criarApi(banco);
+// limites do guardião bem altos: estes testes fazem muitos pedidos seguidos de propósito (o guardião é testado à parte)
+await db.exec(`update guardiao set max_10min = 1000, max_hora = 1000`);
 const q = async (s, p) => (await db.query(s, p)).rows;
 const dia = async (n) => (await q(`select (public.agora_sp() + interval '${n} days')::date::text d`))[0].d;
 const D3 = await dia(3), D5 = await dia(5), D10 = await dia(10);
@@ -47,6 +49,8 @@ const horario = async (data, hora) => (await q(`select * from horarios where dat
 const aba = async (pagina, nome) => { await pagina.click(`[data-aba-btn="${nome}"]`); await pagina.waitForSelector(`[data-aba="${nome}"]:not([hidden])`); };
 // abre um horário específico na Agenda (pelo id, sem depender do texto do botão)
 const noPainel = async (pagina, data, hora) => { await aba(pagina, 'agenda'); await pagina.click(`#agenda [data-abrir="${(await horario(data, hora)).id}"]`); };
+// abre uma página do "Mais" (Serviços, Histórico, Segurança, Como funciona, Minha conta)
+const doMais = async (pagina, nome) => { await aba(pagina, 'mais'); await pagina.click(`[data-aba="mais"] [data-ir="${nome}"]`); await pagina.waitForSelector(`[data-aba="${nome}"]:not([hidden])`); };
 // abre o formulário "Abrir novos horários" da Agenda
 const formAbrir = async (pagina) => { await aba(pagina, 'agenda'); if (await pagina.locator('#cardAbrir').isHidden()) await pagina.click('#bMostrarAbrir'); };
 // espera a animação de subida do painel de ações terminar e devolve a posição dele
@@ -203,7 +207,7 @@ await noPainel(P, D3, '13:00');
 const caixa = await caixaDoPainel(P), vp = P.viewportSize();
 ok(caixa && caixa.y >= 0 && caixa.y + caixa.height <= vp.height + 1, `o painel de ações abre dentro da tela (de ${Math.round(caixa.y)} a ${Math.round(caixa.y + caixa.height)} px, tela de ${vp.height} px)`);
 const id13 = (await horario(D3, '13:00')).id;
-await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Cliente Atrasada', '11977776666')`, [id13]));
+await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Cliente Atrasada', '11977776666')`, [id13]));
 await P.click('#sheet [data-a=perg-ocupar]');
 await P.fill('#fNome', 'Dona Edilva');
 await P.click('#sheet [data-a=ocupar]');
@@ -292,8 +296,9 @@ await P.reload(); await P.waitForSelector('#vApp:not([hidden])');
 ok(true, 'continua logada depois de recarregar');
 ok(await P.locator('[data-aba="agenda"]').isVisible() && (await P.getAttribute('[data-aba-btn="agenda"]', 'aria-current')) === 'page', 'ao recarregar, continua na aba em que estava');
 ok(await P.locator('#boasVindas').isHidden(), 'o guia não volta depois de "Já entendi"');
+await doMais(P, 'conta');
 await P.click('#bSair');
-ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
+ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta para o login');
 
 // ===== 4c. Enviar horários para uma cliente (link ou imagem) =====
 {
@@ -391,7 +396,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   // uma cliente confirmada em D20 10h e outra amanhã (para o lembrete)
   const [idB, idC] = [await idDe(D20, '10:00'), await idDe(AMANHA, '23:30')];
   await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Beatriz Nunes', '11944443333')`, [idB]));
-  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Carla Dias', '11977771111')`, [idC]));
+  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Carla Dias', '11977771111')`, [idC]));
   await db.exec(`update horarios set status = 'confirmado' where nome in ('Beatriz Nunes', 'Carla Dias')`);
 
   const c = await contexto(IPHONE);
@@ -404,7 +409,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   // lembrete
   const cartao = P2.locator('#proximos .prox', { hasText: 'Carla' });
   const hrefL = await cartao.locator('a[data-lembrete]').getAttribute('href');
-  ok(/5511977771111/.test(hrefL) && /lembrar do seu horário de Limpeza de pele amanhã/.test(decodeURIComponent(hrefL)), 'lembrete: mensagem pronta com "amanhã", serviço e número da cliente');
+  ok(/5511977771111/.test(hrefL) && /lembrar do seu horário de Auriculoterapia amanhã/.test(decodeURIComponent(hrefL)), 'lembrete: mensagem pronta com "amanhã", serviço e número da cliente');
   ok(/ainda não enviado/.test(await cartao.innerText()), 'lembrete: mostra que ainda não foi enviado');
   await cartao.locator('a[data-lembrete]').click();
   ok(await espera(async () => !!(await horario(AMANHA, '23:30')).lembrete_em), 'lembrete: ao tocar, fica registrado no banco');
@@ -477,7 +482,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   ok((await horario(D21, '10:00')).nome === 'Beatriz Nunes', 'dia: horários com cliente de outros dias continuam intactos');
 
   // serviços
-  await aba(P2, 'servicos');
+  await doMais(P2, 'servicos');
   await P2.waitForSelector('#servicos .serv');
   ok((await P2.locator('#servicos .serv').count()) === 2, 'serviços: o painel mostra os 2 serviços do banco');
   await P2.click('#bNovoServ');
@@ -546,6 +551,88 @@ ok(await P.locator('#vLogin').isVisible(), 'sair volta para o login');
   await p3.goto(BASE + 'admin/diagnostico.html'); await p3.waitForSelector('#fim:not([hidden])');
   ok((await rotulos(p3))[0].ok === false && /config\.js/.test((await rotulos(p3))[0].d), 'diagnóstico: config.js vazio é apontado');
   await c3.close();
+}
+
+// ===== 4e. Mais: Histórico, Segurança (guardião) e Minha conta =====
+{
+  const entrar = async (c, senha = 'certa') => { const p = await c.newPage(); await p.goto(BASE + 'admin/'); await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', senha); await p.click('#bLogin'); await p.waitForSelector('#vApp:not([hidden])'); await p.waitForSelector('#selo:not([hidden])'); return p; };
+  const c = await contexto(IPHONE);
+  const M = await entrar(c);
+  ok((await M.locator('#selo').innerText()) === 'Protegido', 'topo do painel mostra o selo "Protegido" do guardião');
+  ok(await M.locator('#bancoVelho').isHidden(), 'com o banco atualizado, não aparece aviso de atualização');
+  await aba(M, 'mais');
+  ok((await M.locator('[data-aba="mais"] .lista [data-ir]').count()) === 5, 'Mais tem 5 páginas: Serviços, Histórico, Segurança, Como funciona e Minha conta');
+  ok(await M.locator('#nMais').isVisible(), 'o botão Mais avisa que há alertas novos (logins de outros aparelhos nos testes)');
+
+  // histórico
+  await doMais(M, 'historico');
+  await M.waitForSelector('#hLista .hrow');
+  const txtH = await M.locator('#hLista').innerText();
+  ok(/pediu este horário/.test(txtH) && /pelo site/.test(txtH) && /por você/.test(txtH), 'histórico em frases simples: quem pediu pelo site e o que ela fez');
+  ok(/remarcada para este horário/.test(txtH) && /Lembrete enviado para/.test(txtH) && /Horário mudado \(antes era/.test(txtH), 'histórico mostra remarcação, lembrete e mudança de horário');
+  await M.fill('#hBusca', 'Beatriz');
+  await M.waitForFunction(() => { const r = [...document.querySelectorAll('#hLista .hrow .ht')]; return r.length && r.every((x) => /Beatriz/.test(x.textContent)); });
+  ok(true, 'busca no histórico pelo nome da cliente');
+  await M.fill('#hBusca', 'ninguémcomessenome');
+  await M.waitForFunction(() => /Nada encontrado/.test(document.getElementById('hLista').innerText));
+  ok(true, 'busca sem resultado avisa "Nada encontrado"');
+  await foto(M, 'painel-historico');
+
+  // segurança
+  await doMais(M, 'seguranca');
+  ok(/Tudo normal/.test(await M.locator('#gStatus').innerText()), 'Segurança: "Tudo normal" quando não há nada grave');
+  ok((await M.locator('#gAlertas .al', { hasText: 'Novo acesso ao painel' }).count()) >= 1 && (await M.locator('#gAlertas .novo').count()) >= 1, 'Segurança: alertas de novo acesso aparecem marcados como NOVO');
+  ok((await M.locator('#gAparelhos .ap', { hasText: 'Este aparelho' }).count()) === 1, 'Segurança: lista os aparelhos conectados e marca "Este aparelho"');
+  await M.waitForFunction(() => document.getElementById('nMais').hidden);
+  ok((await q(`select count(*)::int n from alertas where visto_em is null`))[0].n === 0, 'abrir a Segurança marca os alertas como vistos');
+  await foto(M, 'painel-seguranca');
+
+  // proteção ligada na mão: o site leva a cliente direto para o WhatsApp
+  await M.click('#gStatus [data-acao=protecao]');
+  await M.waitForFunction(() => /Proteção ligada/.test(document.getElementById('selo').textContent));
+  ok((await q('select pausado from guardiao'))[0].pausado === true, 'Amanda liga a proteção pelo painel');
+  const cs = await contexto(ANDROID);
+  const S = await cs.newPage();
+  await S.goto(BASE); await S.waitForSelector('#o-dia .opt');
+  await S.click('#o-servico .opt:has-text("Auriculoterapia")'); await S.click('#o-dia .opt:not([disabled]) >> nth=0'); await S.click('#o-hora .opt:not([disabled]) >> nth=0');
+  const hEscolhido = (await S.locator('#o-hora .opt[aria-pressed=true]').innerText()).trim();
+  await S.fill('#nome', 'Cliente Protegida'); await S.fill('#tel', '11931313131');
+  await Promise.all([S.waitForURL(/wa\.me/), S.click('#go')]);
+  ok(/Cliente Protegida/.test(decodeURIComponent(S.url())) && (await q(`select count(*)::int n from horarios where nome = 'Cliente Protegida'`))[0].n === 0, `com a proteção ligada, a cliente vai para o WhatsApp com o pedido (${hEscolhido}) e nada é reservado`);
+  await cs.close();
+  await M.click('#gStatus [data-acao=protecao]');
+  await M.waitForFunction(() => document.getElementById('selo').textContent === 'Protegido');
+  ok((await q('select pausado from guardiao'))[0].pausado === false, 'Amanda religa o agendamento pelo site');
+
+  // sair dos outros aparelhos
+  const c2 = await contexto(IPHONE);
+  const O = await entrar(c2);
+  await M.reload(); await M.waitForSelector('#selo:not([hidden])');
+  await M.click('[data-aba="seguranca"] [data-acao=sair-outros]');
+  await M.waitForFunction(() => /outros aparelhos foram desconectados/.test(document.getElementById('toast').innerText));
+  await O.reload();
+  await O.waitForSelector('#vLogin:not([hidden])');
+  ok(true, '"Sair dos outros aparelhos" desconecta o outro celular');
+  ok(await M.locator('#vApp').isVisible(), 'e este aparelho continua conectado');
+  await c2.close();
+
+  // trocar senha
+  await doMais(M, 'conta');
+  ok(/Conectada como amanda@teste\.com/.test(await M.locator('#cEmail').innerText()), 'Minha conta mostra o e-mail conectado');
+  await M.fill('#cAtual', 'errada'); await M.fill('#cNova', 'novaSenha2026'); await M.fill('#cNova2', 'novaSenha2026'); await M.click('#bSenha');
+  await M.waitForFunction(() => /senha atual não confere/.test(document.getElementById('toast').innerText));
+  ok(SENHAS[EMAIL_ADMIN] === 'certa', 'trocar senha com a senha atual errada é recusado');
+  await M.fill('#cAtual', 'certa'); await M.fill('#cNova', 'curta1'); await M.fill('#cNova2', 'curta1'); await M.click('#bSenha');
+  await M.waitForFunction(() => /pelo menos 8 caracteres/.test(document.getElementById('toast').innerText));
+  ok(true, 'senha nova fraca é recusada antes de enviar');
+  await M.fill('#cNova', 'novaSenha2026'); await M.fill('#cNova2', 'novaSenha2026'); await M.click('#bSenha');
+  await M.waitForFunction(() => /Senha trocada/.test(document.getElementById('toast').innerText));
+  ok(SENHAS[EMAIL_ADMIN] === 'novaSenha2026' && await M.locator('#vApp').isVisible(), 'senha trocada e ela continua conectada');
+  const c3 = await contexto(IPHONE);
+  await entrar(c3, 'novaSenha2026');
+  ok(true, 'a senha nova funciona para entrar');
+  await c3.close(); await c.close();
+  SENHAS[EMAIL_ADMIN] = 'certa';
 }
 
 // ===== 5. Privacidade e erros =====

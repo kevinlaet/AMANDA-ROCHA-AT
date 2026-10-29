@@ -1,6 +1,7 @@
 // Regras do banco (supabase/schema.sql) rodando num PostgreSQL de verdade.
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { criarBanco, placar, RAIZ, EMAIL_ADMIN } from './banco.mjs';
 
@@ -71,7 +72,7 @@ ok(await pedir(amanha, 'Auriculoterapia', 'A', '11912345678') === 'dados', 'nome
 ok(await pedir(amanha, 'Auriculoterapia', 'Ana Souza', '123') === 'dados', 'telefone inválido é recusado');
 ok(await pedir(amanha, '', 'Ana Souza', '11912345678') === 'dados', 'pedido sem serviço é recusado');
 ok(await pedir('00000000-0000-0000-0000-000000000000', 'Auriculoterapia', 'Ana Souza', '11912345678') === 'indisponivel', 'horário inexistente é recusado');
-ok(await pedir(amanha, 'Limpeza de pele', 'Ana Souza', '+55 (11) 97777-6666') === 'ok', 'telefone com +55 é aceito');
+ok(await pedir(amanha, 'Auriculoterapia', 'Ana Souza', '+55 (11) 97777-6666') === 'ok', 'telefone com +55 é aceito');
 ok((await q('select telefone from horarios where id = $1', [amanha]))[0].telefone === '11977776666', 'e guardado sem o +55');
 
 // limite por telefone
@@ -138,7 +139,8 @@ await pedir(d6[2].id, 'Auriculoterapia', 'Outra Cliente', '11922223333');
 ok(await rem(d6[1].id, d6[2].id) === 'indisponivel', 'remarcar para horário ocupado é recusado');
 ok((await q('select nome from horarios where id = $1', [d6[1].id]))[0].nome === 'Rosa Lima', 'e a cliente continua no horário dela');
 ok(await rem(d6[0].id, d6[1].id) === 'origem', 'remarcar a partir de horário livre é recusado');
-ok(!!(await como('authenticated', 'outra@pessoa.com', () => tenta(q('select public.remarcar($1, $2)', [d6[1].id, d6[0].id])))).erro, 'outra pessoa não consegue remarcar');
+ok(await rem(d6[1].id, d6[0].id, 'outra@pessoa.com') === 'sem_acesso' && (await q('select nome from horarios where id = $1', [d6[1].id]))[0].nome === 'Rosa Lima', 'outra pessoa não consegue remarcar');
+ok((await q(`select count(*)::int n from alertas where tipo = 'intruso' and detalhe like '%outra@pessoa.com%'`))[0].n === 1, 'e o guardião registra um alerta grave com a conta que tentou');
 ok(!!(await como('anon', null, () => tenta(q('select public.remarcar($1, $2)', [d6[1].id, d6[0].id])))).erro, 'visitante não consegue remarcar');
 
 // 6d. Mudar dia ou hora
@@ -154,19 +156,137 @@ const r2 = await tenta(db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/schema.
 ok(!r2.erro, 'rodar o schema de novo não dá erro' + (r2.erro ? ': ' + r2.erro : ''));
 ok((await q('select count(*)::int n from horarios'))[0].n === antes, 'e não perde nenhum horário');
 
-// 8. Atualização 2 aplicada em um banco que já existia (caso real do Supabase da Amanda)
+// 8. Atualização aplicada em bancos que já existiam (caso real do Supabase da Amanda)
+const ATUALIZACAO = fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8');
 {
+  const sch = fs.readFileSync(path.join(RAIZ, 'supabase/schema.sql'), 'utf8'), marca = '-- >>> ATUALIZAÇÕES';
+  ok(sch.slice(sch.indexOf(marca)) === ATUALIZACAO.slice(ATUALIZACAO.indexOf(marca)), 'o bloco de atualizações é idêntico no schema.sql e no atualizacao.sql');
+}
+for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da atualização 2', ['tests/fixtures/atualizacao-2.sql']]]) {
   const velho = await criarBanco({ schema: path.join(RAIZ, 'tests/fixtures/schema-antes-da-atualizacao-2.sql') });
+  for (const f of extras) await velho.db.exec(fs.readFileSync(path.join(RAIZ, f), 'utf8'));
   await velho.db.exec(`insert into horarios (data, hora) values ((public.agora_sp() + interval '4 days')::date, '13:00'), ((public.agora_sp() + interval '4 days')::date, '14:00')`);
   const ids = (await velho.db.query(`select id from horarios order by hora`)).rows.map((r) => r.id);
   await velho.como('anon', null, () => velho.db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Ana Paula', '11955556666')`, [ids[0]]));
-  const r = await tenta(velho.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao-2.sql'), 'utf8')));
-  ok(!r.erro, 'atualização 2 roda em cima do banco antigo sem erro' + (r.erro ? ': ' + r.erro : ''));
-  ok((await velho.db.query(`select nome from horarios where id = $1`, [ids[0]])).rows[0].nome === 'Ana Paula', 'e não perde o pedido que já existia');
-  const r2 = await tenta(velho.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao-2.sql'), 'utf8')));
-  ok(!r2.erro, 'rodar a atualização 2 duas vezes não dá erro');
-  ok((await velho.como('authenticated', EMAIL_ADMIN, async () => (await velho.db.query('select public.remarcar($1, $2) r', [ids[0], ids[1]])).rows[0].r)) === 'ok', 'depois da atualização, remarcar funciona');
-  ok((await velho.como('anon', null, async () => (await velho.db.query('select * from public.servicos_publicos()')).rows)).length === 2, 'depois da atualização, o site recebe os serviços');
+  const r = await tenta(velho.db.exec(ATUALIZACAO));
+  ok(!r.erro, `atualização roda em cima do banco ${rotulo} sem erro` + (r.erro ? ': ' + r.erro : ''));
+  ok((await velho.db.query(`select nome from horarios where id = $1`, [ids[0]])).rows[0].nome === 'Ana Paula', `e não perde o pedido que já existia (${rotulo})`);
+  const r2 = await tenta(velho.db.exec(ATUALIZACAO));
+  ok(!r2.erro, `rodar a atualização duas vezes não dá erro (${rotulo})`);
+  ok((await velho.como('authenticated', EMAIL_ADMIN, async () => (await velho.db.query('select public.remarcar($1, $2) r', [ids[0], ids[1]])).rows[0].r)) === 'ok', `depois da atualização, remarcar funciona (${rotulo})`);
+  ok((await velho.como('anon', null, async () => (await velho.db.query('select * from public.servicos_publicos()')).rows)).length === 2, `depois da atualização, o site recebe os serviços (${rotulo})`);
+  ok((await velho.como('anon', null, async () => (await velho.db.query('select public.guardiao_publico() g')).rows[0].g)).versao === 3, `depois da atualização, o guardião está ativo (${rotulo})`);
+}
+
+// 9. Guardião do banco
+{
+  const recomeca = () => db.exec(`update guardiao set contar_desde = now(), pausado = false`);
+  const novoDia = async (dias, horas) => { await db.exec(`insert into horarios (data, hora) select (public.agora_sp() + interval '${dias} days')::date, h from unnest(array[${horas.map((h) => `'${h}'`).join(',')}]) h on conflict do nothing`); return (await q(`select id from horarios where data = (public.agora_sp() + interval '${dias} days')::date and status = 'livre' order by hora`)).map((r) => r.id); };
+  const pedirDe = (ip, id, nome, tel, servico = 'Auriculoterapia') => como('anon', null, async () => (await q('select public.pedir_horario($1, $2, $3, $4) r', [id, servico, nome, tel]))[0].r, { cabecalhos: ip ? { 'x-forwarded-for': ip + ', 10.0.0.1' } : {} });
+  await recomeca();
+
+  // serviço e data de estreia valem também no banco (não só na tela)
+  await db.exec(`update servicos set desde = current_date + 30 where id = 'limpeza'`);
+  const g1 = await novoDia(12, ['09:00', '09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:30', '19:30']);
+  ok(await pedirDe(null, g1[0], 'Bruna Alves', '11960000001', 'Limpeza de pele') === 'indisponivel', 'limpeza de pele antes da data de estreia é recusada pelo banco');
+  ok(await pedirDe(null, g1[0], 'Bruna Alves', '11960000001', 'Massagem que não existe') === 'servico', 'serviço que não está no site é recusado');
+  await db.exec(`update servicos set ativo = false where id = 'massagem'`);
+  ok(await pedirDe(null, g1[0], 'Bruna Alves', '11960000001', 'Massagem') === 'servico', 'serviço escondido do site é recusado');
+  ok(await pedirDe(null, g1[0], 'Ganhe pix em www.golpe.com', '11960000001') === 'dados', 'nome com endereço de site é recusado');
+  ok(await pedirDe(null, g1[0], 'Bruna Alves', '11111111111') === 'dados', 'telefone com todos os números iguais é recusado');
+  ok(await pedirDe(null, g1[0], 'Bru​na‮  Alves\t', '11960000001', 'auriculoterapia') === 'ok', 'pedido com nome sujo e serviço em minúsculas é aceito');
+  const limpa = (await q('select nome, servico from horarios where id = $1', [g1[0]]))[0];
+  ok(limpa.nome === 'Bruna Alves' && limpa.servico === 'Auriculoterapia', 'nome guardado sem caracteres invisíveis e serviço com o nome oficial (' + JSON.stringify(limpa) + ')');
+
+  // limite por aparelho/rede (a origem é guardada embaralhada)
+  await recomeca();
+  const r4 = [];
+  for (let i = 1; i <= 4; i++) r4.push(await pedirDe('200.1.1.1', g1[i], 'Cliente Rede ' + i, '1196000001' + i));
+  ok(r4.every((r) => r === 'ok'), '4 pedidos da mesma rede em 1 hora são aceitos');
+  ok(await pedirDe('200.1.1.1', g1[5], 'Cliente Rede 5', '11960000015') === 'limite', 'o 5º pedido da mesma rede na mesma hora é barrado');
+  ok(await pedirDe('200.9.9.9', g1[5], 'Outra Rede', '11960000016') === 'ok', 'outra rede continua marcando normalmente');
+  const origens = (await q(`select distinct origem from eventos where origem <> 'desconhecida'`)).map((r) => r.origem);
+  ok(origens.length >= 2 && origens.every((o) => /^[0-9a-f]{16}$/.test(o)), 'a origem é guardada embaralhada, nunca o IP');
+
+  // enxurrada: o guardião liga a proteção sozinho
+  await recomeca();
+  const g2 = await novoDia(13, ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']);
+  const r7 = [];
+  for (let i = 0; i < 7; i++) r7.push(await pedirDe('201.0.0.' + i, g2[i], 'Enxurrada ' + i, '1197000000' + i));
+  const est = (await q('select pausado, pausado_por from guardiao'))[0];
+  ok(r7.filter((r) => r === 'ok').length === 7 && est.pausado && est.pausado_por === 'guardião', '7 pedidos em poucos minutos: o guardião liga a proteção sozinho');
+  ok((await q(`select count(*)::int n from alertas where tipo = 'enxurrada' and nivel = 'grave'`))[0].n === 1, 'e cria um alerta grave para a Amanda');
+  ok(await pedirDe('201.0.1.1', g2[7], 'Depois da Proteção', '11970000099') === 'pausado', 'com a proteção ligada, o pedido responde "pausado" (o site leva ao WhatsApp)');
+  ok((await q('select status from horarios where id = $1', [g2[7]]))[0].status === 'livre', 'e o horário continua livre');
+  ok((await como('anon', null, () => q('select * from public.agenda_publica()'))).length > 0, 'a agenda continua aparecendo no site');
+  const pub = (await como('anon', null, () => q('select public.guardiao_publico() g')))[0].g;
+  ok(pub.pausado === true && pub.graves >= 1 && Object.keys(pub).sort().join() === 'graves,pausado,versao', 'guardião público mostra só a situação, sem dados (' + JSON.stringify(pub) + ')');
+  ok(!!(await como('anon', null, () => tenta(q('select public.definir_protecao(false)')))).erro, 'visitante não desliga a proteção');
+  ok((await como('authenticated', 'outra@pessoa.com', () => q('select public.definir_protecao(false) s')))[0].s === null && (await q('select pausado from guardiao'))[0].pausado, 'outra conta também não desliga');
+  const sit = (await como('authenticated', EMAIL_ADMIN, () => q('select public.definir_protecao(false) s')))[0].s;
+  ok(sit && sit.pausado === false, 'a Amanda religa o agendamento pelo painel');
+  ok(await pedirDe('201.0.1.2', g2[7], 'Depois de Religar', '11970000098') === 'ok', 'depois de religar, a contagem recomeça e o pedido é aceito');
+  ok((await como('authenticated', EMAIL_ADMIN, () => q('select public.definir_protecao(true) s')))[0].s.pausado === true, 'a Amanda também pode ligar a proteção na mão');
+  await como('authenticated', EMAIL_ADMIN, () => q('select public.definir_protecao(false)'));
+
+  // sondagem: muitos horários que não existem
+  await recomeca();
+  const antesZero = (await q('select count(*)::int n from eventos'))[0].n;
+  await pedirDe('202.0.0.1', '00000000-0000-0000-0000-000000000000', 'Teste de conferência', '11900000000');
+  ok((await q('select count(*)::int n from eventos'))[0].n === antesZero, 'a conferência do diagnóstico não conta como tentativa');
+  for (let i = 0; i < 15; i++) await pedirDe('202.0.0.' + i, crypto.randomUUID(), 'Sonda ' + i, '1198000000' + (i % 10));
+  ok((await q(`select count(*)::int n from alertas where tipo = 'sondagem'`))[0].n === 1, '15 tentativas com horários inexistentes geram 1 alerta (sem repetir)');
+  ok(!(await q('select pausado from guardiao'))[0].pausado, 'sondagem só avisa, não bloqueia as clientes');
+
+  // histórico mais completo
+  const g3 = await novoDia(14, ['10:00', '11:00', '12:00']);
+  await pedirDe(null, g3[0], 'Helena Prado', '11950000001');
+  await como('authenticated', EMAIL_ADMIN, () => q(`update horarios set status = 'confirmado' where id = $1`, [g3[0]]));
+  await como('authenticated', EMAIL_ADMIN, () => q(`update horarios set lembrete_em = now() where id = $1`, [g3[0]]));
+  await como('authenticated', EMAIL_ADMIN, () => q(`update horarios set telefone = '11950000002' where id = $1`, [g3[0]]));
+  await como('authenticated', EMAIL_ADMIN, () => q('select public.remarcar($1, $2)', [g3[0], g3[1]]));
+  await como('authenticated', EMAIL_ADMIN, () => q(`update horarios set hora = '12:30' where id = $1`, [g3[2]]));
+  const hs = await q(`select horario_id, de, para, obs from historico where horario_id = any($1) order by id`, [g3]);
+  const tem = (f) => hs.some(f);
+  ok(tem((h) => h.obs === 'lembrete') && tem((h) => h.obs === 'editado'), 'histórico registra lembrete enviado e dados editados');
+  ok(tem((h) => h.horario_id === g3[1] && h.para === 'confirmado' && h.obs === 'remarcado') && tem((h) => h.horario_id === g3[0] && h.para === 'livre' && h.obs === 'remarcado'), 'histórico registra a remarcação nos dois horários');
+  ok(tem((h) => h.horario_id === g3[2] && /^mudou de \d{4}-\d\d-\d\d 12:00$/.test(h.obs || '')), 'histórico registra a mudança de horário (de 12:00)');
+
+  // muitos cancelamentos de uma vez
+  const g4 = await novoDia(15, ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00']);
+  await recomeca();
+  for (let i = 0; i < 6; i++) await pedirDe('203.0.0.' + i, g4[i], 'Cancelada ' + i, '1194000000' + i);
+  await recomeca();
+  await db.exec(`update historico set em = em - interval '1 hour'`); // cancelamentos dos testes anteriores ficam fora da janela
+  for (let i = 0; i < 5; i++) await como('authenticated', EMAIL_ADMIN, () => q(`update horarios set status = 'livre', nome = null, servico = null, telefone = null, pedido_em = null where id = $1`, [g4[i]]));
+  ok((await q(`select count(*)::int n from alertas where tipo = 'cancelamentos'`))[0].n === 0, '5 cancelamentos seguidos ainda não geram alerta');
+  await como('authenticated', EMAIL_ADMIN, () => q(`delete from horarios where id = $1`, [g4[5]]));
+  ok((await q(`select count(*)::int n from alertas where tipo = 'cancelamentos' and nivel = 'grave'`))[0].n === 1, 'o 6º cancelamento em 10 minutos gera alerta grave');
+
+  // aparelhos conectados e acesso novo
+  const amanda = (await q(`select id from auth.users where email = $1`, [EMAIL_ADMIN]))[0].id;
+  const [s1] = await q(`insert into auth.sessions (user_id, user_agent) values ($1, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1') returning id`, [amanda]);
+  const sitA = async (sessao) => (await como('authenticated', EMAIL_ADMIN, () => q('select public.situacao_guardiao() s'), { sessao }))[0].s;
+  const a1 = await sitA(s1.id);
+  ok(a1.aparelhos.length === 1 && a1.aparelhos[0].atual === true, 'situação mostra o aparelho conectado e marca "este aparelho"');
+  ok((await q(`select count(*)::int n from alertas where tipo = 'aparelho'`))[0].n === 0, 'o primeiro aparelho não gera alerta');
+  await q(`insert into auth.sessions (user_id, user_agent) values ($1, 'python-requests/2.31')`, [amanda]);
+  const a2 = await sitA(s1.id);
+  ok(a2.aparelhos.length === 2 && a2.alertas.some((x) => x.tipo === 'aparelho' && /python/.test(x.detalhe)), 'um login novo em outro aparelho gera alerta de "Novo acesso ao painel"');
+  await sitA(s1.id);
+  ok((await q(`select count(*)::int n from alertas where tipo = 'aparelho'`))[0].n === 1, 'e o alerta não se repete');
+  ok(a2.nao_vistos > 0 && (await como('authenticated', EMAIL_ADMIN, () => q('select public.marcar_alertas_vistos() n')))[0].n === a2.nao_vistos, 'a Amanda marca os alertas como vistos');
+  ok((await como('anon', null, () => q('select public.guardiao_publico() g')))[0].g.graves === 0, 'e o guardião público volta a mostrar zero alertas graves');
+  ok((await como('authenticated', 'outra@pessoa.com', () => q('select public.situacao_guardiao() s')))[0].s === null, 'outra conta não vê a situação do guardião');
+
+  // ninguém mexe no guardião por fora
+  for (const t of ['guardiao', 'alertas', 'eventos', 'aparelhos_vistos']) {
+    ok(!!(await como('anon', null, () => tenta(q(`select * from ${t}`)))).erro && !!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`select * from ${t}`)))).erro, `a tabela ${t} só é acessada pelas funções do guardião`);
+  }
+  for (const f of [`public.alerta('x', 'grave', 'falso', 'falso', null)`, 'public.vigia()', 'public.origem_pedido()', 'public.situacao_guardiao()', 'public.marcar_alertas_vistos()']) {
+    ok(!!(await como('anon', null, () => tenta(q(`select ${f}`)))).erro, `visitante não chama ${f.split('(')[0]}`);
+  }
+  ok(!!(await como('authenticated', EMAIL_ADMIN, () => tenta(q(`select public.alerta('x', 'grave', 'falso', 'falso', null)`)))).erro, 'nem a Amanda cria alertas falsos diretamente');
 }
 
 fim('banco');

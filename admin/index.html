@@ -153,6 +153,64 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
 /* com uma janela de baixo aberta, o aviso vai para o topo e não cobre os botões dela */
 .sheet:not([hidden])~.toast{top:calc(12px + env(safe-area-inset-top));bottom:auto}
+/* selo do guardião no topo */
+.selo{display:inline-flex;align-items:center;gap:7px;border:1.5px solid rgba(245,197,157,.55);background:rgba(255,248,241,.08);color:var(--peach-l);border-radius:99px;padding:8px 13px;min-height:40px;font-weight:700;font-size:13px;white-space:nowrap}
+.selo:before{content:"";width:8px;height:8px;border-radius:50%;background:#5ED39A;box-shadow:0 0 0 3px rgba(94,211,154,.25)}
+.selo.warn:before{background:#F5A04A;box-shadow:0 0 0 3px rgba(245,160,74,.3)}
+.selo.bad:before{background:#FF6B5E;box-shadow:0 0 0 3px rgba(255,107,94,.3)}
+.banner.guarda{display:block;width:100%;text-align:left;border:0;cursor:pointer;font:inherit;font-weight:700}
+.banner.guarda.warn{background:var(--warn-bg);color:var(--warn)}
+/* lista da aba Mais */
+.lista{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.lista button{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;min-height:72px;background:none;border:0;border-top:1px solid var(--line);text-align:left}
+.lista button:first-child{border-top:0}
+.li-ic{flex:0 0 42px;height:42px;border-radius:12px;background:#E9F4F1;color:var(--teal);display:grid;place-items:center}
+.li-ic svg{width:22px;height:22px}
+.li-tx{flex:1;min-width:0;display:grid;gap:1px}
+.li-tx b{font-size:16px}.li-tx small{font-size:13px;color:var(--muted);line-height:1.35}
+.li-seta{width:20px;height:20px;color:var(--muted);flex:0 0 auto}
+.st{font-style:normal;font-size:12px;font-weight:800;border-radius:99px;padding:3px 9px;background:var(--ok-bg);color:var(--ok);white-space:nowrap}
+.st.warn{background:var(--warn-bg);color:var(--warn)}.st.bad{background:var(--bad-bg);color:var(--bad)}
+.voltar{display:inline-flex;align-items:center;gap:2px;margin-top:12px;background:none;border:0;color:var(--teal);font-weight:700;font-size:15px;min-height:44px;padding:0 8px 0 0}
+.voltar svg{width:20px;height:20px}
+.voltar+.aba-topo{margin-top:2px}
+/* segurança */
+.gst{display:grid;gap:12px;margin-top:14px}
+.gst .gt{display:flex;align-items:center;gap:12px}
+.gst .gi{flex:0 0 48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--ok-bg);color:var(--ok)}
+.gst .gi svg{width:26px;height:26px}
+.gst.warn{border-color:var(--warn)}.gst.warn .gi{background:var(--warn-bg);color:var(--warn)}
+.gst.bad{border-color:var(--bad)}.gst.bad .gi{background:var(--bad-bg);color:var(--bad)}
+.gst .gt b{display:block;font-size:18px}.gst .gt span,.gst p{font-size:15px;color:var(--muted)}
+.al{border-left:6px solid var(--warn);margin-bottom:10px;display:grid;gap:4px}
+.al.grave{border-left-color:var(--bad)}
+.al .at{font-weight:800;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.al .ad{font-size:14px;color:var(--muted)}
+.al time{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+.novo{font-size:11px;font-weight:800;letter-spacing:.5px;border-radius:99px;padding:2px 8px;background:var(--bad);color:#fff;margin-left:6px;vertical-align:2px}
+.ap{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.ap>div{flex:1;min-width:0;display:grid;gap:2px}.ap b{font-size:16px}.ap span{font-size:13px;color:var(--muted)}
+.ap.suspeito{border-color:var(--bad)}.ap.suspeito b{color:var(--bad)}
+.vigia{margin:0 0 0 18px;display:grid;gap:10px;font-size:15px}
+/* histórico */
+.hdia{font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:20px 0 4px}
+.hrow{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.hdia+.hrow{border-top:0}
+.hic{flex:0 0 12px;height:12px;border-radius:50%;margin-top:5px;background:var(--livre)}
+.hic.ped{background:var(--warn)}.hic.ok{background:var(--ok)}.hic.del{background:var(--bad)}.hic.edit{background:var(--teal)}.hic.rem{background:#7B61C9}.hic.lemb{background:#1FAF5A}
+.hrow>div{flex:1;min-width:0}
+.ht{font-size:15px}.hd{font-size:13px;color:var(--muted)}
+.hrow time{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+#hMais{margin-top:14px}
+/* como funciona */
+.destaque{margin-top:14px;padding:16px;border-radius:16px;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:var(--cream);display:grid;gap:4px;font-size:15px}
+.destaque b{color:var(--peach);font-size:18px}
+.faq{background:#fff;border:1px solid var(--line);border-radius:14px;margin-top:10px}
+.faq summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:700;font-size:15px;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:"+";font-size:22px;color:var(--teal);line-height:1}
+.faq[open] summary:after{content:"–"}
+.faq p{padding:0 16px 14px;font-size:15px;color:var(--muted)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:sobe .18s ease-out}.toast{animation:sobe .18s ease-out}@keyframes sobe{from{transform:translateY(24px);opacity:0}}}
 </style>
@@ -175,17 +233,19 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 </section>
 
 <section id="vApp" hidden>
-  <header><div><h1>Amanda Rocha</h1><small>Agenda</small></div><button class="sair" id="bSair" type="button">Sair</button></header>
+  <header><div><h1>Amanda Rocha</h1><small>Agenda</small></div><button class="selo" id="selo" type="button" data-ir="seguranca" hidden></button></header>
   <div class="wrap">
     <div class="sync"><span id="atualizado">Carregando…</span><button type="button" id="bAtualizar">Atualizar agora</button></div>
-    <div class="banner" id="bancoVelho" role="alert" hidden>Falta atualizar o banco para usar serviços, remarcar e lembretes. Rode o arquivo de atualização no Supabase (passo no README).</div>
+    <div class="banner" id="bancoVelho" role="alert" hidden>Falta atualizar o banco para usar todas as funções (serviços, remarcar, lembretes, histórico completo e guardião). Rode o arquivo supabase/atualizacao.sql no Supabase (passo no README).</div>
     <div class="banner" id="semNet" role="alert" hidden>Sem conexão. O que você vê pode estar desatualizado. Não confirme nada até a internet voltar.</div>
+    <button class="banner guarda" id="avisoGuarda" type="button" data-ir="seguranca" hidden></button>
 
     <section class="aba" data-aba="inicio">
     <div class="boas" id="boasVindas" hidden>
       <b>Bem-vinda, Amanda!</b>
       <p>O painel tem 4 partes, nos botões aqui embaixo:</p>
-      <ul><li><b>Início:</b> o que precisa de você hoje</li><li><b>Agenda:</b> seus dias e horários</li><li><b>Enviar:</b> mandar horários para uma cliente</li><li><b>Serviços:</b> o que aparece no site</li></ul>
+      <ul><li><b>Início:</b> o que precisa de você hoje</li><li><b>Agenda:</b> seus dias e horários</li><li><b>Enviar:</b> mandar horários para uma cliente</li><li><b>Mais:</b> serviços e preços, histórico, segurança e ajuda</li></ul>
+      <p>Tudo o que você muda aqui aparece no site na hora. Não precisa publicar nada.</p>
       <p>Para começar, abra seus horários na Agenda.</p>
       <div class="row"><button class="btn main" type="button" data-ir="agenda" data-abrir-form data-guia-ok>Abrir meus horários</button><button class="btn ghost" type="button" data-guia-ok>Já entendi</button></div>
     </div>
@@ -202,7 +262,7 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
     </section>
 
     <section class="aba" data-aba="agenda" hidden>
-    <div class="aba-topo"><h2 class="aba-t">Agenda</h2><p>Seus dias e horários.</p></div>
+    <div class="aba-topo"><h2 class="aba-t">Agenda</h2><p>Seus dias e horários. O que você muda aqui aparece no site na hora.</p></div>
     <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Toque em <b>Abrir novos horários</b>, escolha o dia e os horários e confirme.</li><li>Toque em qualquer horário da lista para <b>marcar uma cliente, mudar, remarcar ou apagar</b>.</li><li>Em <b>Opções do dia</b> você adiciona um horário avulso ou limpa os horários livres do dia.</li></ol></details>
     <button class="btn main" type="button" id="bMostrarAbrir">Abrir novos horários</button>
     <div class="card" id="cardAbrir" hidden>
@@ -253,18 +313,96 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 
     </section>
 
+    <section class="aba" data-aba="mais" hidden>
+    <div class="aba-topo"><h2 class="aba-t">Mais</h2><p>Preços, histórico, segurança e ajuda.</p></div>
+    <div class="lista">
+        <button type="button" data-ir="servicos"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span class="li-tx"><b>Serviços e preços</b><small>O que aparece no site para a cliente escolher</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" data-ir="historico"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="li-tx"><b>Histórico</b><small>Tudo o que aconteceu na agenda</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" data-ir="seguranca"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="li-tx"><b>Segurança</b><small>Guardião do site e aparelhos conectados</small></span><em class="st" id="mSeg" hidden></em><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" data-ir="ajuda"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 3.7M12 17h.01"/></svg></span><span class="li-tx"><b>Como funciona</b><small>Respostas rápidas sobre o painel e o site</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" data-ir="conta"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><span class="li-tx"><b>Minha conta</b><small>Trocar senha e sair</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    </section>
+
     <section class="aba" data-aba="servicos" hidden>
-    <div class="aba-topo"><h2 class="aba-t">Serviços</h2><p>O que aparece no site para a cliente escolher.</p></div>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Serviços e preços</h2><p>O que aparece no site para a cliente escolher. Mudou aqui, mudou no site.</p></div>
     <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Toque em <b>Editar</b> para mudar o nome, a descrição ou o preço.</li><li>Desmarque <b>Aparece no site</b> para esconder um serviço que você não está oferecendo.</li><li><b>Adicionar serviço</b> cria um novo. Ele aparece no site na hora.</li></ol></details>
     <div id="servicos"></div>
     <button class="btn ghost" id="bNovoServ" type="button">Adicionar serviço</button>
+    </section>
+
+    <section class="aba" data-aba="historico" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Histórico</h2><p>Tudo o que aconteceu na agenda, do mais recente para o mais antigo. Ninguém consegue apagar este registro.</p></div>
+    <label class="label" for="hBusca">Buscar cliente</label>
+    <input type="search" id="hBusca" placeholder="Digite o nome da cliente" autocomplete="off" maxlength="40">
+    <div id="hLista"><p class="vazio">Carregando…</p></div>
+    <button class="btn ghost" id="hMais" type="button" hidden>Ver mais antigos</button>
+    </section>
+
+    <section class="aba" data-aba="seguranca" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Segurança</h2><p>O guardião vigia o site o tempo todo e avisa aqui se algo sair do normal.</p></div>
+    <div class="card gst" id="gStatus"><p class="vazio">Carregando…</p></div>
+    <h2>Alertas</h2>
+    <div id="gAlertas"></div>
+    <h2>Aparelhos conectados</h2>
+    <p class="dica" style="margin:-6px 0 10px">Onde o seu painel está aberto agora. Se não reconhecer algum, toque em “Sair dos outros aparelhos” e troque sua senha em Minha conta.</p>
+    <div id="gAparelhos"></div>
+    <button class="btn bad" type="button" data-acao="sair-outros">Sair dos outros aparelhos</button>
+    <h2>O que o guardião vigia</h2>
+    <ul class="vigia">
+      <li><b>Pedidos falsos em massa.</b> Se chegarem pedidos demais em pouco tempo, ele liga a proteção sozinho: as clientes passam a falar com você direto pelo WhatsApp, e nada é perdido.</li>
+      <li><b>Abuso por aparelho.</b> O mesmo celular ou rede não consegue encher a agenda, e o mesmo telefone tem no máximo 2 horários.</li>
+      <li><b>Alguém testando o site.</b> Tentativas com dados inválidos ou horários que não existem geram aviso.</li>
+      <li><b>Muitos cancelamentos de uma vez.</b> Se muitos horários com cliente forem apagados em minutos, você é avisada.</li>
+      <li><b>Acesso novo ao painel.</b> Todo aparelho novo que entra com a sua senha aparece aqui.</li>
+    </ul>
+    </section>
+
+    <section class="aba" data-aba="ajuda" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Como funciona</h2><p>Respostas rápidas sobre o painel e o site.</p></div>
+    <div class="destaque"><b>O site atualiza sozinho.</b><span>Tudo o que você faz aqui aparece para as clientes na mesma hora, e este painel se atualiza a cada 30 segundos.</span></div>
+    <details class="faq"><summary>O site atualiza sozinho?</summary><p>Sim. Tudo o que você muda no painel (abrir ou remover horários, confirmar, recusar, serviços e preços) aparece para as clientes na mesma hora. Não precisa publicar nada nem chamar ninguém.</p></details>
+    <details class="faq"><summary>E este painel, atualiza sozinho?</summary><p>Sim, a cada 30 segundos e sempre que você volta para ele. Se quiser ver na hora, toque em <b>Atualizar agora</b>, lá em cima.</p></details>
+    <details class="faq"><summary>Como a cliente marca um horário?</summary><p>Ela escolhe o serviço, o dia e o horário no site e envia uma mensagem para o seu WhatsApp. O horário fica guardado para ela e aparece em <b>Início › Pedidos</b> para você confirmar.</p></details>
+    <details class="faq"><summary>Duas clientes podem pegar o mesmo horário?</summary><p>Não. Só uma consegue; a outra é avisada na hora para escolher outro horário.</p></details>
+    <details class="faq"><summary>E se o celular da cliente estiver com a hora errada?</summary><p>Não tem problema. Os horários usam sempre a hora de Brasília do servidor, nunca a do celular.</p></details>
+    <details class="faq"><summary>Como mando um lembrete?</summary><p>Em <b>Início › Próximos atendimentos</b>, toque em <b>Mandar lembrete</b> um dia antes. A mensagem já vai pronta no WhatsApp.</p></details>
+    <details class="faq"><summary>Onde vejo o que já aconteceu?</summary><p>Em <b>Mais › Histórico</b>. Fica registrado quem pediu, quem confirmou, o que foi cancelado ou mudado, com dia e hora.</p></details>
+    <details class="faq"><summary>O que é a proteção do guardião?</summary><p>Se chegarem pedidos demais em pouco tempo, o guardião liga a proteção: o site continua mostrando os horários, mas as clientes passam a confirmar direto pelo seu WhatsApp. Quando estiver tudo certo, religue em <b>Mais › Segurança</b>.</p></details>
+    <details class="faq"><summary>Como coloco o painel na tela do celular?</summary><p>No iPhone: toque em Compartilhar e depois em <b>Adicionar à Tela de Início</b>. No Android: toque nos três pontinhos e depois em <b>Adicionar à tela inicial</b>.</p></details>
+    <details class="faq"><summary>Esqueci minha senha. E agora?</summary><p>Fale com o Kevin: ele cria uma senha nova para você em poucos minutos.</p></details>
+    </section>
+
+    <section class="aba" data-aba="conta" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Minha conta</h2><p id="cEmail">Conectada</p></div>
+    <form class="card" id="fSenha" novalidate>
+      <h3 class="card-t">Trocar senha</h3>
+      <label for="cAtual">Senha atual</label>
+      <input type="password" id="cAtual" autocomplete="current-password">
+      <label for="cNova">Nova senha</label>
+      <input type="password" id="cNova" autocomplete="new-password">
+      <p class="dica">Pelo menos 8 caracteres, com letras e números. Não use a mesma senha de outros sites.</p>
+      <label for="cNova2">Repita a nova senha</label>
+      <input type="password" id="cNova2" autocomplete="new-password">
+      <button class="btn main" type="submit" id="bSenha" style="margin-top:16px">Trocar senha</button>
+      <p class="dica" style="margin-top:10px">Ao trocar, os outros aparelhos são desconectados por segurança.</p>
+    </form>
+    <div class="atalhos">
+      <button class="btn ghost" type="button" data-acao="sair-outros">Sair dos outros aparelhos</button>
+      <button class="btn bad" type="button" id="bSair">Sair deste aparelho</button>
+    </div>
     </section>
   </div>
   <nav class="abas" aria-label="Partes do painel">
     <button type="button" data-aba-btn="inicio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Início<i class="nb" id="nPedNav" hidden></i></button>
     <button type="button" data-aba-btn="agenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</button>
     <button type="button" data-aba-btn="enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Enviar</button>
-    <button type="button" data-aba-btn="servicos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Serviços</button>
+    <button type="button" data-aba-btn="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais<i class="nb" id="nMais" hidden></i></button>
   </nav>
 </section>
 
@@ -277,538 +415,6 @@ label.check input{width:22px;height:22px;accent-color:var(--teal)}
 
 <script src="../config.js"></script>
 <script src="../agenda.js"></script>
-<script>
-(function(){
-  var C=window.SUPABASE||{},$=function(i){return document.getElementById(i)};
-  var SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
-  var PADRAO=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
-  var extras=[],escolhidas={'13:00':1,'14:00':1,'15:00':1,'16:00':1,'17:00':1};
-  var rows=[],sess=null,aberto=null,pergunta=null,ocupado=false,relogio=null,ultimo=null;
-  var servs=null,bancoVelho=false,destino=null;
-
-  // ---------- utilidades ----------
-  function dd(n){return (n<10?'0':'')+n}
-  function hh(h){return (+h.slice(0,2))+(h.slice(3)==='00'?'h':'h'+h.slice(3))}
-  function utc(d){var p=d.split('-');return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]))}
-  function somaDias(d,n){var x=utc(d);x.setUTCDate(x.getUTCDate()+n);return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())}
-  function curta(d){var x=utc(d);return dd(x.getUTCDate())+'/'+dd(x.getUTCMonth()+1)}
-  function semana(d){return SEM[utc(d).getUTCDay()]}
-  function dia(d){var h=hojeSP();return (d===h?'hoje':d===somaDias(h,1)?'amanhã':semana(d))+', '+curta(d)}
-  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function primeiro(n){return String(n||'').trim().split(/\s+/)[0]}
-  function normTel(v){var t=String(v||'').replace(/\D/g,'');if(t.indexOf('55')===0&&(t.length===12||t.length===13))t=t.slice(2);return (t.length===10||t.length===11)?t:''}
-  function fmtTel(t){return t?'('+t.slice(0,2)+') '+t.slice(2,-4)+'-'+t.slice(-4):''}
-  var POR_FORA=['Combinado por fora','Manual'];
-  function servRot(r){return r.servico&&POR_FORA.indexOf(r.servico)<0?r.servico:'Combinado por fora'}
-  function deServ(r){return r.servico&&POR_FORA.indexOf(r.servico)<0?' de '+r.servico:''}
-
-  // Relógio: usa a hora do servidor (Brasília), nunca a do celular.
-  function agoraSP(){
-    if(relogio)return new Date(relogio.srv+(Date.now()-relogio.local));
-    var p={};try{new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
-      .formatToParts(new Date()).forEach(function(x){p[x.type]=x.value})}catch(e){var n=new Date();return new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate(),n.getHours(),n.getMinutes()))}
-    return new Date(Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute));
-  }
-  function hojeSP(){var x=agoraSP();return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())}
-  function agoraTxt(){var x=agoraSP();return hojeSP()+' '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())}
-  function passou(r){return (r.data+' '+r.hora)<=agoraTxt()}
-  function idade(iso){if(!iso)return '';var m=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000));
-    return m<1?'agora mesmo':m<60?'há '+m+' min':m<1440?'há '+Math.floor(m/60)+' h':'há '+Math.floor(m/1440)+' dia'+(m>=2880?'s':'')}
-
-  // Mensagens prontas para a Amanda mandar à cliente
-  function zapUrl(r,tipo){
-    if(!r.telefone)return '';
-    var n=primeiro(r.nome),q=semana(r.data)+', '+curta(r.data)+' às '+hh(r.hora),t;
-    var h0=hojeSP(),rel=r.data===h0?'hoje':r.data===somaDias(h0,1)?'amanhã':'';
-    if(tipo==='confirmar')t='Oi, '+n+'! Aqui é a Amanda. Seu horário'+deServ(r)+' está confirmado para '+q+'. Qualquer coisa, é só me chamar. Até lá!';
-    else if(tipo==='lembrar')t='Oi, '+n+'! Aqui é a Amanda. Passando para lembrar do seu horário'+deServ(r)+' '+(rel?rel+' ('+q+')':'no dia '+q)+'. Te espero! Se precisar remarcar, é só me avisar por aqui.';
-    else if(tipo==='remarcar')t='Oi, '+n+'! Aqui é a Amanda. Seu horário'+deServ(r)+' mudou para '+q+'. Qualquer dúvida, é só me chamar por aqui.';
-    else if(tipo==='recusar')t='Oi, '+n+'! Aqui é a Amanda. Infelizmente não vou conseguir te atender '+q+'. Quer escolher outro horário? É só me responder aqui.';
-    else if(tipo==='cancelar')t='Oi, '+n+'! Aqui é a Amanda. Precisei desmarcar seu horário de '+q+'. Me desculpe! Quer remarcar? É só me responder aqui.';
-    else t='Oi, '+n+'! Aqui é a Amanda, sobre o seu horário'+deServ(r)+' em '+q+'.';
-    return 'https://wa.me/55'+r.telefone+'?text='+encodeURIComponent(t);
-  }
-
-  // ---------- avisos ----------
-  var tTimer;
-  function toast(txt,erro,link,linkTxt){
-    var t=$('toast');clearTimeout(tTimer);
-    t.className='toast'+(erro?' erro':'');
-    t.innerHTML='<div>'+esc(txt)+'</div><div class="acoes">'+(link?'<a class="btn zap" target="_blank" rel="noopener" href="'+esc(link)+'">'+esc(linkTxt)+'</a>':'')+'<button class="fechar" type="button" data-fechar>Fechar</button></div>';
-    t.hidden=false;
-    tTimer=setTimeout(function(){t.hidden=true},link?15000:erro?9000:5000);
-  }
-
-  // ---------- sessão ----------
-  try{sess=JSON.parse(localStorage.getItem('amanda-sess')||'null')}catch(e){}
-  function salvar(s){sess=s;try{s?localStorage.setItem('amanda-sess',JSON.stringify(s)):localStorage.removeItem('amanda-sess')}catch(e){}}
-  function auth(caminho,corpo){
-    return fetch(C.url+'/auth/v1/'+caminho,{method:'POST',headers:{apikey:C.anonKey,'Content-Type':'application/json'},body:JSON.stringify(corpo)})
-      .then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok){var e=new Error('auth');e.status=r.status;throw e}return j})},
-            function(){var e=new Error('rede');e.rede=true;throw e});
-  }
-  function paraSessao(j){return {token:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-120000}}
-  var renovando=null;
-  function token(){
-    if(!sess)return Promise.reject('sessao');
-    if(Date.now()<sess.exp)return Promise.resolve(sess.token);
-    if(!renovando)renovando=auth('token?grant_type=refresh_token',{refresh_token:sess.refresh})
-      .then(function(j){salvar(paraSessao(j));return sess.token},function(e){if(e.rede)throw 'rede';salvar(null);throw 'sessao'})
-      .then(function(t){renovando=null;return t},function(e){renovando=null;throw e});
-    return renovando;
-  }
-  // Erros: 'sessao' (precisa entrar de novo), 'rede' (sem internet), 'erro' (o banco recusou)
-  function api(metodo,caminho,corpo,extra){
-    return token().then(function(t){
-      var h={apikey:C.anonKey,Authorization:'Bearer '+t,'Content-Type':'application/json'};if(extra)for(var k in extra)h[k]=extra[k];
-      return fetch(C.url+'/rest/v1/'+caminho,{method:metodo,headers:h,body:corpo===undefined?undefined:JSON.stringify(corpo)}).catch(function(){throw 'rede'});
-    }).then(function(r){
-      if(r.status===401){salvar(null);mostrar('Sua sessão expirou. Entre de novo, por favor.');throw 'sessao'}
-      if(!r.ok)throw 'erro';
-      return r.text().then(function(t){return t?JSON.parse(t):null});
-    });
-  }
-
-  // ---------- telas ----------
-  function mostrar(msgLogin){
-    var on=!!(sess&&C.url&&C.anonKey);
-    $('vLogin').hidden=on;$('vApp').hidden=!on;fecharSheet();
-    if(!C.url||!C.anonKey){$('bLogin').disabled=true;erroLogin('O painel ainda não foi ligado ao Supabase. Preencha o arquivo config.js.')}
-    else if(msgLogin)erroLogin(msgLogin);
-    if(on)carregar();
-  }
-  function erroLogin(t){var m=$('mLogin');m.textContent=t;m.hidden=!t}
-
-  $('fLogin').onsubmit=function(e){
-    e.preventDefault();var em=$('email').value.trim().toLowerCase(),se=$('senha').value;
-    if(!em||!se){erroLogin('Preencha o e-mail e a senha.');return}
-    $('bLogin').disabled=true;$('bLogin').textContent='Entrando…';erroLogin('');
-    auth('token?grant_type=password',{email:em,password:se})
-      .then(function(j){salvar(paraSessao(j));return api('POST','rpc/sou_admin',{})})
-      .then(function(admin){
-        if(admin!==true){salvar(null);erroLogin('Este e-mail entrou, mas não tem acesso à agenda. Confira o e-mail cadastrado no arquivo do banco.');return}
-        $('senha').value='';mostrar();
-      })
-      .catch(function(err){salvar(null);erroLogin(err&&err.rede||err==='rede'?'Sem conexão. Confira a internet e tente de novo.':err&&err.status===400?'E-mail ou senha incorretos.':'Não consegui entrar agora. Tente de novo em instantes.')})
-      .then(function(){$('bLogin').disabled=false;$('bLogin').textContent='Entrar'});
-  };
-  $('bSair').onclick=function(){salvar(null);rows=[];mostrar()};
-
-  // ---------- abas ----------
-  function irAba(n){
-    [].forEach.call(document.querySelectorAll('[data-aba]'),function(x){x.hidden=x.getAttribute('data-aba')!==n});
-    [].forEach.call(document.querySelectorAll('[data-aba-btn]'),function(b){b.setAttribute('aria-current',b.getAttribute('data-aba-btn')===n?'page':'false')});
-    try{sessionStorage.setItem('amanda-aba',n)}catch(e){}
-    window.scrollTo(0,0);
-  }
-  function mostrarAbrir(sim,parado){$('cardAbrir').hidden=!sim;$('bMostrarAbrir').textContent=sim?'Fechar':'Abrir novos horários';$('bMostrarAbrir').className='btn '+(sim?'ghost':'main');if(sim&&!parado)$('cardAbrir').scrollIntoView({block:'start'})}
-  $('bMostrarAbrir').onclick=function(){mostrarAbrir($('cardAbrir').hidden)};
-  document.addEventListener('click',function(e){
-    var g=e.target.closest('[data-guia-ok]');if(g){$('boasVindas').hidden=true;try{localStorage.setItem('amanda-guia','1')}catch(x){}}
-    var b=e.target.closest('[data-aba-btn],[data-ir]');if(!b)return;
-    irAba(b.getAttribute('data-aba-btn')||b.getAttribute('data-ir'));
-    if(b.hasAttribute('data-abrir-form'))mostrarAbrir(true);
-  });
-  (function(){var vista=null;try{vista=localStorage.getItem('amanda-guia')}catch(e){}$('boasVindas').hidden=!!vista;
-    var a=null;try{a=sessionStorage.getItem('amanda-aba')}catch(e){}if(a&&document.querySelector('[data-aba="'+a+'"]'))irAba(a)})();
-
-  // ---------- carregar ----------
-  function carregar(){
-    return api('POST','rpc/agora_sp',{})
-      .then(function(s){var m=/^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)(?::(\d\d))?/.exec(s||'');
-        if(m)relogio={srv:Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)),local:Date.now()}})
-      .then(function(){return api('GET','horarios?select=*&data=gte.'+hojeSP()+'&order=data.asc,hora.asc')})
-      .then(function(j){rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
-        return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){servs=sv||[];bancoVelho=false},function(e){if(e!=='erro')throw e;servs=null;bancoVelho=true})})
-      .then(function(){$('bancoVelho').hidden=!bancoVelho;desenhar()})
-      .catch(function(e){if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
-  }
-  setInterval(function(){if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
-  document.addEventListener('visibilitychange',function(){if(sess&&!document.hidden&&!ocupado)carregar()});
-  window.addEventListener('online',function(){if(sess)carregar()});
-  $('bAtualizar').onclick=function(){carregar()};
-
-  // ---------- desenhar ----------
-  function desenhar(){
-    var x=ultimo||agoraSP();
-    $('atualizado').textContent='Atualizado às '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes());
-    var ped=rows.filter(function(r){return r.status==='pedido'});
-    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;$('nPedNav').hidden=!ped.length;$('nPedNav').textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+'Agenda da Amanda';
-    $('pedidos').innerHTML=ped.length?ped.map(function(r){
-      var min=r.pedido_em?(Date.now()-new Date(r.pedido_em).getTime())/60000:0,z=zapUrl(r,'falar');
-      return '<div class="card ped"><div class="nome">'+esc(r.nome)+'</div>'+
-        '<div class="qd">'+esc(r.servico)+'<br><b>'+dia(r.data)+' às '+hh(r.hora)+'</b><br>Pedido '+idade(r.pedido_em)+'</div>'+
-        (passou(r)?'<div class="passou">Esse horário já passou.</div>':min>180?'<div class="velho">Esperando sua resposta há bastante tempo.</div>':'')+
-        (z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar '+esc(primeiro(r.nome))+' no WhatsApp</a>':'')+
-        '<div class="row"><button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button">Confirmar</button>'+
-        '<button class="btn bad" data-a="perg-recusar" data-id="'+esc(r.id)+'" type="button">Recusar</button></div></div>'}).join(''):'<p class="vazio">Nenhum pedido esperando resposta.</p>';
-
-    var por={},ordem=[];rows.forEach(function(r){if(!por[r.data]){por[r.data]=[];ordem.push(r.data)}por[r.data].push(r)});
-    $('agenda').innerHTML=ordem.length?ordem.map(function(d){
-      var c={livre:0,pedido:0,confirmado:0};por[d].forEach(function(r){c[r.status]++});
-      var resumo=[c.livre?c.livre+' livre'+(c.livre>1?'s':''):'',c.pedido?c.pedido+' pedido'+(c.pedido>1?'s':''):'',c.confirmado?c.confirmado+' confirmado'+(c.confirmado>1?'s':''):''].filter(Boolean).join(' · ');
-      return '<div class="dia"><h3><span>'+dia(d)+'</span><button class="dia-op" type="button" data-acao="dia" data-dia="'+d+'">Opções do dia</button></h3><div class="resumo">'+resumo+'</div><div class="chips">'+por[d].map(function(r){
-        var rot=r.status==='livre'?'livre':esc(primeiro(r.nome));
-        return '<button class="s '+r.status+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?'livre':r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div></div>'}).join(''):
-      '<p class="vazio">Nenhum horário aberto ainda. Toque em “Abrir novos horários” acima.</p>';
-    if(!rows.length&&$('cardAbrir').hidden)mostrarAbrir(true,true);
-    var ate=somaDias(hojeSP(),7),prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
-    $('proximos').innerHTML=prox.length?prox.map(function(r){var z=zapUrl(r,'lembrar');
-      return '<div class="card prox"><div class="pl"><b>'+esc(r.nome)+'</b><span>'+esc(servRot(r))+'</span><span class="quando">'+dia(r.data)+' às '+hh(r.hora)+'</span>'+
-        (r.lembrete_em?'<span class="lemb ok">✓ Lembrete enviado '+idade(r.lembrete_em)+'</span>':'<span class="lemb">Lembrete ainda não enviado</span>')+'</div>'+
-        (z?'<a class="btn '+(r.lembrete_em?'zap-leve':'zap')+'" target="_blank" rel="noopener" data-lembrete="'+esc(r.id)+'" href="'+esc(z)+'">'+(r.lembrete_em?'Mandar de novo':'Mandar lembrete')+'</a>':
-           '<button class="btn ghost" type="button" data-abrir="'+esc(r.id)+'">Sem WhatsApp: toque para adicionar</button>')+'</div>'}).join(''):
-      '<p class="vazio">Nenhum atendimento confirmado nos próximos 7 dias.</p>';
-    desenharServicos();
-    desenharEnvio();
-    // com uma pergunta aberta, não redesenha (não apaga o que ela está digitando);
-    // a ação continua segura porque só vale se o horário não tiver mudado
-    if(aberto&&!pergunta)desenharSheet();
-  }
-
-  // ---------- painel de ações ----------
-  function linha(id){return rows.filter(function(r){return r.id===id})[0]}
-  function listaServ(){return servs||(window.AGENDA&&AGENDA.servicos)||[]}
-  function opcoesServ(sel){var l=listaServ().map(function(x){return x.nome});if(sel&&POR_FORA.indexOf(sel)<0&&l.indexOf(sel)<0)l.unshift(sel);
-    return '<option value="">Combinado por fora</option>'+l.map(function(n){return '<option'+(n===sel?' selected':'')+'>'+esc(n)+'</option>'}).join('')}
-  function campos(r){r=r||{};return '<label for="fNome">Nome da cliente</label><input type="text" id="fNome" maxlength="60" value="'+esc(r.nome&&r.nome!=='Marcado por fora'?r.nome:'')+'" placeholder="Ex.: Maria Silva">'+
-    '<label for="fTel">WhatsApp da cliente (opcional)</label><input type="tel" id="fTel" inputmode="tel" value="'+esc(fmtTel(r.telefone))+'" placeholder="(11) 90000-0000">'+
-    '<label for="fServ">Serviço</label><select id="fServ">'+opcoesServ(r.servico)+'</select>'}
-  function lerForm(){var v=($('fTel')||{}).value||'';return {nome:(($('fNome')||{}).value||'').trim().slice(0,60),tel:normTel(v),telErro:!!v.trim()&&!normTel(v),serv:($('fServ')||{}).value||''}}
-  function livresPara(r){var m={},o=[];rows.forEach(function(x){if(x.status!=='livre'||x.id===r.id||passou(x))return;if(!m[x.data]){m[x.data]=[];o.push(x.data)}m[x.data].push(x)});return o.map(function(d){return {data:d,itens:m[d]}})}
-  function abrirSheet(id){aberto=id;pergunta=null;destino=null;desenharSheet()}
-  function fecharSheet(){aberto=null;pergunta=null;destino=null;$('sheet').hidden=true;if($('envio').hidden)$('veu').hidden=true}
-  function desenharSheet(){
-    var r=linha(aberto),s=$('sheet');
-    if(!r){fecharSheet();return}
-    var nomes={livre:'Livre',pedido:'Pedido',confirmado:'Confirmado'},nm=esc(primeiro(r.nome));
-    var h='<div><span class="estado '+r.status+'">'+nomes[r.status]+'</span><div class="t" id="sheetT">'+dia(r.data)+' às '+hh(r.hora)+'</div>'+
-      (r.status!=='livre'?'<div class="d">'+esc(r.nome)+' · '+esc(servRot(r))+(r.telefone?' · '+fmtTel(r.telefone):'')+'</div>':'')+
-      (r.lembrete_em?'<div class="d" style="color:var(--ok)">✓ Lembrete enviado '+idade(r.lembrete_em)+'</div>':'')+
-      (passou(r)?'<div class="d" style="color:var(--bad)">Esse horário já passou.</div>':'')+'</div>';
-    var dis=ocupado?' disabled':'',V='<button class="btn ghost" data-a="voltar" type="button">Voltar</button>';
-    if(pergunta==='recusar')h+='<div class="pergunta">Recusar o pedido de '+nm+'? O horário volta a ficar livre no site.</div><button class="btn bad-solid" data-a="recusar" type="button"'+dis+'>Sim, recusar</button>'+V;
-    else if(pergunta==='cancelar')h+='<div class="pergunta">Cancelar o horário de '+nm+'? Ele volta a ficar livre no site.</div><button class="btn bad-solid" data-a="cancelar" type="button"'+dis+'>Sim, cancelar e liberar</button>'+V;
-    else if(pergunta==='excluir')h+='<div class="pergunta">Cancelar o horário de '+nm+' e apagar este horário da agenda? Ele some do site.</div><button class="btn bad-solid" data-a="excluir" type="button"'+dis+'>Sim, cancelar e apagar</button>'+V;
-    else if(pergunta==='remover')h+='<div class="pergunta">Remover este horário da agenda? Ele some do site.</div><button class="btn bad-solid" data-a="remover" type="button"'+dis+'>Sim, remover</button>'+V;
-    else if(pergunta==='ocupar')h+=campos()+'<button class="btn main" data-a="ocupar" type="button"'+dis+'>Marcar como ocupado</button>'+V;
-    else if(pergunta==='editar')h+=campos(r)+'<button class="btn main" data-a="editar" type="button"'+dis+'>Salvar alterações</button>'+V;
-    else if(pergunta==='mover')h+='<label for="fData">Dia</label><input type="date" id="fData" value="'+r.data+'" min="'+hojeSP()+'"><label for="fHora">Horário</label><input type="time" id="fHora" value="'+r.hora+'" step="900"><button class="btn main" data-a="mover" type="button"'+dis+'>Salvar novo dia e horário</button>'+V;
-    else if(pergunta==='remarcar'){
-      var op=livresPara(r),dst=destino&&linha(destino);
-      h+='<div class="destinos"><span class="label">Para qual horário livre?</span>'+(op.length?op.map(function(g){return '<h4>'+dia(g.data)+'</h4><div class="chips">'+g.itens.map(function(x){return '<button class="chip" type="button" data-destino="'+esc(x.id)+'" aria-pressed="'+(destino===x.id)+'">'+hh(x.hora)+'</button>'}).join('')+'</div>'}).join(''):'<p class="vazio">Nenhum horário livre. Abra um horário antes e volte aqui.</p>')+'</div>'+
-        '<button class="btn main" data-a="remarcar" type="button"'+(dst&&!ocupado?'':' disabled')+'>'+(dst?'Remarcar '+nm+' para '+dia(dst.data)+' às '+hh(dst.hora):'Escolha o novo horário')+'</button>'+V;
-    }
-    else{
-      if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')}
-      if(r.status==='confirmado'){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener" data-lembrete="'+esc(r.id)+'" href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
-      if(r.status!=='livre')h+='<div class="row"><button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button><button class="btn ghost" data-a="perg-remarcar" type="button">Remarcar</button></div>'+
-        (r.status==='pedido'?'<button class="btn bad" data-a="perg-recusar" type="button">Recusar…</button>':'<button class="btn bad" data-a="perg-cancelar" type="button">Cancelar e liberar…</button>')+
-        '<button class="btn bad" data-a="perg-excluir" type="button">Cancelar e apagar este horário…</button>';
-      if(r.status==='livre')h+='<button class="btn main" data-a="perg-ocupar" type="button">Marcar como ocupado (marquei por fora)</button><button class="btn ghost" data-a="perg-mover" type="button">Mudar dia ou horário</button><button class="btn bad" data-a="perg-remover" type="button">Remover horário…</button>';
-      h+='<button class="btn ghost" data-a="fechar" type="button">Fechar</button>';
-    }
-    s.innerHTML=h;s.hidden=false;$('veu').hidden=false;
-    var f=s.querySelector('input');if(f&&pergunta)f.focus();
-  }
-
-  // ---------- ações (só valem se o horário ainda estiver como ela viu) ----------
-  var MUDOU='Esse horário mudou enquanto você olhava (talvez uma cliente tenha pedido agora). Atualizei a tela: confira e tente de novo.';
-  function falha(e){if(e!=='sessao')toast(e==='rede'?'Sem conexão. Nada foi alterado. Tente de novo quando a internet voltar.':'Não deu certo. Nada foi alterado. Tente de novo.',true)}
-  function mudar(r,esperado,campos){
-    return api('PATCH','horarios?id=eq.'+r.id+'&status=in.('+esperado+')',campos,{Prefer:'return=representation'})
-      .then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}return true});
-  }
-  var LIMPA={status:'livre',nome:null,servico:null,telefone:null,pedido_em:null,lembrete_em:null};
-  function executar(acao,r){
-    if(ocupado)return;
-    var antes={id:r.id,data:r.data,hora:r.hora,nome:r.nome,servico:r.servico,telefone:r.telefone},quando=dia(r.data)+' às '+hh(r.hora),p,f;
-    // conferências antes de mandar ao banco
-    if(acao==='ocupar'||acao==='editar'){f=lerForm();if(f.telErro){toast('Confira o WhatsApp: use o número com DDD.',true);return}if(acao==='editar'&&f.nome.length<2){toast('Escreva o nome da cliente.',true);return}}
-    if(acao==='mover'){var nd=$('fData').value,nh=$('fHora').value;if(!/^\d{4}-\d\d-\d\d$/.test(nd)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(nh)){toast('Escolha o dia e o horário.',true);return}if(nd===r.data&&nh===r.hora){pergunta=null;desenharSheet();return}}
-    if(acao==='remarcar'&&!(destino&&linha(destino))){toast('Escolha o novo horário.',true);return}
-    ocupado=true;
-    if(acao==='confirmar')p=mudar(r,'pedido',{status:'confirmado'}).then(function(ok){if(ok){var z=zapUrl(antes,'confirmar');toast('Confirmado: '+primeiro(antes.nome)+', '+quando+'.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
-    else if(acao==='recusar')p=mudar(r,'pedido',LIMPA).then(function(ok){if(ok){var z=zapUrl(antes,'recusar');toast('Pedido recusado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
-    else if(acao==='cancelar')p=mudar(r,'confirmado',LIMPA).then(function(ok){if(ok){var z=zapUrl(antes,'cancelar');toast('Horário cancelado. '+quando+' voltou a ficar livre.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp')}return ok});
-    else if(acao==='ocupar')p=mudar(r,'livre',{status:'confirmado',nome:f.nome.length>1?f.nome:'Marcado por fora',servico:f.serv||'Combinado por fora',telefone:f.tel||null,pedido_em:new Date().toISOString()}).then(function(ok){if(ok)toast(quando+' marcado como ocupado'+(f.nome.length>1?' para '+primeiro(f.nome):'')+'.');return ok});
-    else if(acao==='editar')p=mudar(r,r.status,{nome:f.nome,telefone:f.tel||null,servico:f.serv||'Combinado por fora'}).then(function(ok){if(ok)toast('Dados de '+primeiro(f.nome)+' atualizados.');return ok});
-    else if(acao==='mover')p=api('PATCH','horarios?id=eq.'+r.id+'&status=eq.livre',{data:nd,hora:nh},{Prefer:'return=representation'})
-      .then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}toast('Horário mudado para '+dia(nd)+' às '+hh(nh)+'.');return true},
-            function(e){if(e==='erro'){toast('Não deu certo: já existe um horário nesse dia e hora, ou ele já passou.',true);return false}throw e});
-    else if(acao==='remarcar'){var dst=linha(destino);p=api('POST','rpc/remarcar',{p_de:r.id,p_para:dst.id}).then(function(res){
-        if(res==='ok'){var novo={nome:antes.nome,servico:antes.servico,telefone:antes.telefone,data:dst.data,hora:dst.hora};toast('Remarcado: '+primeiro(antes.nome)+' agora '+dia(dst.data)+' às '+hh(dst.hora)+'.',false,zapUrl(novo,'remarcar'),'Avisar '+primeiro(antes.nome)+' da nova data');return true}
-        toast(res==='indisponivel'?'Esse horário novo acabou de ser ocupado. Escolha outro.':MUDOU,true);destino=null;return false})}
-    else if(acao==='excluir')p=api('DELETE','horarios?id=eq.'+r.id+'&status=eq.'+r.status,undefined,{Prefer:'return=representation'}).then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}var z=zapUrl(antes,'cancelar');toast('Horário de '+primeiro(antes.nome)+' cancelado e apagado.',false,z,'Avisar '+primeiro(antes.nome)+' no WhatsApp');return true});
-    else if(acao==='remover')p=api('DELETE','horarios?id=eq.'+r.id+'&status=eq.livre',undefined,{Prefer:'return=representation'}).then(function(j){if(!j||!j.length){toast(MUDOU,true);return false}toast(quando+' removido da agenda.');return true});
-    else{ocupado=false;return}
-    if(aberto)desenharSheet();
-    p.then(function(ok){if(ok)fecharSheet();else if(acao!=='remarcar')pergunta=null},falha)
-     .then(function(){ocupado=false;return carregar()}).then(function(){if(aberto)desenharSheet()});
-  }
-  function marcarLembrete(id){api('PATCH','horarios?id=eq.'+id+'&status=eq.confirmado',{lembrete_em:new Date().toISOString()},{Prefer:'return=minimal'}).then(function(){return carregar()},function(){})}
-  document.addEventListener('click',function(e){
-    var t=e.target;
-    if(t.closest('[data-fechar]')){$('toast').hidden=true;return}
-    var lm=t.closest('[data-lembrete]');if(lm){marcarLembrete(lm.getAttribute('data-lembrete'));return}
-    if(t===$('veu')&&$('envio').hidden){fecharSheet();return}
-    var ab=t.closest('[data-abrir]');if(ab){abrirSheet(ab.getAttribute('data-abrir'));return}
-    var de=t.closest('[data-destino]');if(de){destino=de.getAttribute('data-destino');desenharSheet();return}
-    var b=t.closest('button[data-a]');if(!b)return;
-    var a=b.getAttribute('data-a'),id=b.getAttribute('data-id')||aberto,r=linha(id);
-    if(a==='fechar'){fecharSheet();return}
-    if(a==='voltar'){pergunta=null;destino=null;desenharSheet();return}
-    if(!r)return;
-    if(a.indexOf('perg-')===0){aberto=r.id;pergunta=a.slice(5);destino=null;desenharSheet();return}
-    executar(a,r);
-  });
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&aberto&&$('envio').hidden)fecharSheet()});
-
-  // ---------- abrir horários ----------
-  function todasHoras(){var m={};PADRAO.concat(extras).forEach(function(h){m[h]=1});return Object.keys(m).sort()}
-  function desenharHoras(){$('horas').innerHTML=todasHoras().map(function(h){return '<button class="chip" type="button" data-h="'+h+'" aria-pressed="'+(!!escolhidas[h])+'">'+hh(h)+'</button>'}).join('');previa()}
-  function planoAbertura(){
-    var d=$('novaData').value,n=+$('repetir').value||1,hs=todasHoras().filter(function(h){return escolhidas[h]}),datas=[];
-    if(!/^\d{4}-\d\d-\d\d$/.test(d))return null;
-    for(var i=0;i<n;i++)datas.push(somaDias(d,7*i));
-    return {datas:datas,horas:hs};
-  }
-  function previa(){
-    var p=planoAbertura(),el=$('previa');
-    if(!p){el.textContent='Escolha o dia.';return}
-    if(p.datas[0]<hojeSP()){el.innerHTML='<b>Esse dia já passou.</b> Escolha outro.';return}
-    if(!p.horas.length){el.textContent='Escolha pelo menos um horário.';return}
-    el.innerHTML='Vai abrir <b>'+p.horas.map(hh).join(', ')+'</b><br>em <b>'+p.datas.length+' '+(p.datas.length>1?'dias':'dia')+'</b>: '+p.datas.map(function(d){return semana(d)+' '+curta(d)}).join(', ')+'.';
-  }
-  $('horas').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;var h=b.getAttribute('data-h');escolhidas[h]=!escolhidas[h];b.setAttribute('aria-pressed',!!escolhidas[h]);previa()};
-  $('bExtra').onclick=function(){var v=$('horaExtra').value;if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)){toast('Escolha um horário válido, por exemplo 13:30.',true);return}
-    if(extras.indexOf(v)<0)extras.push(v);escolhidas[v]=1;$('horaExtra').value='';desenharHoras()};
-  $('novaData').onchange=$('novaData').oninput=previa;$('repetir').onchange=previa;
-  $('bAbrir').onclick=function(){
-    var p=planoAbertura();
-    if(!p){toast('Escolha o dia primeiro.',true);return}
-    if(p.datas[0]<hojeSP()){toast('Esse dia já passou. Escolha outro.',true);return}
-    if(!p.horas.length){toast('Escolha pelo menos um horário.',true);return}
-    var pedidos=[];p.datas.forEach(function(d){p.horas.forEach(function(h){pedidos.push({data:d,hora:h})})});
-    $('bAbrir').disabled=true;$('bAbrir').textContent='Abrindo…';
-    api('POST','horarios?on_conflict=data,hora',pedidos,{Prefer:'resolution=ignore-duplicates,return=representation'})
-      .then(function(j){var n=(j||[]).length,f=pedidos.length-n;
-        if(!n)toast('Nenhum horário novo: esses horários já estavam abertos ou já passaram.',true);
-        else toast(n+(n>1?' horários abertos':' horário aberto')+(p.datas.length>1?' em '+p.datas.length+' dias':'')+'.'+(f?' '+f+(f>1?' já estavam abertos ou já passaram.':' já estava aberto ou já passou.'):''));
-        return carregar()},falha)
-      .then(function(){$('bAbrir').disabled=false;$('bAbrir').textContent='Abrir horários'});
-  };
-
-  // ---------- enviar horários para uma cliente ----------
-  var AG=window.AGENDA||{servicos:[],whatsapp:'5511948907302'};
-  var MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-  var SEMLONGA=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
-  var envSel={},envImg=null;
-  function limiteTxt(){var x=new Date(agoraSP().getTime()+60*60000);return x.getUTCFullYear()+'-'+dd(x.getUTCMonth()+1)+'-'+dd(x.getUTCDate())+' '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())}
-  // só entram horários livres que o site também mostra (começam daqui a mais de 1 hora)
-  function diasLivres(){var m={},o=[],lim=limiteTxt();rows.forEach(function(r){if(r.status!=='livre'||(r.data+' '+r.hora)<=lim)return;if(!m[r.data]){m[r.data]=[];o.push(r.data)}m[r.data].push(r.hora)});
-    return o.map(function(d){return {data:d,horas:m[d].sort()}})}
-  function selecionados(){return diasLivres().filter(function(d){return envSel[d.data]})}
-  function dataLonga(d){var x=utc(d);return SEMLONGA[x.getUTCDay()]+', '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()]}
-  function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
-  function curto(d){return semana(d).slice(0,3)+' '+curta(d)}
-  function nomeEnv(){return $('envNome').value.trim().slice(0,60)}
-  function telEnv(){var t=$('envTel').value.replace(/\D/g,'');if(t.indexOf('55')===0&&(t.length===12||t.length===13))t=t.slice(2);return (t.length===10||t.length===11)?t:''}
-  function servEnv(){var id=$('envServ').value;return listaServ().filter(function(x){return x.id===id})[0]||null}
-  function saud(){var n=primeiro(nomeEnv());return 'Oi'+(n?', '+n:'')+'! Aqui é a Amanda.'}
-  function siteBase(){return location.origin+location.pathname.replace(/admin\/(index\.html)?$/,'')}
-  function linkCliente(sel){var q='?dias='+sel.map(function(d){return d.data}).join(',');var n=primeiro(nomeEnv());if(n)q+='&n='+encodeURIComponent(n);var sv=servEnv();if(sv)q+='&s='+encodeURIComponent(sv.id);return siteBase()+q+'#agendar'}
-  function zapEnvio(texto){var t=telEnv();return 'https://wa.me/'+(t?'55'+t:'')+'?text='+encodeURIComponent(texto)}
-  function linhasHoras(sel){return sel.map(function(d){return '• '+semana(d.data)+', '+curta(d.data)+': '+d.horas.map(hh).join(', ')}).join('\n')}
-  function textoLink(sel){return saud()+' Separei estes horários para você:\n\n'+linhasHoras(sel)+'\n\nPara escolher o seu e garantir o horário, é só tocar neste link:\n'+linkCliente(sel)+'\n\nSe preferir, me responda aqui com o dia e a hora.'}
-  function textoImagem(sel){var sv=servEnv();return saud()+' Estes são os horários que tenho disponíveis'+(sv?' para '+sv.nome.toLowerCase():'')+':\n\n'+linhasHoras(sel)+'\n\nÉ só me responder aqui com o dia e a hora que você preferir.'}
-
-  function desenharEnvio(){
-    opcoesEnvio();
-    var ds=diasLivres(),vivo={};ds.forEach(function(d){vivo[d.data]=1});Object.keys(envSel).forEach(function(k){if(!vivo[k])delete envSel[k]});
-    $('envDias').innerHTML=ds.length?ds.map(function(d){return '<button class="chip dd" type="button" data-env="'+d.data+'" aria-pressed="'+(!!envSel[d.data])+'"><b>'+esc(curto(d.data))+'</b><small>'+d.horas.length+(d.horas.length>1?' horários':' horário')+'</small></button>'}).join(''):'<p class="vazio">Nenhum horário livre para enviar. Abra horários na parte Agenda.</p>';
-    var sel=selecionados(),el=$('envPrevia');
-    el.innerHTML=sel.length?sel.map(function(d){return '<b>'+esc(cap(dataLonga(d.data)))+'</b><br>'+d.horas.map(hh).join(' · ')}).join('<br><br>'):(ds.length?'Toque nos dias que você quer oferecer.':'Sem horários livres no momento.');
-    $('bLink').disabled=$('bImg').disabled=!sel.length;
-  }
-  $('envDias').onclick=function(e){var b=e.target.closest('[data-env]');if(!b)return;var d=b.getAttribute('data-env');envSel[d]=!envSel[d];desenharEnvio()};
-  var assinaturaServ='';
-  function opcoesEnvio(){var l=listaServ(),sig=l.map(function(x){return x.id+'|'+x.nome}).join(',');if(sig===assinaturaServ)return;assinaturaServ=sig;
-    var sel=$('envServ').value;$('envServ').innerHTML='<option value="">Qualquer um</option>'+l.filter(function(x){return x.ativo!==false}).map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===sel?' selected':'')+'>'+esc(x.nome)+'</option>'}).join('')}
-  opcoesEnvio();
-
-  function abrirEnvio(html){$('envio').innerHTML=html;$('envio').hidden=false;$('veu').hidden=false}
-  function fecharEnvio(){$('envio').hidden=true;if(!aberto)$('veu').hidden=true;if(envImg&&envImg.url){URL.revokeObjectURL(envImg.url)}envImg=null}
-  function copiar(texto){
-    var ok=function(){toast('Mensagem copiada.')},sem=function(){var pre=document.querySelector('#envio pre.txt');if(pre){var r=document.createRange();r.selectNodeContents(pre);var s2=getSelection();s2.removeAllRanges();s2.addRange(r)}toast('Selecionei o texto. Toque em Copiar.',true)};
-    try{navigator.clipboard.writeText(texto).then(ok,sem)}catch(e){sem()}
-  }
-
-  $('bLink').onclick=function(){
-    var sel=selecionados();if(!sel.length)return;var t=textoLink(sel);envImg=null;
-    abrirEnvio('<div><span class="estado livre">Link</span><div class="t" id="envT">Mensagem pronta</div><div class="d">Confira o texto. A cliente abre o link e vê só estes dias para escolher e agendar sozinha.</div></div>'+
-      '<pre class="txt">'+esc(t)+'</pre>'+
-      '<a class="btn zap" target="_blank" rel="noopener" href="'+esc(zapEnvio(t))+'">'+(telEnv()?'Abrir conversa com a cliente':'Escolher a cliente no WhatsApp')+'</a>'+
-      '<button class="btn ghost" data-acao="copiar" type="button">Copiar mensagem</button>'+
-      '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>');
-    envTexto=t;
-  };
-  var envTexto='';
-
-  // ---- imagem para a cliente ver e responder ----
-  function fmtZap(){var n=String(AG.whatsapp||'').replace(/\D/g,'').replace(/^55/,'');return n.length===11?'('+n.slice(0,2)+') '+n.slice(2,7)+'-'+n.slice(7):n.length===10?'('+n.slice(0,2)+') '+n.slice(2,6)+'-'+n.slice(6):n}
-  function criarImagem(sel,nome,sv){
-    var W=1080,P=48,F='Montserrat, system-ui, sans-serif';
-    var fontes=[document.fonts.load('48px "Great Vibes"'),document.fonts.load('800 40px Montserrat'),document.fonts.load('600 40px Montserrat'),document.fonts.load('600 28px Cormorant')];
-    return Promise.all(fontes).catch(function(){}).then(function(){return new Promise(function(res){var im=new Image();im.onload=function(){res(im)};im.onerror=function(){res(null)};im.src='../img/logo.svg'})}).then(function(logo){
-      var c=document.createElement('canvas'),x=c.getContext('2d');
-      function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
-      function larg(t,f){x.font=f;return x.measureText(t).width}
-      // 1) mede cada cartão de dia
-      var util=W-2*P-72,GAP=16,PH=92;
-      var cards=sel.map(function(d){var linhas=[[]],cur=0;
-        d.horas.forEach(function(h){var t=hh(h),w=Math.max(150,larg(t,'800 52px '+F)+64);if(cur+w>util&&linhas[linhas.length-1].length){linhas.push([]);cur=0}linhas[linhas.length-1].push({t:t,w:w});cur+=w+GAP});
-        return {titulo:cap(dataLonga(d.data)),linhas:linhas,h:36+64+20+linhas.length*PH+(linhas.length-1)*GAP+36}});
-      var topo=546+(nome?64:0)+(sv?60:0),rodape=410,gap=26;
-      var H=Math.max(1350,topo+cards.reduce(function(a,k){return a+k.h+gap},0)+rodape);
-      c.width=W;c.height=H;
-      // 2) fundo
-      var g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#167469');g.addColorStop(.45,'#0B5F59');g.addColorStop(1,'#053F3A');x.fillStyle=g;x.fillRect(0,0,W,H);
-      x.strokeStyle='rgba(245,197,157,.18)';x.lineWidth=2;x.beginPath();x.arc(W+60,-40,380,0,7);x.stroke();x.beginPath();x.arc(-80,H-160,330,0,7);x.stroke();
-      // 3) cabeçalho
-      x.textAlign='center';x.textBaseline='alphabetic';
-      if(logo)x.drawImage(logo,W/2-80,56,160,160);
-      x.fillStyle='#F5C59D';x.font='400 112px "Great Vibes", cursive';x.fillText('Amanda Rocha',W/2,350);
-      x.fillStyle='#FBE3CE';x.font='600 30px Cormorant, Georgia, serif';x.fillText('AURICULOTERAPIA  ·  ESTÉTICA',W/2,400);
-      var y=490;x.fillStyle='#FFF8F1';x.font='800 70px '+F;x.fillText('Horários disponíveis',W/2,y);
-      if(nome){y+=64;x.fillStyle='#F5C59D';x.font='700 44px '+F;x.fillText('para '+nome,W/2,y)}
-      if(sv){y+=60;x.fillStyle='#FBE3CE';x.font='600 38px '+F;x.fillText(sv.nome,W/2,y)}
-      y=topo;
-      // 4) cartões dos dias
-      cards.forEach(function(k){
-        x.fillStyle='#FFF8F1';rr(P,y,W-2*P,k.h,36);x.fill();
-        x.textAlign='left';x.fillStyle='#053F3A';x.font='800 50px '+F;x.fillText(k.titulo,P+36,y+36+50);
-        var py=y+36+64+20;
-        k.linhas.forEach(function(ln){var px=P+36;ln.forEach(function(p){x.fillStyle='#0B5F59';rr(px,py,p.w,PH,28);x.fill();x.fillStyle='#FFF8F1';x.textAlign='center';x.font='800 52px '+F;x.fillText(p.t,px+p.w/2,py+PH/2+19);px+=p.w+GAP});x.textAlign='left';py+=PH+GAP});
-        y+=k.h+gap});
-      // 5) rodapé
-      var ry=H-rodape+16;x.fillStyle='#F5C59D';rr(P,ry,W-2*P,rodape-112,36);x.fill();
-      x.textAlign='center';x.fillStyle='#053F3A';x.font='800 46px '+F;x.fillText('Gostou de um horário?',W/2,ry+76);
-      x.font='600 36px '+F;x.fillText('Responda esta mensagem com',W/2,ry+130);x.fillText('o dia e a hora que você prefere.',W/2,ry+176);
-      x.font='800 64px '+F;x.fillText(fmtZap(),W/2,ry+246);
-      x.fillStyle='rgba(251,227,206,.8)';x.font='700 24px "JetBrains Mono", monospace';x.fillText('EQUILÍBRIO • BEM-ESTAR • SAÚDE',W/2,H-34);
-      return new Promise(function(res){c.toBlob(res,'image/png')});
-    });
-  }
-  $('bImg').onclick=function(){
-    var sel=selecionados();if(!sel.length)return;var nome=primeiro(nomeEnv()),sv=servEnv(),t=textoImagem(sel);
-    abrirEnvio('<div><span class="estado pedido">Imagem</span><div class="t" id="envT">Criando a imagem…</div></div>');
-    criarImagem(sel,nome,sv).then(function(blob){
-      if(!blob)throw 0;var url=URL.createObjectURL(blob);var file;try{file=new File([blob],'horarios-amanda.png',{type:'image/png'})}catch(e){file=null}
-      envImg={url:url,file:file,texto:t};envTexto=t;
-      abrirEnvio('<div><span class="estado pedido">Imagem</span><div class="t" id="envT">Imagem pronta</div><div class="d">Letras grandes, para a cliente ver com facilidade e responder qual horário prefere.</div></div>'+
-        '<img class="previa-img" alt="Horários disponíveis" src="'+url+'">'+
-        '<button class="btn zap" data-acao="compartilhar" type="button">Enviar pelo WhatsApp</button>'+
-        '<a class="btn ghost" href="'+url+'" download="horarios-amanda.png">Salvar imagem</a>'+
-        (telEnv()?'<a class="btn ghost" target="_blank" rel="noopener" href="'+esc(zapEnvio(t))+'">Abrir só a conversa com a cliente</a>':'')+
-        '<p class="nota">Se abrir uma tela com a imagem, segure o dedo sobre ela e toque em Salvar. Depois é só anexar na conversa.</p>'+
-        '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>');
-    }).catch(function(){abrirEnvio('<div><div class="t" id="envT">Não consegui criar a imagem</div><div class="d">Tente de novo. Se continuar, envie o link.</div></div><button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>')});
-  };
-  function compartilhar(){
-    if(!envImg||!envImg.file){toast('Este aparelho não envia imagem direto. Toque em Salvar imagem.',true);return}
-    var d={files:[envImg.file],text:envImg.texto};
-    if(navigator.share&&(!navigator.canShare||navigator.canShare(d))){navigator.share(d).catch(function(e){if(e&&e.name!=='AbortError')toast('Não consegui abrir o compartilhamento. Toque em Salvar imagem.',true)})}
-    else toast('Este aparelho não envia imagem direto. Toque em Salvar imagem e anexe no WhatsApp.',true);
-  }
-  document.addEventListener('click',function(e){
-    var b=e.target.closest('[data-acao]');if(!b)return;var a=b.getAttribute('data-acao');
-    if(a==='fecharEnvio')fecharEnvio();if(a==='copiar')copiar(envTexto);if(a==='compartilhar')compartilhar();
-    if(a==='dia')abrirDia(b.getAttribute('data-dia'));
-    if(a==='dia-add')diaAdicionar(b.getAttribute('data-dia'),b);
-    if(a==='dia-limpar-perg')abrirDia(b.getAttribute('data-dia'),true);
-    if(a==='dia-limpar')diaLimpar(b.getAttribute('data-dia'),b);
-    if(a==='serv-editar')abrirServ(b.getAttribute('data-serv'));
-    if(a==='serv-salvar')salvarServ(b.getAttribute('data-serv'),b);
-    if(a==='serv-remover-perg')abrirServ(b.getAttribute('data-serv'),true);
-    if(a==='serv-remover')removerServ(b.getAttribute('data-serv'),b);
-  });
-  document.addEventListener('click',function(e){if(e.target===$('veu')&&!$('envio').hidden)fecharEnvio()});
-
-  // ---------- opções de um dia da agenda ----------
-  function abrirDia(d,perguntar){
-    var doDia=rows.filter(function(r){return r.data===d}),livres=doDia.filter(function(r){return r.status==='livre'}).length,marcados=doDia.length-livres;
-    var h='<div><span class="estado livre">Dia</span><div class="t" id="envT">'+esc(dia(d))+'</div><div class="d">'+livres+' livre'+(livres===1?'':'s')+(marcados?' · '+marcados+' com cliente':'')+'</div></div>';
-    if(perguntar)h+='<div class="pergunta">Remover os '+livres+' horário'+(livres===1?'':'s')+' livre'+(livres===1?'':'s')+' deste dia? Os horários com cliente continuam.</div><button class="btn bad-solid" data-acao="dia-limpar" data-dia="'+d+'" type="button">Sim, remover os livres</button><button class="btn ghost" data-acao="dia" data-dia="'+d+'" type="button">Voltar</button>';
-    else h+='<label for="dHora">Adicionar um horário neste dia</label><div class="extra"><input type="time" id="dHora" step="900"><button class="btn main" data-acao="dia-add" data-dia="'+d+'" type="button">Adicionar</button></div>'+
-      (livres?'<button class="btn bad" data-acao="dia-limpar-perg" data-dia="'+d+'" type="button">Remover os horários livres deste dia…</button>':'')+
-      '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>';
-    abrirEnvio(h);
-  }
-  function diaAdicionar(d,b){
-    var v=$('dHora').value;if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)){toast('Escolha o horário, por exemplo 13:30.',true);return}
-    b.disabled=true;
-    api('POST','horarios?on_conflict=data,hora',[{data:d,hora:v}],{Prefer:'resolution=ignore-duplicates,return=representation'})
-      .then(function(j){if(j&&j.length){toast(hh(v)+' adicionado em '+dia(d)+'.');fecharEnvio()}else toast('Esse horário já existe ou já passou.',true);return carregar()},falha)
-      .then(function(){b.disabled=false});
-  }
-  function diaLimpar(d,b){
-    b.disabled=true;
-    api('DELETE','horarios?data=eq.'+d+'&status=eq.livre',undefined,{Prefer:'return=representation'})
-      .then(function(j){var n=(j||[]).length;toast(n?n+' horário'+(n>1?'s':'')+' livre'+(n>1?'s':'')+' removido'+(n>1?'s':'')+' de '+dia(d)+'.':'Nenhum horário livre para remover.');fecharEnvio();return carregar()},falha)
-      .then(function(){b.disabled=false});
-  }
-
-  // ---------- serviços ----------
-  function desenharServicos(){
-    var el=$('servicos');
-    if(bancoVelho){el.innerHTML='<p class="vazio">Para editar os serviços por aqui, falta atualizar o banco.</p>';$('bNovoServ').hidden=true;return}
-    $('bNovoServ').hidden=false;var l=servs||[];
-    el.innerHTML=l.length?l.map(function(x){
-      var tags=(x.ativo?'':'<span class="tag off">Escondido do site</span>')+(x.novidade?'<span class="tag nov">Novidade</span>':'')+(x.desde?'<span class="tag">A partir de '+curta(x.desde)+'</span>':'');
-      return '<div class="card serv"><div><b>'+esc(x.nome)+'</b><span>'+esc(x.detalhe||'')+'</span>'+(tags?'<div class="tags">'+tags+'</div>':'')+'</div><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Editar</button></div>'}).join(''):
-      '<p class="vazio">Nenhum serviço. Adicione o primeiro.</p>';
-  }
-  function servPorId(id){return (servs||[]).filter(function(x){return x.id===id})[0]}
-  function abrirServ(id,perguntar){
-    var x=id?servPorId(id):null;if(id&&!x){toast(MUDOU,true);return}
-    var h='<div><span class="estado livre">Serviço</span><div class="t" id="envT">'+(x?esc(x.nome):'Novo serviço')+'</div></div>';
-    if(perguntar)h+='<div class="pergunta">Remover o serviço '+esc(x.nome)+'? Ele some do site. Os horários já marcados com ele continuam.</div><button class="btn bad-solid" data-acao="serv-remover" data-serv="'+esc(x.id)+'" type="button">Sim, remover</button><button class="btn ghost" data-acao="serv-editar" data-serv="'+esc(x.id)+'" type="button">Voltar</button>';
-    else h+='<label for="sNome">Nome</label><input type="text" id="sNome" maxlength="40" value="'+esc(x?x.nome:'')+'" placeholder="Ex.: Massagem relaxante">'+
-      '<label for="sDet">Descrição curta (opcional)</label><input type="text" id="sDet" maxlength="60" value="'+esc(x&&x.detalhe||'')+'" placeholder="Ex.: R$ 75 na inauguração">'+
-      '<label class="check"><input type="checkbox" id="sAtivo"'+(!x||x.ativo?' checked':'')+'> Aparece no site</label>'+
-      '<label class="check"><input type="checkbox" id="sNov"'+(x&&x.novidade?' checked':'')+'> Mostrar o selo “Novidade”</label>'+
-      '<label for="sDesde">Pode ser marcado a partir de (opcional)</label><input type="date" id="sDesde" value="'+esc(x&&x.desde||'')+'">'+
-      '<button class="btn main" data-acao="serv-salvar" data-serv="'+esc(x?x.id:'')+'" type="button">Salvar</button>'+
-      (x?'<button class="btn bad" data-acao="serv-remover-perg" data-serv="'+esc(x.id)+'" type="button">Remover serviço…</button>':'')+
-      '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>';
-    abrirEnvio(h);
-  }
-  function slug(t){var b=String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,26)||'servico';
-    if(b.length<2)b+='-s';var id=b,i=2;while(servPorId(id))id=b+'-'+(i++);return id}
-  function salvarServ(id,b){
-    var nome=$('sNome').value.trim(),det=$('sDet').value.trim(),desde=$('sDesde').value||null;
-    if(nome.length<2){toast('Escreva o nome do serviço.',true);return}
-    var dados={nome:nome.slice(0,40),detalhe:det?det.slice(0,60):null,ativo:$('sAtivo').checked,novidade:$('sNov').checked,desde:desde};
-    b.disabled=true;
-    var req=id?api('PATCH','servicos?id=eq.'+encodeURIComponent(id),dados,{Prefer:'return=representation'})
-              :api('POST','servicos',(dados.id=slug(nome),dados.ordem=(servs||[]).reduce(function(m,x){return Math.max(m,x.ordem||0)},0)+1,dados),{Prefer:'return=representation'});
-    req.then(function(j){if(!j||!j.length){toast(MUDOU,true);return}toast(id?'Serviço atualizado.':'Serviço adicionado. Ele já aparece no site.');fecharEnvio();return carregar()},falha)
-       .then(function(){b.disabled=false});
-  }
-  function removerServ(id,b){
-    b.disabled=true;
-    api('DELETE','servicos?id=eq.'+encodeURIComponent(id),undefined,{Prefer:'return=representation'})
-      .then(function(j){toast(j&&j.length?'Serviço removido.':MUDOU,!(j&&j.length));fecharEnvio();return carregar()},falha)
-      .then(function(){b.disabled=false});
-  }
-  $('bNovoServ').onclick=function(){abrirServ(null)};
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('envio').hidden)fecharEnvio()});
-
-  desenharHoras();
-  $('novaData').min=hojeSP();
-  mostrar();
-})();
-</script>
+<script src="painel.js"></script>
 </body>
 </html>
