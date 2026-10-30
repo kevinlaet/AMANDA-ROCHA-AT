@@ -9,6 +9,7 @@
   (o fundo vai até a borda) e todo o texto fica 4 mm para dentro do corte.
   Página 1: frente. Página 2: verso (QR, contatos, cartão fidelidade com 5 carimbos e a linha de indicação).
   O telefone pode ser trocado sem mexer no arquivo: cartao-visita.html?tel=11999998888
+  A frente sai no lado brilho e o verso no lado fosco, que perde cor: por isso o verso usa cores mais escuras.
   Para gerar o PDF da gráfica e as imagens: node tests/render-cartao.mjs [telefone]
 -->
 <style>
@@ -17,51 +18,52 @@
 @font-face{font-family:'Cormorant';src:url(../fonts/cormorant-italico.woff2) format('woff2');font-weight:300 700;font-style:italic}
 @font-face{font-family:'Montserrat';src:url(../fonts/montserrat.woff2) format('woff2');font-weight:100 900}
 @page{size:96mm 56mm;margin:0}
-:root{--papel:#FBF4EC;--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--ouro:#C8A27A;--cobre:#A86A3E;--ink:#17332F;--muted:#55706B}
+/* --s: sangria em volta do corte */
+:root{--s:3mm;--papel:#FBF4EC;--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--ouro:#C8A27A;--cobre:#A86A3E;--ink:#17332F;--muted:#55706B}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#cfc9c3}
 body{font-family:Montserrat,sans-serif;color:var(--ink);font-variant-numeric:lining-nums;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.pag{position:relative;width:96mm;height:56mm;overflow:hidden;margin:0 auto 6mm;page-break-after:always;break-after:page}
+.pag{position:relative;width:calc(90mm + 2*var(--s));height:calc(50mm + 2*var(--s));overflow:hidden;margin:0 auto 6mm;page-break-after:always;break-after:page}
 .pag:last-child{page-break-after:auto;break-after:auto}
 @media print{html,body{background:none}.pag{margin:0}}
-/* área segura: 3 mm de sangria + 4 mm de margem até o corte */
-.seguro{position:absolute;inset:7mm}
+/* área segura: todo o texto fica 4 mm para dentro do corte */
+.seguro{position:absolute;inset:calc(var(--s) + 4mm)}
 
 /* ---------- frente ---------- */
-.frente{background:radial-gradient(48mm 40mm at 92% 8%,rgba(245,197,157,.20),transparent 70%),radial-gradient(50mm 40mm at 0% 100%,rgba(11,95,89,.65),transparent 70%),var(--teal-d);color:var(--papel)}
+.frente{background:radial-gradient(48mm 40mm at calc(var(--s) + 85.3mm) calc(var(--s) + 1.5mm),rgba(245,197,157,.20),transparent 70%),radial-gradient(50mm 40mm at calc(var(--s) - 3mm) calc(var(--s) + 53mm),rgba(11,95,89,.65),transparent 70%),var(--teal-d);color:var(--papel)}
 .frente .seguro{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .frente .logo{width:10.5mm;height:10.5mm;display:block}
 .frente .nome{font-family:'Great Vibes',cursive;font-size:9.6mm;line-height:1;color:var(--peach);margin-top:1.6mm}
-.frente .prof{font-weight:600;font-size:1.95mm;letter-spacing:.55mm;text-transform:uppercase;color:var(--peach-l);margin-top:1.4mm}
+.frente .prof{font-weight:600;font-size:2.1mm;letter-spacing:.55mm;text-transform:uppercase;color:var(--peach-l);margin-top:1.4mm}
 .frente .fio{display:block;width:14mm;height:.25mm;background:var(--ouro);margin-top:2.6mm}
 .frente .serv{font-family:Cormorant;font-style:italic;font-weight:500;font-size:3.7mm;color:var(--papel);margin-top:2.2mm}
-.frente .excl{font-weight:600;font-size:1.75mm;letter-spacing:.4mm;text-transform:uppercase;color:var(--peach);margin-top:1.3mm}
+.frente .excl{font-weight:600;font-size:1.9mm;letter-spacing:.4mm;text-transform:uppercase;color:var(--peach);margin-top:1.3mm}
 
 /* ---------- verso ---------- */
-.verso{background:radial-gradient(46mm 36mm at 100% 0%,rgba(245,197,157,.38),transparent 70%),var(--papel)}
+.verso{background:radial-gradient(46mm 36mm at calc(var(--s) + 93mm) calc(var(--s) - 3mm),rgba(245,197,157,.38),transparent 70%),var(--papel)}
 .verso .seguro{display:flex;flex-direction:column;justify-content:space-between}
 .topo{display:flex;gap:3.6mm;align-items:center}
 .qrbox{flex:none;display:flex;flex-direction:column;align-items:center;gap:.8mm}
 .qr{width:17mm;height:17mm;background:#fff;border-radius:1.4mm;padding:.6mm;box-shadow:0 0 0 .25mm rgba(200,162,122,.7)}
 .qr img{display:block;width:100%;height:100%}
-.qrbox span{font-weight:700;font-size:1.6mm;letter-spacing:.3mm;text-transform:uppercase;color:var(--teal)}
+.qrbox span{font-weight:700;font-size:1.7mm;letter-spacing:.3mm;text-transform:uppercase;color:var(--teal-d)}
 .contatos{list-style:none;display:grid;gap:1.1mm;min-width:0}
 .contatos li{display:flex;align-items:flex-start;gap:1.5mm;font-size:2.15mm;line-height:1.28;color:var(--ink)}
 .contatos li svg{flex:none;width:2.5mm;height:2.5mm;color:var(--cobre);margin-top:.05mm}
 .contatos .tel{font-weight:700;font-size:3.2mm;line-height:1;color:var(--teal-d);letter-spacing:.05mm}
 .contatos .tel svg{width:3.2mm;height:3.2mm}
 /* cartão fidelidade: 5 carimbos e o presente */
-.fid{display:flex;align-items:center;justify-content:space-between;gap:2.5mm;background:rgba(255,255,255,.62);border:.25mm solid rgba(200,162,122,.6);border-radius:2mm;padding:1.15mm 1.8mm}
+.fid{display:flex;align-items:center;justify-content:space-between;gap:2.5mm;background:rgba(255,255,255,.62);border:.3mm solid rgba(168,106,62,.7);border-radius:2mm;padding:1.15mm 1.8mm}
 .fid-t{min-width:0}
-.fid-t b{display:block;font-weight:700;font-size:1.7mm;letter-spacing:.32mm;text-transform:uppercase;color:var(--teal)}
+.fid-t b{display:block;font-weight:700;font-size:1.75mm;letter-spacing:.32mm;text-transform:uppercase;color:var(--teal-d)}
 .fid-t span{display:block;font-size:2.2mm;line-height:1.2;color:var(--ink);margin-top:.45mm}
 .selos{list-style:none;display:flex;gap:1.2mm;flex:none}
-.selos li{width:6.3mm;height:6.3mm;border-radius:50%;border:.25mm dashed rgba(152,91,48,.6);display:grid;place-items:center;font-size:1.75mm;font-weight:600;color:rgba(85,112,107,.4)}
+.selos li{width:6.3mm;height:6.3mm;border-radius:50%;border:.3mm dashed #7A4521;display:grid;place-items:center;font-size:1.75mm;font-weight:600;color:rgba(85,112,107,.75)}
 .selos .premio{border:.25mm solid var(--ouro);background:var(--peach-l);color:var(--cobre)}
 .selos .premio svg{width:3.5mm;height:3.5mm}
-.indica{display:flex;align-items:flex-end;gap:1.6mm;font-weight:600;font-size:1.9mm;color:var(--teal)}
-.indica i{flex:1;height:0;border-bottom:.2mm dashed rgba(23,51,47,.45);margin-bottom:.45mm}
-.nota{font-family:Cormorant;font-style:italic;font-size:2.5mm;line-height:1.15;color:var(--muted);margin-top:.7mm}
+.indica{display:flex;align-items:flex-end;gap:1.6mm;font-weight:700;font-size:1.9mm;color:var(--teal-d)}
+.indica i{flex:1;height:0;border-bottom:.25mm dashed rgba(23,51,47,.75);margin-bottom:.45mm}
+.nota{font-family:Cormorant;font-style:italic;font-weight:600;font-size:2.5mm;line-height:1.15;color:var(--ink);margin-top:.7mm}
 </style>
 </head>
 <body>
