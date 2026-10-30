@@ -1,7 +1,7 @@
 // Gera o cartão de visita (folders/cartao-visita.html): PDF para a gráfica, com 3 mm de sangria,
 // e imagens da frente e do verso já cortadas, para conferir. Confere se o texto fica na área segura.
-// Também gera a versão 9 x 5 cm sem sangria, para gráficas que pedem a imagem no tamanho final:
-// cartao-9x5-frente.jpg e cartao-9x5-verso.jpg, a 300 dpi.
+// Também gera a versão 9 x 5 cm sem sangria, para gráficas que pedem a arte no tamanho final:
+// cartao-9x5-frente.jpg e cartao-9x5-verso.jpg, a 300 dpi, e cartao-9x5.pdf (página 1: frente; página 2: verso).
 // Uso: node tests/render-cartao.mjs [telefone, ex.: 11999998888] [pasta-de-saida]
 import { chromium } from 'playwright';
 import fs from 'node:fs';
@@ -40,6 +40,23 @@ function comDpi(jpg) {
   const app0 = Buffer.from([0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, DPI >> 8, DPI & 255, DPI >> 8, DPI & 255, 0x00, 0x00]);
   return Buffer.concat([b.subarray(0, 2), app0, b.subarray(2)]);
 }
+// PDF montado à mão com uma imagem por página, no tamanho exato pedido (o PDF do Chrome arredonda a página
+// e deixa um fio branco na borda). Página 1: frente; página 2: verso.
+function pdfDeJpgs(jpgs, larguraMm, alturaMm) {
+  const W = (larguraMm / 25.4 * 72).toFixed(4), H = (alturaMm / 25.4 * 72).toFixed(4);
+  const objs = [Buffer.from('<< /Type /Catalog /Pages 2 0 R >>'), Buffer.from(`<< /Type /Pages /Kids [${jpgs.map((_, i) => `${3 + 3 * i} 0 R`).join(' ')}] /Count ${jpgs.length} >>`)];
+  jpgs.forEach((jpg, i) => {
+    const [w, h] = tamanhoJpg(jpg), n = 3 + 3 * i, desenho = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+    objs.push(Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /TrimBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${n + 1} 0 R >> >> /Contents ${n + 2} 0 R >>`));
+    objs.push(Buffer.concat([Buffer.from(`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`), jpg, Buffer.from('\nendstream')]));
+    objs.push(Buffer.from(`<< /Length ${desenho.length} >>\nstream\n${desenho}\nendstream`));
+  });
+  const partes = [Buffer.from('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', 'latin1')], inicio = [];
+  let pos = partes[0].length;
+  objs.forEach((o, i) => { inicio.push(pos); const b = Buffer.concat([Buffer.from(`${i + 1} 0 obj\n`), o, Buffer.from('\nendobj\n')]); partes.push(b); pos += b.length; });
+  partes.push(Buffer.from(`xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + inicio.map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${pos}\n%%EOF\n`));
+  return Buffer.concat(partes);
+}
 // largura e altura em pixels, lidas do próprio JPG
 function tamanhoJpg(b) {
   for (let i = 2; i < b.length - 9;) {
@@ -73,10 +90,20 @@ for (const [i, el] of (await pj.locator('.pag').all()).entries()) {
   fs.writeFileSync(path.join(saida, ['cartao-9x5-frente.jpg', 'cartao-9x5-verso.jpg'][i]), jpg);
   tamanhos.push(tamanhoJpg(jpg));
 }
+// PDF de 9 x 5 cm exatos, com as mesmas imagens em 600 dpi (340 x 189 px de tela viram 2126 x 1182 px)
+const pa = await abrir(2126 / 340);
+const altas = [];
+for (const el of await pa.locator('.pag').all()) {
+  const b = await el.boundingBox();
+  altas.push(await pa.screenshot({ type: 'jpeg', quality: 95, clip: { x: Math.round(b.x + 3 * mm), y: Math.round(b.y + 3 * mm), width: 340, height: 189 } }));
+}
 await navegador.close();
+fs.writeFileSync(path.join(saida, 'cartao-9x5.pdf'), pdfDeJpgs(altas, 90, 50));
+const paginas = [...fs.readFileSync(path.join(saida, 'cartao-9x5.pdf'), 'latin1').matchAll(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/g)].map((m) => [+m[1] / 72 * 25.4, +m[2] / 72 * 25.4]);
 
 const certo = (t) => t && Math.abs(t[0] - 1063) <= 1 && Math.abs(t[1] - 591) <= 1;
 const prob = r.prob;
-const ok = !prob.length && r.pags === 2 && tamanhos.every(certo);
-console.log((ok ? 'OK    ' : 'FALHA ') + `frente e verso, telefone ${r.tel}; 9 x 5 cm: ${tamanhos.map((t) => t ? t.join(' x ') : '?').join(' e ')} px a ${DPI} dpi` + (prob.length ? '\n  ' + prob.join('\n  ') : ''));
+const pdfCerto = paginas.length === 2 && paginas.every(([w, h]) => Math.abs(w - 90) < 0.01 && Math.abs(h - 50) < 0.01) && altas.every((j) => (tamanhoJpg(j) || []).join() === '2126,1182');
+const ok = !prob.length && r.pags === 2 && tamanhos.every(certo) && pdfCerto;
+console.log((ok ? 'OK    ' : 'FALHA ') + `frente e verso, telefone ${r.tel}; 9 x 5 cm: ${tamanhos.map((t) => t ? t.join(' x ') : '?').join(' e ')} px a ${DPI} dpi; PDF 9 x 5: ${paginas.length} páginas de ${paginas.map((p) => p.map((x) => x.toFixed(2)).join(' x ')).join(' e ')} mm` + (prob.length ? '\n  ' + prob.join('\n  ') : ''));
 process.exit(ok ? 0 : 1);
