@@ -33,8 +33,11 @@ const BASE = `http://localhost:${servidor.address().port}${PREFIXO}/`;
 
 // ---------- banco e cenário ----------
 const banco = await criarBanco();
-const { db } = banco;
 const api = criarApi(banco);
+// as consultas diretas do teste entram na mesma fila dos pedidos do site e do painel:
+// assim nunca rodam no meio de um pedido, com o papel (anon, Amanda) dele
+const dbBruto = banco.db;
+const db = { exec: (s) => api.exec(s), query: (s, p) => api.sql(s, p) };
 // limites do guardião bem altos: estes testes fazem muitos pedidos seguidos de propósito (o guardião é testado à parte)
 await db.exec(`update guardiao set max_10min = 1000, max_hora = 1000`);
 const q = async (s, p) => (await db.query(s, p)).rows;
@@ -210,7 +213,7 @@ await noPainel(P, D3, '13:00');
 const caixa = await caixaDoPainel(P), vp = P.viewportSize();
 ok(caixa && caixa.y >= 0 && caixa.y + caixa.height <= vp.height + 1, `o painel de ações abre dentro da tela (de ${Math.round(caixa.y)} a ${Math.round(caixa.y + caixa.height)} px, tela de ${vp.height} px)`);
 const id13 = (await horario(D3, '13:00')).id;
-await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Cliente Atrasada', '11977776666')`, [id13]));
+await api.como('anon', null, () => dbBruto.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Cliente Atrasada', '11977776666')`, [id13]));
 await P.click('#sheet [data-a=perg-ocupar]');
 await P.fill('#fNome', 'Dona Edilva');
 await P.click('#sheet [data-a=ocupar]');
@@ -224,7 +227,7 @@ await db.exec(`insert into horarios (data, hora) values ('${D10}', '18:00')`);
 await P.click('#bAtualizar'); await P.waitForSelector(`[data-abrir="${(await horario(D10, '18:00')).id}"]`);
 await noPainel(P, D10, '18:00');
 const id18 = (await horario(D10, '18:00')).id;
-await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Rita Lima', '11955554444')`, [id18]));
+await api.como('anon', null, () => dbBruto.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Rita Lima', '11955554444')`, [id18]));
 await P.click('#sheet [data-a=perg-remover]'); await P.click('#sheet [data-a=remover]');
 await P.waitForFunction(() => /mudou enquanto você olhava/.test(document.getElementById('toast').innerText));
 ok((await horario(D10, '18:00'))?.nome === 'Rita Lima', '"Remover" com a tela velha NÃO apaga o pedido novo');
@@ -398,8 +401,8 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   const idDe = async (d, h) => (await horario(d, h)).id;
   // uma cliente confirmada em D20 10h e outra amanhã (para o lembrete)
   const [idB, idC] = [await idDe(D20, '10:00'), await idDe(AMANHA, '23:30')];
-  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Beatriz Nunes', '11944443333')`, [idB]));
-  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Carla Dias', '11977771111')`, [idC]));
+  await api.como('anon', null, () => dbBruto.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Beatriz Nunes', '11944443333')`, [idB]));
+  await api.como('anon', null, () => dbBruto.query(`select public.pedir_horario($1, 'Auriculoterapia', 'Carla Dias', '11977771111')`, [idC]));
   await db.exec(`update horarios set status = 'confirmado' where nome in ('Beatriz Nunes', 'Carla Dias')`);
 
   const c = await contexto(IPHONE);
@@ -632,7 +635,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await db.exec(`insert into horarios (data, hora) select '${D25}'::date, h from unnest(array['11:00','12:00','13:00','14:00','14:30','16:00']) h`);
   const idD = async (h) => (await horario(D25, h)).id;
   const id13 = await idD('13:00');
-  await banco.como('anon', null, () => db.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Lara Limpeza', '11930001111')`, [id13]));
+  await api.como('anon', null, () => dbBruto.query(`select public.pedir_horario($1, 'Limpeza de pele', 'Lara Limpeza', '11930001111')`, [id13]));
   // site: só aparecem os horários em que o procedimento cabe
   const cs = await contexto(ANDROID);
   const S = await cs.newPage();
@@ -696,7 +699,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
 {
   const velho = await criarBanco({ schema: path.join(RAIZ, 'tests/fixtures/schema-antes-da-atualizacao-2.sql') });
   const apiVelha = criarApi(velho);
-  const qv = async (sql, p) => (await velho.db.query(sql, p)).rows;
+  const qv = async (sql, p) => (await apiVelha.sql(sql, p)).rows;
   const DV = (await qv(`select (public.agora_sp() + interval '3 days')::date::text d`))[0].d;
   await velho.db.exec(`insert into horarios (data, hora) select '${DV}'::date, h from unnest(array['10:00','11:00','12:00','13:00','14:00']) h`);
   const idV = async (h) => (await qv(`select id from horarios where data = $1 and hora = $2`, [DV, h]))[0].id;
@@ -1160,7 +1163,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
 // ===== 5. Privacidade e erros =====
 const publico = await (await fetch(BASE)).text();
 ok(!/Joana|Maria Silva|Rita Lima|Edilva|988887777|912345678|955554444/.test(publico), 'o HTML público não tem nome nem telefone de cliente');
-const respostaPublica = await banco.como('anon', null, () => q('select * from public.agenda_publica()'));
+const respostaPublica = await api.como('anon', null, async () => (await dbBruto.query('select * from public.agenda_publica()')).rows);
 ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912345678/), 'a agenda pública não entrega nome nem telefone');
 // assinatura no fim de todas as páginas (os moldes de imagem em folders/ ficam de fora)
 {

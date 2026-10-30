@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Propaganda do salão</title>
+<meta name="robots" content="noindex">
+<!--
+  Propaganda impressa para o salão (A4). Página 1: cartaz para o balcão ou a parede.
+  Página 2: 4 cartões de espelho (A6, para recortar). Página 3: 4 cartões com o recado da Sandra.
+  O QR leva direto ao agendamento com a limpeza de pele já escolhida. Não tem número de telefone
+  de propósito: se o número de trabalho mudar, o impresso continua valendo.
+  Para gerar o PDF e as imagens: node tests/render-cartaz.mjs
+-->
+<style>
+@font-face{font-family:'Great Vibes';src:url(../fonts/greatvibes.woff2) format('woff2')}
+@font-face{font-family:'Cormorant';src:url(../fonts/cormorant.woff2) format('woff2');font-weight:300 700}
+@font-face{font-family:'Cormorant';src:url(../fonts/cormorant-italico.woff2) format('woff2');font-weight:300 700;font-style:italic}
+@font-face{font-family:'Montserrat';src:url(../fonts/montserrat.woff2) format('woff2');font-weight:100 900}
+@page{size:A4;margin:0}
+:root{--papel:#FBF4EC;--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cobre:#B9774A;--ouro:#C8A27A;--ink:#17332F;--muted:#5E736E}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#d9d4cf}
+body{font-family:Montserrat,sans-serif;color:var(--ink);font-variant-numeric:lining-nums;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.folha{position:relative;width:210mm;height:297mm;overflow:hidden;background:var(--papel);margin:0 auto 8mm;page-break-after:always;break-after:page}
+.folha:last-child{page-break-after:auto;break-after:auto;margin-bottom:0}
+@media print{html,body{background:none}.folha{margin:0}}
+.logo{display:block}
+.script{font-family:'Great Vibes',cursive;font-weight:400;line-height:1}
+.serif{font-family:Cormorant,Georgia,serif}
+
+/* ---------- cartaz A4 ---------- */
+.cartaz{background:
+  radial-gradient(95mm 80mm at 96% 2%,rgba(245,197,157,.42),transparent 70%),
+  radial-gradient(110mm 90mm at 0% 100%,rgba(11,95,89,.10),transparent 70%),var(--papel)}
+.cartaz:before{content:"";position:absolute;inset:7mm;border:.4mm solid rgba(200,162,122,.6);border-radius:7mm;pointer-events:none}
+.cz{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;text-align:center;padding:13mm 15mm 11mm}
+.cz .marca{display:flex;align-items:center;gap:3.5mm}
+.cz .marca .logo{width:12mm;height:12mm}
+.cz .marca .script{font-size:12mm;color:var(--teal)}
+.cz .marca small{display:block;text-align:left;font-weight:600;font-size:2.5mm;letter-spacing:1.3mm;text-transform:uppercase;color:var(--muted);margin-top:.6mm}
+.kicker{display:flex;align-items:center;gap:3.5mm;font-weight:700;font-size:3.3mm;letter-spacing:1.4mm;text-transform:uppercase;color:var(--teal);margin-top:6mm}
+.kicker i{display:block;width:12mm;height:.35mm;background:var(--ouro)}
+.titulo{margin-top:3mm;line-height:.95}
+.titulo .t1{display:block;font-family:Cormorant;font-weight:600;font-size:15.5mm;letter-spacing:-.3mm;color:var(--teal-d)}
+.titulo .t2{display:block;font-family:'Great Vibes';font-size:17mm;color:var(--cobre);margin-top:-1mm}
+.foto{position:relative;width:118mm;height:84mm;margin-top:6mm}
+.foto:before{content:"";position:absolute;inset:-2.6mm -2.6mm 2.6mm 2.6mm;border:.35mm solid var(--ouro);border-radius:59mm 59mm 6mm 6mm}
+.foto img{position:relative;display:block;width:100%;height:100%;object-fit:cover;border-radius:59mm 59mm 6mm 6mm;box-shadow:0 4mm 9mm rgba(5,63,58,.18)}
+.selo{position:absolute;right:-17mm;bottom:5mm;width:44mm;height:44mm;border-radius:50%;background:var(--teal-d);color:var(--papel);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3mm 8mm rgba(5,63,58,.3)}
+.selo:before{content:"";position:absolute;inset:2mm;border-radius:50%;border:.3mm dashed rgba(245,197,157,.75)}
+.selo span{font-weight:700;font-size:2.4mm;letter-spacing:.8mm;text-transform:uppercase;color:var(--peach)}
+.selo s{font-family:Cormorant;font-size:5mm;color:var(--peach-l);margin-top:.6mm;text-decoration-thickness:.3mm}
+.selo b{font-family:Cormorant;font-weight:600;font-size:17mm;line-height:.9;letter-spacing:-.4mm}
+.selo b small{font-size:6mm;vertical-align:top;position:relative;top:2.2mm;margin-right:.6mm;color:var(--peach)}
+.selo em{font-family:Cormorant;font-style:italic;font-size:4.4mm;color:var(--peach-l)}
+.sub{font-family:Cormorant;font-style:italic;font-weight:500;font-size:6.6mm;line-height:1.2;color:var(--muted);margin-top:7mm}
+.pontos{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;width:100%;margin-top:6mm}
+.ponto{display:flex;flex-direction:column;align-items:center;gap:1.8mm;background:rgba(255,255,255,.6);border:.3mm solid rgba(200,162,122,.6);border-radius:4mm;padding:3.2mm 2.5mm}
+.ponto svg{width:7mm;height:7mm;color:var(--cobre)}
+.ponto b{font-weight:600;font-size:3.35mm;line-height:1.3;color:var(--ink)}
+.cta{width:100%;display:flex;align-items:center;gap:6mm;background:var(--teal-d);color:var(--papel);border-radius:6mm;padding:5mm 5mm 5mm 8mm;text-align:left;margin-top:auto;box-shadow:0 4mm 9mm rgba(5,63,58,.22)}
+.cta .l1{font-weight:700;font-size:3.1mm;letter-spacing:1.2mm;text-transform:uppercase;color:var(--peach)}
+.cta .l2{font-family:Cormorant;font-weight:600;font-size:10.5mm;line-height:1;margin-top:1.6mm}
+.cta .l3{font-family:Cormorant;font-style:italic;font-size:5mm;color:var(--peach-l);margin-top:1.6mm}
+.cta .l4{display:flex;align-items:center;gap:1.6mm;font-weight:600;font-size:3.2mm;margin-top:3mm;color:var(--peach-l)}
+.cta .l4 svg{width:4.2mm;height:4.2mm}
+.qr{flex:none;margin-left:auto;background:#fff;border-radius:3.5mm;padding:2.2mm}
+.qr img{display:block;width:100%;height:100%}
+.cta .qr{width:42mm;height:42mm}
+.rodape{margin-top:5mm;font-size:3.1mm;line-height:1.5;color:var(--ink)}
+.rodape b{color:var(--teal)}
+.rodape .coren{font-weight:600;font-size:2.8mm;letter-spacing:.3mm;color:var(--muted);margin-top:.8mm}
+
+/* ---------- cartões A6 (4 por folha, para recortar) ---------- */
+.grade4{display:grid;grid-template-columns:105mm 105mm;grid-template-rows:148.5mm 148.5mm;background:#fff}
+.grade4:after{content:"";position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(90deg,transparent calc(50% - .15mm),rgba(0,0,0,.18) calc(50% - .15mm),rgba(0,0,0,.18) calc(50% + .15mm),transparent calc(50% + .15mm)),
+  linear-gradient(0deg,transparent calc(50% - .15mm),rgba(0,0,0,.18) calc(50% - .15mm),rgba(0,0,0,.18) calc(50% + .15mm),transparent calc(50% + .15mm))}
+.cartao{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;text-align:center;padding:9mm 8mm 7mm;background:
+  radial-gradient(60mm 50mm at 100% 0%,rgba(245,197,157,.4),transparent 70%),var(--papel)}
+.cartao:before{content:"";position:absolute;inset:4mm;border:.3mm solid rgba(200,162,122,.6);border-radius:4mm;pointer-events:none}
+.cartao .nome{font-size:8.5mm;color:var(--teal)}
+.cartao .prof{font-weight:600;font-size:2.1mm;letter-spacing:1mm;text-transform:uppercase;color:var(--muted);margin-top:.8mm}
+.cartao .intro{font-family:Cormorant;font-style:italic;font-weight:500;font-size:5.4mm;color:var(--muted)}
+.cartao .frase{font-family:Cormorant;font-weight:600;font-size:8.6mm;line-height:1.02;color:var(--teal-d);margin-top:1.5mm}
+.cartao .frase em{font-family:'Great Vibes';font-style:normal;font-weight:400;font-size:9.4mm;color:var(--cobre)}
+.preco{display:flex;align-items:center;gap:2.5mm;background:var(--teal-d);color:var(--papel);border-radius:99mm;padding:1.8mm 4.5mm}
+.preco span{font-weight:600;font-size:2.9mm;letter-spacing:.2mm}
+.preco s{font-family:Cormorant;font-size:4mm;color:var(--peach-l)}
+.preco b{font-family:Cormorant;font-weight:600;font-size:6.6mm;line-height:1}
+.ate{font-size:2.6mm;font-weight:600;color:var(--cobre);margin-top:1.4mm;letter-spacing:.2mm}
+.cartao .esp{flex:1 1 0;min-height:2mm}
+.cartao>*{flex-shrink:0}
+.mini{position:relative;width:62mm;height:33mm}
+.mini:before{content:"";position:absolute;inset:-1.6mm -1.6mm 1.6mm 1.6mm;border:.3mm solid var(--ouro);border-radius:31mm 31mm 3mm 3mm}
+.mini img{position:relative;display:block;width:100%;height:100%;object-fit:cover;border-radius:31mm 31mm 3mm 3mm}
+.lista{font-size:2.75mm;line-height:1.6;color:var(--ink)}
+.lista b{color:var(--ouro);margin:0 1.4mm}
+.cartao .base{display:flex;align-items:center;gap:3.5mm;width:100%;text-align:left}
+.cartao .base .qr{width:31mm;height:31mm;margin-left:0;border:.3mm solid rgba(200,162,122,.6);padding:1.6mm;border-radius:2.5mm}
+.cartao .base b{display:block;font-weight:700;font-size:3mm;line-height:1.3;color:var(--teal)}
+.cartao .base span{display:block;font-size:2.55mm;line-height:1.45;color:var(--ink);margin-top:1mm}
+.cartao .base small{display:block;font-weight:600;font-size:2.2mm;color:var(--muted);margin-top:1.4mm;letter-spacing:.1mm}
+/* recado da Sandra: um bilhete escrito à mão */
+.recado .kick{display:flex;align-items:center;gap:1.6mm;font-weight:700;font-size:2.5mm;letter-spacing:1mm;text-transform:uppercase;color:var(--cobre)}
+.recado .kick svg{width:3.4mm;height:3.4mm}
+.recado .bilhete{position:relative;background:#fff;border-radius:2mm;padding:5mm 5mm 3.5mm;box-shadow:0 1.5mm 4mm rgba(5,63,58,.12);transform:rotate(-1.2deg)}
+.recado .bilhete:before{content:"";position:absolute;left:50%;top:-2mm;width:16mm;height:4.4mm;transform:translateX(-50%) rotate(2deg);background:rgba(245,197,157,.75)}
+.recado .bilhete p{font-family:Cormorant;font-style:italic;font-weight:500;font-size:5.1mm;line-height:1.28;color:var(--ink)}
+.recado .bilhete .ass{font-family:'Great Vibes';font-size:9mm;color:var(--teal);text-align:right;margin-top:1mm;line-height:1}
+</style>
+</head>
+<body>
+
+<!-- ===================== Página 1: cartaz A4 ===================== -->
+<section class="folha cartaz">
+  <div class="cz">
+    <header class="marca"><img class="logo" src="../img/logo.svg" alt=""><div><div class="script">Amanda Rocha</div><small>Beleza · Saúde · Bem-estar</small></div></header>
+    <div class="kicker"><i></i>Aqui no salão · aos sábados<i></i></div>
+    <h1 class="titulo"><span class="t1">Sua pele também merece</span><span class="t2">um dia de salão</span></h1>
+    <figure class="foto">
+      <img src="../img/folder-limpeza.jpg" alt="">
+      <div class="selo"><span>Inauguração</span><s>de R$ 85</s><b><small>R$</small>75</b><em>até 19/12</em></div>
+    </figure>
+    <p class="sub">Limpeza de pele com o cuidado de uma enfermeira.</p>
+    <div class="pontos">
+      <div class="ponto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4 6 6.5 6 10a6 6 0 0 1-12 0c0-3.5 3-6 6-10z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></svg><b>Pele limpa, renovada e com viço</b></div>
+      <div class="ponto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/></svg><b>Extração cuidadosa de cravos e espinhas</b></div>
+      <div class="ponto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4-3 7.6-7 8.5-4-.9-7-4.5-7-8.5V6z"/><path d="M9 12h6M12 9v6"/></svg><b>1h40 só para você, com biossegurança de enfermeira</b></div>
+    </div>
+    <div class="cta">
+      <div>
+        <div class="l1">Aponte a câmera do celular</div>
+        <div class="l2">Escolha seu horário</div>
+        <div class="l3">em menos de um minuto</div>
+        <div class="l4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg>@amandarochaat</div>
+      </div>
+      <div class="qr"><img src="../img/qr-agendar-limpeza.svg" alt="QR code para agendar"></div>
+    </div>
+    <div class="rodape">
+      <div><b>Atendimento exclusivo para mulheres</b> · Também: auriculoterapia para dores, ansiedade e sono</div>
+      <div class="coren">Enf. Amanda Rocha · COREN-SP 617675</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Página 2: cartões de espelho (A6) ===================== -->
+<section class="folha grade4">
+  <template id="espelho">
+    <div class="cartao">
+      <div class="script nome">Amanda Rocha</div>
+      <div class="prof">Enfermeira · aqui no salão</div>
+      <div class="esp"></div>
+      <p class="intro">Enquanto o cabelo fica lindo…</p>
+      <p class="frase">sua pele também <em>merece cuidado.</em></p>
+      <div class="esp"></div>
+      <figure class="mini"><img src="../img/folder-limpeza.jpg" alt=""></figure>
+      <div class="esp"></div>
+      <div class="preco"><span>Limpeza de pele</span><s>R$ 85</s><b>R$ 75</b></div>
+      <div class="ate">Valor de inauguração até 19/12</div>
+      <div class="esp"></div>
+      <div class="base">
+        <div class="qr"><img src="../img/qr-agendar-limpeza.svg" alt=""></div>
+        <div><b>Aponte a câmera e escolha seu horário</b><span>Aos sábados · 1h40 só para você<br>Atendimento exclusivo para mulheres</span><small>COREN-SP 617675</small></div>
+      </div>
+    </div>
+  </template>
+</section>
+
+<!-- ===================== Página 3: recado da Sandra (A6) ===================== -->
+<section class="folha grade4">
+  <template id="sandra">
+    <div class="cartao recado">
+      <div class="kick"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.3 4.3 2.5h2c.7-1.2 2.1-2.5 4.3-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>Um recado da Sandra</div>
+      <div class="esp"></div>
+      <div class="bilhete">
+        <p>Minha filha Amanda é enfermeira e agora cuida da pele das nossas clientes, aqui mesmo no salão, aos sábados. Recomendo de olhos fechados!</p>
+        <div class="ass">Sandra</div>
+      </div>
+      <div class="esp"></div>
+      <p class="lista">Pele limpa e renovada<b>·</b>Extração cuidadosa<br>1h40 só para você<b>·</b>Biossegurança de enfermeira</p>
+      <div class="esp"></div>
+      <div class="preco"><span>Limpeza de pele</span><s>R$ 85</s><b>R$ 75</b></div>
+      <div class="ate">Valor de inauguração até 19/12</div>
+      <div class="esp"></div>
+      <div class="base">
+        <div class="qr"><img src="../img/qr-agendar-limpeza.svg" alt=""></div>
+        <div><b>Aponte a câmera e escolha seu horário</b><span>Aos sábados · aqui no salão<br>Atendimento exclusivo para mulheres</span><small>Enf. Amanda Rocha · COREN-SP 617675</small></div>
+      </div>
+    </div>
+  </template>
+</section>
+
+<script>
+// cada folha de cartões repete o mesmo cartão 4 vezes
+document.querySelectorAll('template').forEach(function(t){for(var i=0;i<4;i++)t.parentNode.appendChild(t.content.cloneNode(true))});
+</script>
+</body>
+</html>

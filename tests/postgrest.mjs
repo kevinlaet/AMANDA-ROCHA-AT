@@ -10,9 +10,12 @@ export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa' };
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
 const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora', 'valor', 'faltou']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao', 'preco', 'preco_antes', 'preco_obs', 'descricao', 'beneficios']) };
 
+const FILAS = new WeakMap();
 export function criarApi({ db, como, opcoes = {} }) {
-  let fila = Promise.resolve();
-  const emSerie = (fn) => { const r = fila.then(fn); fila = r.catch(() => {}); return r; };
+  // uma fila por banco: todos os "Supabase de mentira" sobre o mesmo banco esperam a vez juntos
+  if (!FILAS.has(db)) FILAS.set(db, { fim: Promise.resolve() });
+  const fila = FILAS.get(db);
+  const emSerie = (fn) => { const r = fila.fim.then(fn); fila.fim = r.catch(() => {}); return r; };
   const json = (route, corpo, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(corpo) });
   const lista = async (sql, params) => (await db.query(`with t as (${sql}) select coalesce(json_agg(t), '[]'::json) j from t`, params)).rows[0].j;
 
@@ -161,5 +164,8 @@ export function criarApi({ db, como, opcoes = {} }) {
   }
   // consulta direta do teste, na mesma fila dos pedidos (nunca roda no meio de um pedido, com o papel dele)
   const sql = (texto, params) => emSerie(() => db.query(texto, params));
-  return { tratar, estat, sql };
+  const exec = (texto) => emSerie(() => db.exec(texto));
+  // como(): o teste age como um papel do Supabase também na fila (fn usa o banco direto, sem a fila)
+  const comoNaFila = (papel, email, fn, extra) => emSerie(() => como(papel, email, fn, extra));
+  return { tratar, estat, sql, exec, como: comoNaFila };
 }

@@ -116,6 +116,7 @@ No Início do painel, um cartão mostra o faturamento do mês, quantos atendimen
 
 - **Serviços e preços:** pelo painel, em Mais › Serviços e preços › Editar: nome, preço (com o preço antigo riscado, se quiser), observação do preço, frase curta, texto do site, os 3 benefícios principais, duração, data de estreia e se aparece no site. O site muda na hora. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
 - **Textos do site**: `index.html`
+- **Propaganda do salão**: `folders/cartaz.html` (cartaz A4, cartões de espelho e recado da Sandra; o QR abre o agendamento com a limpeza escolhida e não há telefone impresso). Para gerar o PDF e as imagens em `folders/impressao/`, rode `node tests/render-cartaz.mjs`.
 - **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5. Para gerar os PNGs de novo (e conferir que nada saiu da página), rode `node tests/render-folders.mjs`. As fotos ficam em `img/folder-*.jpg`; a do espaço é ilustrativa, então o ideal é trocar `img/folder-espaco.jpg` por uma foto real do salão.
 
 ## Questionário da Amanda
