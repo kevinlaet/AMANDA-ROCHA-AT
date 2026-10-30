@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cartão de visita</title>
+<meta name="robots" content="noindex">
+<!--
+  Cartão de visita 9 x 5 cm. Cada página tem 96 x 56 mm: 3 mm de sangria em volta do corte
+  (o fundo vai até a borda) e todo o texto fica 4 mm para dentro do corte.
+  Página 1: frente. Página 2: verso.
+  O telefone pode ser trocado sem mexer no arquivo: cartao-visita.html?tel=11999998888
+  Para gerar o PDF da gráfica e as imagens: node tests/render-cartao.mjs [telefone]
+-->
+<style>
+@font-face{font-family:'Great Vibes';src:url(../fonts/greatvibes.woff2) format('woff2')}
+@font-face{font-family:'Cormorant';src:url(../fonts/cormorant.woff2) format('woff2');font-weight:300 700}
+@font-face{font-family:'Cormorant';src:url(../fonts/cormorant-italico.woff2) format('woff2');font-weight:300 700;font-style:italic}
+@font-face{font-family:'Montserrat';src:url(../fonts/montserrat.woff2) format('woff2');font-weight:100 900}
+@page{size:96mm 56mm;margin:0}
+:root{--papel:#FBF4EC;--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--ouro:#C8A27A;--cobre:#A86A3E;--ink:#17332F;--muted:#55706B}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#cfc9c3}
+body{font-family:Montserrat,sans-serif;color:var(--ink);font-variant-numeric:lining-nums;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pag{position:relative;width:96mm;height:56mm;overflow:hidden;margin:0 auto 6mm;page-break-after:always;break-after:page}
+.pag:last-child{page-break-after:auto;break-after:auto}
+@media print{html,body{background:none}.pag{margin:0}}
+/* área segura: 3 mm de sangria + 4 mm de margem até o corte */
+.seguro{position:absolute;inset:7mm}
+
+/* ---------- frente ---------- */
+.frente{background:radial-gradient(48mm 40mm at 92% 8%,rgba(245,197,157,.20),transparent 70%),radial-gradient(50mm 40mm at 0% 100%,rgba(11,95,89,.65),transparent 70%),var(--teal-d);color:var(--papel)}
+.frente .seguro{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.frente .logo{width:10.5mm;height:10.5mm;display:block}
+.frente .nome{font-family:'Great Vibes',cursive;font-size:9.6mm;line-height:1;color:var(--peach);margin-top:1.6mm}
+.frente .prof{font-weight:600;font-size:1.95mm;letter-spacing:.55mm;text-transform:uppercase;color:var(--peach-l);margin-top:1.4mm}
+.frente .fio{display:block;width:14mm;height:.25mm;background:var(--ouro);margin-top:2.6mm}
+.frente .serv{font-family:Cormorant;font-style:italic;font-weight:500;font-size:3.7mm;color:var(--papel);margin-top:2.2mm}
+.frente .excl{font-weight:600;font-size:1.75mm;letter-spacing:.4mm;text-transform:uppercase;color:var(--peach);margin-top:1.3mm}
+
+/* ---------- verso ---------- */
+.verso{background:radial-gradient(46mm 36mm at 100% 0%,rgba(245,197,157,.38),transparent 70%),var(--papel)}
+.verso .seguro{display:flex;flex-direction:column;justify-content:space-between}
+.topo{display:flex;gap:4mm;align-items:center}
+.qrbox{flex:none;display:flex;flex-direction:column;align-items:center;gap:1mm}
+.qr{width:21.5mm;height:21.5mm;background:#fff;border-radius:1.6mm;padding:1mm;box-shadow:0 0 0 .25mm rgba(200,162,122,.7)}
+.qr img{display:block;width:100%;height:100%}
+.qrbox span{font-weight:700;font-size:1.75mm;letter-spacing:.35mm;text-transform:uppercase;color:var(--teal)}
+.contatos{list-style:none;display:grid;gap:1.6mm;min-width:0}
+.contatos li{display:flex;align-items:flex-start;gap:1.6mm;font-size:2.3mm;line-height:1.3;color:var(--ink)}
+.contatos li svg{flex:none;width:2.7mm;height:2.7mm;color:var(--cobre);margin-top:.05mm}
+.contatos .tel{font-weight:700;font-size:3.4mm;line-height:1;color:var(--teal-d);letter-spacing:.05mm}
+.contatos .tel svg{width:3.4mm;height:3.4mm}
+.indica{display:flex;align-items:flex-end;gap:1.6mm;font-weight:600;font-size:1.95mm;color:var(--teal)}
+.indica i{flex:1;height:0;border-bottom:.2mm dashed rgba(23,51,47,.45);margin-bottom:.45mm}
+.nota{font-family:Cormorant;font-style:italic;font-size:2.55mm;color:var(--muted);margin-top:.6mm}
+</style>
+</head>
+<body>
+
+<section class="pag frente">
+  <div class="seguro">
+    <img class="logo" src="../img/logo.svg" alt="">
+    <div class="nome">Amanda Rocha</div>
+    <div class="prof">Enfermeira · COREN-SP 617675</div>
+    <i class="fio"></i>
+    <div class="serv">Limpeza de pele · Auriculoterapia</div>
+    <div class="excl">Atendimento exclusivo para mulheres</div>
+  </div>
+</section>
+
+<section class="pag verso">
+  <div class="seguro">
+    <div class="topo">
+      <div class="qrbox"><div class="qr"><img src="../img/qr-agendar.svg" alt="QR code para agendar"></div><span>Agende aqui</span></div>
+      <ul class="contatos">
+        <li class="tel"><svg viewBox="0 0 32 32"><path fill="#25D366" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/><path fill="#fff" d="M23.2 19.4c-.4-.2-2.3-1.1-2.6-1.3-.4-.1-.6-.2-.9.2l-1.2 1.5c-.2.3-.4.3-.8.1a10.6 10.6 0 0 1-5.3-4.6c-.4-.7.4-.6 1.1-2.1.1-.3 0-.5 0-.7l-1.2-2.8c-.3-.7-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.4 1.3-1.4 3.2s1.4 3.7 1.6 4c.2.2 2.7 4.2 6.6 5.9 2.5 1 3.4 1.1 4.7.9.8-.1 2.3-.9 2.6-1.9.3-.9.3-1.7.2-1.9-.1-.2-.4-.3-.8-.4z"/></svg><span id="tel">(11) 94890-7302</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".9" fill="currentColor"/></svg><span>@amandarochaat</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Rua Onivaldo Vanderlei Dionísio, 25<br>Vila Nova Mauá</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span>Sábados, com hora marcada</span></li>
+      </ul>
+    </div>
+    <div>
+      <div class="indica"><span>Indicação de:</span><i></i></div>
+      <p class="nota">Ao agendar, mostre este cartão: quem indicou ganha um presente.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+// ?tel=11999998888 troca o telefone impresso (ex.: quando houver um número só de trabalho)
+(function(){var t=(new URLSearchParams(location.search).get('tel')||'').replace(/\D/g,'');
+  if(/^\d{10,11}$/.test(t))document.getElementById('tel').textContent='('+t.slice(0,2)+') '+t.slice(2,-4)+'-'+t.slice(-4)})();
+</script>
+</body>
+</html>
