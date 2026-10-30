@@ -68,7 +68,7 @@ O painel é organizado como aplicativo: **Início** (pedidos e lembretes do dia)
 2. Em Settings > Pages > Build and deployment, escolha **Deploy from a branch**, o branch do site e a pasta **/ (root)**.
 3. O endereço é `https://amandarochabemestar.com.br/`. A página de links fica em `…/links/` e o painel em `…/admin/`. O endereço antigo, `kevinlaet.github.io/AMANDA-ROCHA-AT/`, redireciona sozinho para o novo.
 
-**Domínio próprio (Registro.br, no nome da Amanda):** o arquivo `CNAME` diz ao GitHub qual é o domínio. Na zona DNS do Registro.br ficam quatro entradas `A` sem nome (185.199.108.153, 185.199.109.153, 185.199.110.153 e 185.199.111.153), um `CNAME` `www` para `kevinlaet.github.io` e o `TXT` de verificação do GitHub. Em Settings > Pages, "Enforce HTTPS" fica marcado. Se o domínio mudar, troquem também as tags `og:` e `canonical` de `index.html`, `links/index.html` e `regras/index.html`, os QR codes dos impressos e o `painel_url` do banco (as notificações abrem o painel por ele).
+**Domínio próprio (Registro.br):** o arquivo `CNAME` diz ao GitHub qual é o domínio. Na zona DNS do Registro.br ficam quatro entradas `A` sem nome (185.199.108.153, 185.199.109.153, 185.199.110.153 e 185.199.111.153), um `CNAME` `www` para `kevinlaet.github.io` e o `TXT` de verificação do GitHub. Em Settings > Pages, "Enforce HTTPS" fica marcado. Se o domínio mudar, troquem também as tags `og:` e `canonical` de `index.html`, `links/index.html` e `regras/index.html`, os QR codes dos impressos e o `painel_url` do banco (as notificações abrem o painel por ele).
 
 ### 2. Supabase (a agenda com reserva e o painel)
 
