@@ -66,9 +66,10 @@ const caixaDoPainel = async (pagina) => { await pagina.locator('#sheet').evaluat
 const navegador = await chromium.launch();
 const erros = [];
 const agendaJs = fs.readFileSync(path.join(RAIZ, 'agenda.js'), 'utf8').replace(/desde: "\d{4}-\d\d-\d\d"/, `desde: "${D5}"`);
-async function contexto(dispositivo, { ligado = true, apiDoBanco = api } = {}) {
+async function contexto(dispositivo, { ligado = true, apiDoBanco = api, medicao = '' } = {}) {
   const c = await navegador.newContext({ ...dispositivo, reducedMotion: 'reduce' });
-  await c.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: ligado ? `window.SUPABASE={url:${JSON.stringify(SUPABASE_URL)},anonKey:${JSON.stringify(ANON_KEY)}};` : 'window.SUPABASE={url:"",anonKey:""};' }));
+  const cfgMedicao = `window.MEDICAO={googleAnalytics:${JSON.stringify(medicao)}};`;
+  await c.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: (ligado ? `window.SUPABASE={url:${JSON.stringify(SUPABASE_URL)},anonKey:${JSON.stringify(ANON_KEY)}};` : 'window.SUPABASE={url:"",anonKey:""};') + cfgMedicao }));
   await c.route('**/agenda.js', (r) => r.fulfill({ contentType: 'text/javascript', body: agendaJs }));
   await c.route(SUPABASE_URL + '/**', apiDoBanco.tratar);
   await c.route('https://wa.me/**', (r) => r.fulfill({ contentType: 'text/html', body: 'whatsapp' }));
@@ -1184,6 +1185,68 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   }
   await c.close();
 }
+// ===== 6. Cookies e medição de visitas =====
+{
+  const google = [];
+  const googleDeMentira = (c) => c.route('https://www.googletagmanager.com/**', (r) => { google.push(r.request().url()); r.fulfill({ contentType: 'text/javascript', body: '' }); });
+  // sem o código do Google Analytics no config.js: nem aviso, nem link, nem Google
+  const c0 = await contexto(IPHONE);
+  await googleDeMentira(c0);
+  const s0 = await c0.newPage();
+  await s0.goto(BASE, { waitUntil: 'networkidle' });
+  ok(!(await s0.locator('.ck').count()) && await s0.locator('footer [data-cookies]').isHidden() && !google.length, 'cookies: sem o código do Google Analytics, não há aviso, link nem medição');
+  await c0.close();
+
+  const ID = 'G-TESTE12345';
+  const c = await contexto(IPHONE, { ligado: false, medicao: ID });
+  await googleDeMentira(c);
+  // tudo o que o site entrega para o Google fica registrado aqui, mesmo quando a página sai para o WhatsApp
+  const enviados = [];
+  await c.exposeFunction('__google', (t) => enviados.push(t));
+  await c.addInitScript(() => {
+    const dl = [];
+    dl.push = function (...itens) { for (const a of itens) window.__google(JSON.stringify(Array.from(a))); return Array.prototype.push.apply(this, itens); };
+    window.dataLayer = dl;
+  });
+  const p = await c.newPage();
+  await p.goto(BASE + '?o=cartao&n=Mariazinha&s=limpeza#agendar', { waitUntil: 'networkidle' });
+  ok(await p.locator('.ck').isVisible() && await p.locator('.ck [data-ck="sim"]').isVisible() && await p.locator('.ck [data-ck="nao"]').isVisible(), 'cookies: o aviso aparece na primeira visita, com Aceitar e Recusar');
+  ok(!google.length && !enviados.length && !(await c.cookies()).some((k) => k.name.startsWith('_ga')), 'cookies: nada vai para o Google antes de a visitante aceitar');
+  await p.click('.ck [data-ck="nao"]');
+  await p.reload({ waitUntil: 'networkidle' });
+  ok(await p.locator('.ck').isHidden() && !google.length && !enviados.length, 'cookies: a recusa fica guardada (sem aviso e sem Google na volta)');
+  await p.click('footer [data-cookies]');
+  ok(/recusados/.test(await p.locator('.ck').innerText()), 'cookies: o link "Cookies" do rodapé reabre o aviso e mostra a escolha atual');
+  await p.click('.ck [data-ck="sim"]');
+  await p.waitForFunction(() => document.querySelector('script[src*="googletagmanager"]'));
+  ok(google.length === 1 && google[0].includes('id=' + ID), 'cookies: depois de aceitar, o Google Analytics carrega');
+  let tudo = enviados.join('\n');
+  ok(/utm_source=cartao/.test(tudo) && /utm_medium=qr/.test(tudo), 'cookies: quem chega pelo QR do cartão aparece com a origem "cartao"');
+  ok(!/Mariazinha|s=limpeza|[?&]n=/.test(tudo), 'cookies: o nome da cliente e os parâmetros do link não vão para o Google');
+  ok(/"ad_storage":"denied"/.test(tudo) && /"allow_google_signals":false/.test(tudo), 'cookies: propaganda e sinais do Google ficam sempre desligados');
+  // pedido de horário vira o evento "agendamento" (só com o serviço, sem o nome)
+  await p.click('#o-servico .opt >> nth=0'); await p.click('#o-dia .opt >> nth=0'); await p.click('#o-hora .opt >> nth=1'); await p.fill('#nome', 'Mariazinha');
+  await Promise.all([p.waitForURL(/wa\.me/), p.click('#go')]);
+  await p.waitForTimeout(200);
+  tudo = enviados.join('\n');
+  ok(/"event","agendamento",\{"servico":"Auriculoterapia"\}/.test(tudo) && !/Mariazinha/.test(tudo), 'cookies: o pedido de horário conta como "agendamento", com o serviço e sem o nome da cliente');
+  // a escolha vale também na página de links do Instagram
+  await p.goto(BASE + 'links/', { waitUntil: 'networkidle' });
+  ok(await p.locator('.ck').count() === 0 && google.length >= 2, 'cookies: a página de links usa a mesma escolha, sem perguntar de novo');
+  await Promise.all([p.waitForURL(/wa\.me/), p.click('a.l[href*="wa.me"]')]);
+  await p.waitForTimeout(200);
+  ok(/"event","contato_whatsapp"/.test(enviados.join('\n')), 'cookies: o toque no WhatsApp conta como "contato_whatsapp"');
+  // recusar depois de ter aceitado apaga os cookies do Google
+  await p.goto(BASE, { waitUntil: 'networkidle' });
+  // como o Google Analytics grava: na raiz do site
+  await p.evaluate(() => { document.cookie = '_ga=GA1.1.123.456; path=/'; document.cookie = '_ga_TESTE12345=GS1.1.1; path=/'; });
+  ok((await c.cookies()).filter((k) => k.name.startsWith('_ga')).length === 2, 'cookies: (teste) cookies do Google gravados como o Google grava');
+  await p.click('footer [data-cookies]');
+  await p.click('.ck [data-ck="nao"]');
+  ok(!(await c.cookies()).some((k) => k.name.startsWith('_ga')) && await p.evaluate((id) => window['ga-disable-' + id] === true, ID), 'cookies: recusar depois de aceitar desliga a medição e apaga os cookies do Google');
+  await c.close();
+}
+
 ok(erros.length === 0, 'nenhum erro de JavaScript nas páginas' + (erros.length ? ': ' + erros.join(' | ') : ''));
 
 await navegador.close();

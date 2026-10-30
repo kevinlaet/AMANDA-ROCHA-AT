@@ -152,11 +152,15 @@
   $('tel').oninput=function(){aviso='';render()};
   $('tel').onblur=function(){if(telOk())formata()};
 
+  // medição de visitas (medicao.js): só conta se a visitante aceitou os cookies
+  function medir(nome,p){try{if(window.medir)window.medir(nome,p)}catch(e){}}
+  // o link do WhatsApp leva o nome da cliente na mensagem: por isso é um botão, e não um link
+  function abrirWa(url){var b=$('resumo').querySelector('.abre-wa');if(b)b.onclick=function(){location.href=url}}
   $('go').onclick=function(){
     var sv=servico(),sl=slot(),nome=$('nome').value.trim();if(!sv||!sl)return;
     var msg='Olá Amanda! Quero agendar:\n\n• '+sv.nome+'\n• '+sem(S.dia)+', '+curta(S.dia)+' às '+hh(sl.hora)+'\n\nMeu nome é '+nome+'.';
     var url='https://wa.me/'+A.whatsapp+'?text='+encodeURIComponent(msg);
-    if(!live){location.href=url;return}
+    if(!live){medir('agendamento',{servico:sv.nome});location.href=url;return}
     enviando=true;$('goTxt').textContent='Reservando…';render();
     fetch(C.url+'/rest/v1/rpc/pedir_horario',{method:'POST',headers:cab(),
       body:JSON.stringify({p_id:sl.id,p_servico:sv.nome,p_nome:nome,p_telefone:digitos()})})
@@ -165,13 +169,13 @@
         enviando=false;$('goTxt').textContent='Confirmar pelo WhatsApp';
         if(res==='ok'){
           reservado=true;render();
-          $('resumo').innerHTML='<b>Horário guardado para você!</b><br>'+escH(sv.nome)+', '+sem(S.dia).toLowerCase()+' '+curta(S.dia)+' às '+hh(sl.hora)+'.<br>Agora envie a mensagem no WhatsApp para a Amanda confirmar.<br><a href="'+url+'">Abrir o WhatsApp</a>';
-          $('resumo').className='resumo on ok';location.href=url;return}
+          $('resumo').innerHTML='<b>Horário guardado para você!</b><br>'+escH(sv.nome)+', '+sem(S.dia).toLowerCase()+' '+curta(S.dia)+' às '+hh(sl.hora)+'.<br>Agora envie a mensagem no WhatsApp para a Amanda confirmar.<br><button type="button" class="abre-wa">Abrir o WhatsApp</button>';
+          $('resumo').className='resumo on ok';abrirWa(url);medir('agendamento',{servico:sv.nome});location.href=url;return}
         // proteção do guardião ligada: a Amanda confirma direto pelo WhatsApp
         if(res==='pausado'){
           reservado=true;render();
-          $('resumo').innerHTML='<b>Quase lá!</b><br>Envie a mensagem no WhatsApp e a Amanda confirma seu horário por lá.<br><a href="'+url+'">Abrir o WhatsApp</a>';
-          $('resumo').className='resumo on ok';location.href=url;return}
+          $('resumo').innerHTML='<b>Quase lá!</b><br>Envie a mensagem no WhatsApp e a Amanda confirma seu horário por lá.<br><button type="button" class="abre-wa">Abrir o WhatsApp</button>';
+          $('resumo').className='resumo on ok';abrirWa(url);medir('agendamento',{servico:sv.nome});location.href=url;return}
         if(res==='conflito'){S.hora=null;aviso='<b>Esse horário ficou apertado para o procedimento.</b><br>Ele encosta em outro atendimento. Escolha outro horário, por favor.';return load().then(render)}
         if(res==='servico'){S.servico=null;S.dia=null;S.hora=null;aviso='<b>Os serviços acabaram de ser atualizados.</b><br>Escolha o serviço de novo, por favor.';return load().then(render)}
         if(res==='limite'){aviso='<b>Você já tem 2 horários reservados.</b><br>Para marcar mais, fale com a Amanda no WhatsApp.';render();return}

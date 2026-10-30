@@ -17,3 +17,12 @@ window.SUPABASE = {
   url: "https://qumfluviiqjxlqzjcfly.supabase.co",
   anonKey: "sb_publishable_VzXwyl7KzD3EXx0QtHT9ww_BRCm-KW-"
 };
+
+/*
+  Medição de visitas (Google Analytics 4). Cole aqui o "ID da métrica"
+  (começa com G-), passo a passo no README. Também é público.
+  Enquanto estiver vazio, nada é medido e o aviso de cookies não aparece.
+*/
+window.MEDICAO = {
+  googleAnalytics: ""
+};

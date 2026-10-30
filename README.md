@@ -10,7 +10,8 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 | `admin/` | Painel da Amanda (entra com e-mail e senha) |
 | `questionario/` | Questionário para a Amanda contar como quer o site, o painel e os folders |
 | `agenda.js` | Serviços (e os horários usados enquanto o Supabase não estiver ligado) |
-| `config.js` | Ligação com o Supabase |
+| `config.js` | Ligação com o Supabase e o código do Google Analytics |
+| `medicao.js` | Medição de visitas (Google Analytics), só depois de a visitante aceitar os cookies |
 | `supabase/schema.sql` | Banco: tabelas, regras de horário e segurança |
 | `folders/` | Modelos dos folders; PNGs prontos em `folders/png/` |
 | `tests/` | Testes automáticos da agenda |
@@ -113,12 +114,29 @@ No Início do painel, um cartão mostra o faturamento do mês, quantos atendimen
 - Se a cliente não veio: **Não veio**, no próprio horário (no dia) ou em Seus números › Últimos 7 dias (se lembrar depois). Sai da conta, fica no histórico e na ficha da cliente, e dá para desfazer.
 - Atendimento de serviço sem preço conta como atendimento, mas só entra no faturamento quando o serviço ganhar preço.
 
+## Medição de visitas (Google Analytics)
+
+O site mede as visitas só com a permissão da visitante. Na primeira visita aparece o aviso de cookies com **Aceitar** e **Recusar**, e nada vai para o Google antes do "Aceitar". O link **Cookies** do rodapé reabre o aviso, e as regras estão em `regras/#cookies`. Nome e telefone das clientes nunca vão para o Google: o endereço enviado leva só a página e a origem.
+
+Para ligar, uma vez, com a conta Google do Kevin:
+
+1. Em [analytics.google.com](https://analytics.google.com), crie uma conta e uma propriedade "Amanda Rocha", com o fuso de São Paulo e o real brasileiro.
+2. Crie um fluxo de dados **Web** com o endereço `kevinlaet.github.io/AMANDA-ROCHA-AT`.
+3. Copie o **ID da métrica** (começa com `G-`) e cole em `config.js`, em `window.MEDICAO`. Enquanto estiver vazio, nada é medido e o aviso não aparece.
+4. Depois do primeiro pedido pelo site, marque o evento **agendamento** como evento principal (Administrador › Eventos).
+
+O que aparece no Google Analytics:
+
+- **agendamento**: pedido de horário pelo site, com o serviço. **contato_whatsapp** e **abrir_instagram**: toques nesses botões, com a parte do site.
+- **Origem** (relatório de aquisição, origem/mídia da sessão): `cartao / qr` (cartão de visita), `cartaz / qr`, `espelho / qr` e `sandra / qr` (recado da Sandra), que vêm dos QR codes impressos.
+- Para medir um post ou um link, acrescente `?o=` ao endereço: `https://kevinlaet.github.io/AMANDA-ROCHA-AT/?o=facebook` aparece como `facebook / link`. O Instagram aparece sozinho; links mandados pelo WhatsApp costumam aparecer como acesso direto, então use `?o=whatsapp` para separar.
+
 ## Mudar textos e serviços
 
 - **Serviços e preços:** pelo painel, em Mais › Serviços e preços › Editar: nome, preço (com o preço antigo riscado, se quiser), observação do preço, frase curta, texto do site, os 3 benefícios principais, duração, data de estreia e se aparece no site. O site muda na hora. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
 - **Textos do site**: `index.html`
-- **Cartão de visita**: `folders/cartao-visita.html` (9 x 5 cm, com 3 mm de sangria; o verso tem QR para agendar, o cartão fidelidade com 5 carimbos e a linha "Indicação de"). Para gerar o PDF da gráfica e as imagens em `folders/impressao/`, rode `node tests/render-cartao.mjs` (com outro telefone: `node tests/render-cartao.mjs 11999998888`).
-- **Propaganda do salão**: `folders/cartaz.html` (cartaz A4, cartões de espelho e recado da Sandra; o QR abre o agendamento com a limpeza escolhida e não há telefone impresso). Para gerar o PDF e as imagens em `folders/impressao/`, rode `node tests/render-cartaz.mjs`.
+- **Cartão de visita**: `folders/cartao-visita.html` (9 x 5 cm, com 3 mm de sangria; o verso tem QR para agendar, com a origem `cartao`, o cartão fidelidade com 5 carimbos e a linha "Indicação de"). Para gerar o PDF da gráfica e as imagens em `folders/impressao/`, rode `node tests/render-cartao.mjs` (com outro telefone: `node tests/render-cartao.mjs 11999998888`).
+- **Propaganda do salão**: `folders/cartaz.html` (cartaz A4, cartões de espelho e recado da Sandra; o QR abre o agendamento com a limpeza escolhida e marca a origem: `cartaz`, `espelho` ou `sandra`; não há telefone impresso). Para gerar o PDF e as imagens em `folders/impressao/`, rode `node tests/render-cartaz.mjs`.
 - **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5. Para gerar os PNGs de novo (e conferir que nada saiu da página), rode `node tests/render-folders.mjs`. As fotos ficam em `img/folder-*.jpg`; a do espaço é ilustrativa, então o ideal é trocar `img/folder-espaco.jpg` por uma foto real do salão.
 
 ## Questionário da Amanda
