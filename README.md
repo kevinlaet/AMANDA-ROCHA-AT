@@ -6,7 +6,7 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 |---|---|
 | `index.html` | Site das clientes: agenda, serviços, sobre, dúvidas |
 | `links/` | Página curta para a bio do Instagram |
-| `regras/` | Regras e combinados: pagamento só no salão (aviso contra golpe), cancelamento, inauguração, pacote, indicação de amigas, fotos e dados |
+| `regras/` | Regras e combinados: pagamento só no salão (aviso contra golpe), cancelamento, inauguração, pacote, indicação de amigas, cartão fidelidade, fotos e dados |
 | `admin/` | Painel da Amanda (entra com e-mail e senha) |
 | `questionario/` | Questionário para a Amanda contar como quer o site, o painel e os folders |
 | `agenda.js` | Serviços (e os horários usados enquanto o Supabase não estiver ligado) |
@@ -117,7 +117,7 @@ No Início do painel, um cartão mostra o faturamento do mês, quantos atendimen
 
 - **Serviços e preços:** pelo painel, em Mais › Serviços e preços › Editar: nome, preço (com o preço antigo riscado, se quiser), observação do preço, frase curta, texto do site, os 3 benefícios principais, duração, data de estreia e se aparece no site. O site muda na hora. O `agenda.js` só é usado enquanto o banco não tiver a atualização 2.
 - **Textos do site**: `index.html`
-- **Cartão de visita**: `folders/cartao-visita.html` (9 x 5 cm, com 3 mm de sangria; o verso tem QR para agendar e a linha "Indicação de"). Para gerar o PDF da gráfica e as imagens em `folders/impressao/`, rode `node tests/render-cartao.mjs` (com outro telefone: `node tests/render-cartao.mjs 11999998888`).
+- **Cartão de visita**: `folders/cartao-visita.html` (9 x 5 cm, com 3 mm de sangria; o verso tem QR para agendar, o cartão fidelidade com 5 carimbos e a linha "Indicação de"). Para gerar o PDF da gráfica e as imagens em `folders/impressao/`, rode `node tests/render-cartao.mjs` (com outro telefone: `node tests/render-cartao.mjs 11999998888`).
 - **Propaganda do salão**: `folders/cartaz.html` (cartaz A4, cartões de espelho e recado da Sandra; o QR abre o agendamento com a limpeza escolhida e não há telefone impresso). Para gerar o PDF e as imagens em `folders/impressao/`, rode `node tests/render-cartaz.mjs`.
 - **Folders**: abra `folders/folder.html?v=novidade`, `?v=agenda` ou `?v=aluguel` no navegador, e acrescente `&f=feed` para o formato 4:5. Para gerar os PNGs de novo (e conferir que nada saiu da página), rode `node tests/render-folders.mjs`. As fotos ficam em `img/folder-*.jpg`; a do espaço é ilustrativa, então o ideal é trocar `img/folder-espaco.jpg` por uma foto real do salão.
 
