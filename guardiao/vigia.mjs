@@ -11,7 +11,7 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SITE = (process.env.GUARDIAO_SITE || 'https://kevinlaet.github.io/AMANDA-ROCHA-AT/').replace(/\/?$/, '/');
+const SITE = (process.env.GUARDIAO_SITE || 'https://amandarochabemestar.com.br/').replace(/\/?$/, '/');
 const config = fs.readFileSync(path.join(RAIZ, 'config.js'), 'utf8');
 const SB = process.env.GUARDIAO_SUPABASE || (config.match(/url:\s*"([^"]*)"/) || [])[1] || '';
 const CHAVE = process.env.GUARDIAO_CHAVE || (config.match(/anonKey:\s*"([^"]*)"/) || [])[1] || '';

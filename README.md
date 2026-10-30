@@ -66,9 +66,9 @@ O painel é organizado como aplicativo: **Início** (pedidos e lembretes do dia)
 
 1. Em Settings > General > Danger Zone > Change visibility, mude o repositório para **Public**. O plano grátis só publica repositório público. Nada secreto fica no repositório.
 2. Em Settings > Pages > Build and deployment, escolha **Deploy from a branch**, o branch do site e a pasta **/ (root)**.
-3. O endereço será `https://kevinlaet.github.io/AMANDA-ROCHA-AT/`. A página de links fica em `…/links/` e o painel em `…/admin/`.
+3. O endereço é `https://amandarochabemestar.com.br/`. A página de links fica em `…/links/` e o painel em `…/admin/`. O endereço antigo, `kevinlaet.github.io/AMANDA-ROCHA-AT/`, redireciona sozinho para o novo.
 
-Se um dia usarem domínio próprio, troquem o endereço nas tags `og:` e `canonical` de `index.html` e `links/index.html`. É isso que faz a prévia com imagem aparecer quando o link é mandado no WhatsApp.
+**Domínio próprio (Registro.br, no nome da Amanda):** o arquivo `CNAME` diz ao GitHub qual é o domínio. Na zona DNS do Registro.br ficam quatro entradas `A` sem nome (185.199.108.153, 185.199.109.153, 185.199.110.153 e 185.199.111.153), um `CNAME` `www` para `kevinlaet.github.io` e o `TXT` de verificação do GitHub. Em Settings > Pages, "Enforce HTTPS" fica marcado. Se o domínio mudar, troquem também as tags `og:` e `canonical` de `index.html`, `links/index.html` e `regras/index.html`, os QR codes dos impressos e o `painel_url` do banco (as notificações abrem o painel por ele).
 
 ### 2. Supabase (a agenda com reserva e o painel)
 
@@ -121,7 +121,7 @@ O site mede as visitas só com a permissão da visitante. Na primeira visita apa
 Para ligar, uma vez, com a conta Google do Kevin:
 
 1. Em [analytics.google.com](https://analytics.google.com), crie uma conta e uma propriedade "Amanda Rocha", com o fuso de São Paulo e o real brasileiro.
-2. Crie um fluxo de dados **Web** com o endereço `kevinlaet.github.io/AMANDA-ROCHA-AT`.
+2. Crie um fluxo de dados **Web** com o endereço `amandarochabemestar.com.br`.
 3. Copie o **ID da métrica** (começa com `G-`) e cole em `config.js`, em `window.MEDICAO`. Enquanto estiver vazio, nada é medido e o aviso não aparece.
 4. Depois do primeiro pedido pelo site, marque o evento **agendamento** como evento principal (Administrador › Eventos).
 
@@ -129,7 +129,7 @@ O que aparece no Google Analytics:
 
 - **agendamento**: pedido de horário pelo site, com o serviço. **contato_whatsapp** e **abrir_instagram**: toques nesses botões, com a parte do site.
 - **Origem** (relatório de aquisição, origem/mídia da sessão): `cartao / qr` (cartão de visita), `cartaz / qr`, `espelho / qr` e `sandra / qr` (recado da Sandra), que vêm dos QR codes impressos.
-- Para medir um post ou um link, acrescente `?o=` ao endereço: `https://kevinlaet.github.io/AMANDA-ROCHA-AT/?o=facebook` aparece como `facebook / link`. O Instagram aparece sozinho; links mandados pelo WhatsApp costumam aparecer como acesso direto, então use `?o=whatsapp` para separar.
+- Para medir um post ou um link, acrescente `?o=` ao endereço: `https://amandarochabemestar.com.br/?o=facebook` aparece como `facebook / link`. O Instagram aparece sozinho; links mandados pelo WhatsApp costumam aparecer como acesso direto, então use `?o=whatsapp` para separar.
 
 ## Mudar textos e serviços
 
@@ -141,7 +141,7 @@ O que aparece no Google Analytics:
 
 ## Questionário da Amanda
 
-Abra [kevinlaet.github.io/AMANDA-ROCHA-AT/questionario/](https://kevinlaet.github.io/AMANDA-ROCHA-AT/questionario/) no celular dela. São 13 etapas curtas (tempo e preço de cada procedimento, os 10 benefícios de cada serviço com as 3 estrelas que vão para o site, agenda, regras, promoções, história, depoimentos, endereço, visual e domínio, painel, ideias para crescer e sugestões livres). As respostas ficam salvas só naquele celular, então ela pode parar e voltar quando quiser. Nada vai para servidor nenhum: no fim, o botão **Enviar pelo WhatsApp** (ou **Copiar respostas**) manda tudo como texto para o Kevin, que cola o texto aqui para atualizar o site, o painel e os folders. As perguntas ficam na lista `ETAPAS` de `questionario/questionario.js`.
+Abra [amandarochabemestar.com.br/questionario/](https://amandarochabemestar.com.br/questionario/) no celular dela. São 13 etapas curtas (tempo e preço de cada procedimento, os 10 benefícios de cada serviço com as 3 estrelas que vão para o site, agenda, regras, promoções, história, depoimentos, endereço, visual e domínio, painel, ideias para crescer e sugestões livres). As respostas ficam salvas só naquele celular, então ela pode parar e voltar quando quiser. Nada vai para servidor nenhum: no fim, o botão **Enviar pelo WhatsApp** (ou **Copiar respostas**) manda tudo como texto para o Kevin, que cola o texto aqui para atualizar o site, o painel e os folders. As perguntas ficam na lista `ETAPAS` de `questionario/questionario.js`.
 
 ## Testes
 
