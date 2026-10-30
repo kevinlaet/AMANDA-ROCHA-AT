@@ -38,7 +38,7 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 - **Clientes** (Mais › Clientes): ficha montada sozinha a partir da agenda, com WhatsApp, atendimentos, última vez, próximo horário, serviços e anotações. O botão "Mais de 10 dias sem vir" lista quem sumiu, com um convite pronto: motivo pelo último serviço e dois horários livres para a cliente responder "1" ou "2".
 - **Nomes que já existem:** ao digitar o nome em "Marcar como ocupado" ou em Enviar, o painel sugere as clientes e preenche o WhatsApp.
 - **Histórico** (Mais › Histórico): tudo o que aconteceu, em frases simples, com busca pelo nome.
-- **Duração de cada procedimento** (Mais › Serviços e preços): o banco nunca deixa uma cliente marcar um horário que encoste em outro atendimento (por exemplo, limpeza de 1h30 às 13h bloqueia a auriculoterapia das 14h). No painel, esses horários aparecem como "bloqueado"; se a Amanda marcar por fora em cima de outro atendimento, o painel avisa e ela decide.
+- **Duração de cada procedimento** (Mais › Serviços e preços): o banco nunca deixa uma cliente marcar um horário que encoste em outro atendimento (por exemplo, limpeza de 1h40 às 13h bloqueia a auriculoterapia das 14h). No painel, esses horários aparecem como "bloqueado"; se a Amanda marcar por fora em cima de outro atendimento, o painel avisa e ela decide.
 
 O painel é organizado como aplicativo: **Início** (pedidos e lembretes do dia), **Agenda**, **Enviar** e **Mais** (Clientes, Serviços e preços, Histórico, Segurança, Como funciona e Minha conta).
 
