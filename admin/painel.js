@@ -44,7 +44,7 @@
     if(!r.telefone)return '';
     var n=primeiro(r.nome),q=semana(r.data)+', '+curta(r.data)+' às '+hh(r.hora),t;
     var h0=hojeSP(),rel=r.data===h0?'hoje':r.data===somaDias(h0,1)?'amanhã':'';
-    if(tipo==='confirmar')t='Oi, '+n+'! Aqui é a Amanda. Seu horário'+deServ(r)+' está confirmado para '+q+'. Qualquer coisa, é só me chamar. Até lá!';
+    if(tipo==='confirmar')t='Oi, '+n+'! Aqui é a Amanda. Seu horário'+deServ(r)+' está confirmado para '+q+'. O pagamento é feito no dia, no salão. Qualquer coisa, é só me chamar. Até lá!';
     else if(tipo==='lembrar')t='Oi, '+n+'! Aqui é a Amanda. Passando para lembrar do seu horário'+deServ(r)+' '+(rel?rel+' ('+q+')':'no dia '+q)+'. Te espero! Se precisar remarcar, é só me avisar por aqui.';
     else if(tipo==='remarcar')t='Oi, '+n+'! Aqui é a Amanda. Seu horário'+deServ(r)+' mudou para '+q+'. Qualquer dúvida, é só me chamar por aqui.';
     else if(tipo==='recusar')t='Oi, '+n+'! Aqui é a Amanda. Infelizmente não vou conseguir te atender '+q+'. Quer escolher outro horário? É só me responder aqui.';
@@ -954,13 +954,13 @@
   // convite para voltar: pessoal, com um motivo de verdade e dois horários prontos para escolher
   function conviteVolta(x){
     var n=primeiro(x.nome),d=diasDesde(x.ultima),sv=x.ultimo_servico||'',s=semAcento(sv);
-    var motivo=s.indexOf('auriculo')>=0?'Já faz '+d+' dias da sua última sessão de auriculoterapia. Com o tempo o efeito das sementes vai passando, e é a constância que mantém as dores, a ansiedade e o sono sob controle.':
-      s.indexOf('limpeza')>=0?'Já faz '+d+' dias da sua limpeza de pele. A pele se renova mais ou menos a cada 4 semanas, então agora é o momento ideal para a próxima: o resultado dura muito mais quando a gente mantém o cuidado.':
+    var motivo=s.indexOf('auriculo')>=0?'Já faz '+d+' dias da sua última sessão de auriculoterapia. Com o tempo o efeito das sementes vai passando, e a auriculoterapia costuma funcionar melhor com constância.':
+      s.indexOf('limpeza')>=0?'Já faz '+d+' dias da sua limpeza de pele. A pele se renova mais ou menos a cada 4 a 6 semanas, então é um bom momento para a próxima: com o cuidado em dia, o resultado dura mais.':
       'Já faz '+d+' dias do seu último atendimento e lembrei de você.';
     var l=proximosLivres(sv,2);
     var op=l.length?'Separei '+(l.length>1?'dois horários':'um horário')+' para você:\n'+l.map(function(r,i){return (l.length>1?(i+1)+') ':'')+cap(semana(r.data))+', '+curta(r.data)+' às '+hh(r.hora)}).join('\n')+
       '\n\nÉ só responder '+(l.length>1?'1 ou 2':'"quero"')+' que eu já reservo.':'Qual dia fica bom para você nas próximas semanas? Me responde aqui que eu encaixo você.';
-    return 'Oi, '+n+'! Aqui é a Amanda 🌿\n\n'+motivo+'\n\n'+op+'\n\nE lembra: indicando uma amiga que fechar um procedimento, você ganha 1 sessão de auriculoterapia. Te espero!';
+    return 'Oi, '+n+'! Aqui é a Amanda 🌿\n\n'+motivo+'\n\n'+op+'\n\nE lembra: se uma amiga fizer o primeiro atendimento comigo por indicação sua, você ganha 1 sessão de auriculoterapia. Te espero!';
   }
   function zapCliente(x,volta){if(!x.telefone)return '';
     var t=volta?conviteVolta(x):'Oi, '+primeiro(x.nome)+'! Aqui é a Amanda.';

@@ -6,6 +6,7 @@ Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, págin
 |---|---|
 | `index.html` | Site das clientes: agenda, serviços, sobre, dúvidas |
 | `links/` | Página curta para a bio do Instagram |
+| `regras/` | Regras e combinados: pagamento só no salão (aviso contra golpe), cancelamento, inauguração, pacote, indicação de amigas, fotos e dados |
 | `admin/` | Painel da Amanda (entra com e-mail e senha) |
 | `questionario/` | Questionário para a Amanda contar como quer o site, o painel e os folders |
 | `agenda.js` | Serviços (e os horários usados enquanto o Supabase não estiver ligado) |
