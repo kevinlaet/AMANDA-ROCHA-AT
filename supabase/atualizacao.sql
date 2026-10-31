@@ -783,7 +783,10 @@ alter table public.guardiao add column if not exists ntfy_topico text not null
   default ('amanda-' || substr(md5(random()::text || clock_timestamp()::text), 1, 20));
 alter table public.guardiao add column if not exists ntfy_ligado boolean not null default true;
 alter table public.guardiao add column if not exists painel_url text not null
-  default 'https://kevinlaet.github.io/AMANDA-ROCHA-AT/admin/';
+  default 'https://amandarochabemestar.com.br/admin/';
+-- o site mudou para o domínio próprio: as notificações passam a abrir o painel no endereço novo
+update public.guardiao set painel_url = 'https://amandarochabemestar.com.br/admin/'
+  where painel_url = 'https://kevinlaet.github.io/AMANDA-ROCHA-AT/admin/';
 
 create or replace function public.notificacoes_disponiveis()
 returns boolean
