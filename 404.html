@@ -11,7 +11,7 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center
 h1{font-size:24px;margin:0 0 8px}
 p{margin:0 0 24px;color:#FBE3CE}
 a{display:inline-block;background:#F5C59D;color:#053F3A;font-weight:700;text-decoration:none;padding:14px 22px;border-radius:14px}
-@font-face{font-family:'Cormorant';src:url(/AMANDA-ROCHA-AT/fonts/cormorant-sub.woff2) format('woff2');font-weight:500 600;font-display:swap}
+@font-face{font-family:'Cormorant';src:url(/fonts/cormorant-sub.woff2) format('woff2'),url(/AMANDA-ROCHA-AT/fonts/cormorant-sub.woff2) format('woff2');font-weight:500 600;font-display:swap}
 .credito{font-family:Cormorant,Georgia,'Times New Roman',serif;font-weight:600;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;text-align:center;opacity:.45;margin-top:40px;color:#FBE3CE}
 .credito:before{content:"";display:block;width:36px;height:1px;background:currentColor;opacity:.5;margin:0 auto 10px}
 </style>
@@ -20,12 +20,12 @@ a{display:inline-block;background:#F5C59D;color:#053F3A;font-weight:700;text-dec
 <main>
   <h1>Essa página não existe</h1>
   <p>Mas a agenda da Amanda está aqui.</p>
-  <a id="inicio" href="/AMANDA-ROCHA-AT/">Ir para o site</a>
+  <a id="inicio" href="/">Ir para o site</a>
   <p class="credito">Desenvolvido por Kevin Laet</p>
 </main>
 <script>
-  // funciona tanto no GitHub Pages (/AMANDA-ROCHA-AT/) quanto num domínio próprio (/)
-  if (location.pathname.indexOf('/AMANDA-ROCHA-AT/') !== 0) document.getElementById('inicio').href = '/';
+  // o site mora em amandarochabemestar.com.br (/); nos testes e no endereço antigo, em /AMANDA-ROCHA-AT/
+  if (location.pathname.indexOf('/AMANDA-ROCHA-AT/') === 0) document.getElementById('inicio').href = '/AMANDA-ROCHA-AT/';
 </script>
 </body>
 </html>

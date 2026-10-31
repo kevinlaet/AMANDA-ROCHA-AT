@@ -1185,6 +1185,22 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   }
   await c.close();
 }
+// ===== 5a. Links curtos (/agendar, /limpeza, /auriculo): fáceis de falar, levam direto à agenda =====
+{
+  const c = await contexto(IPHONE);
+  const p = await c.newPage();
+  for (const [curto, nome] of [['agendar', null], ['limpeza', 'Limpeza de pele'], ['auriculo', 'Auriculoterapia']]) {
+    await p.goto(BASE + curto + '/?o=instagram');
+    await p.waitForURL(/#agendar$/);
+    await p.waitForSelector('#o-servico .opt');
+    const u = new URL(p.url());
+    const marcado = await p.locator('#o-servico .opt[aria-pressed="true"]').allInnerTexts();
+    ok(u.pathname === new URL(BASE).pathname && u.searchParams.get('o') === 'instagram' && (nome ? u.searchParams.get('s') === curto && marcado.length === 1 && marcado[0].includes(nome) : !u.searchParams.has('s') && !marcado.length),
+      `link curto /${curto}: abre a agenda` + (nome ? ` com ${nome.toLowerCase()} já escolhida` : '') + ' e leva junto a origem da visita');
+  }
+  await c.close();
+}
+
 // ===== 5b. O painel só executa o próprio código e só fala com o Supabase (CSP) =====
 {
   ok(!violacoes.length, 'o painel inteiro rodou nos testes acima sem nenhuma violação da política de segurança (CSP)' + (violacoes.length ? ': ' + violacoes[0] : ''));
