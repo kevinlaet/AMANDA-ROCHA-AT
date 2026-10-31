@@ -1,6 +1,6 @@
 # Amanda Rocha · site, agenda e folders
 
-Site para celular (cerca de 100 KB, abre rápido até no 3G), com agenda, página de links para o Instagram, painel para a Amanda cuidar dos horários e os folders de divulgação.
+Site para celular (cerca de 150 KB, abre rápido até no 3G), com agenda, página de links para o Instagram, painel para a Amanda cuidar dos horários e os folders de divulgação.
 
 | Arquivo | O que é |
 |---|---|
