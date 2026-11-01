@@ -263,7 +263,7 @@
     o.sort(function(a,b){return a===minhaProf()?-1:b===minhaProf()?1:ordemProf(a)-ordemProf(b)});return o.map(function(k){return {prof:k,itens:m[k]}})}
   function ordemProf(id){var x=profs.filter(function(q){return q.id===id})[0];return x?x.ordem||0:99}
   // ---------- qual agenda ver (sócias) e como a cliente vê ----------
-  function linkComoCliente(){var f=todas()?'':minhaProf();return P.agenda?new URL(P.agenda,location.href).href+(f?'?p='+encodeURIComponent(f):''):'../#agendar'}
+  function linkComoCliente(){var f=todas()?'':minhaProf();return P.agenda?new URL(P.agenda,location.href).href+(f?'?p='+encodeURIComponent(f):''):'../?o=painel#agendar'}
   function desenharVisao(){
     var v=$('visao');if(v){v.hidden=!(eu&&eu.socia&&!eu.velho);[].forEach.call(v.querySelectorAll('[data-visao]'),function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-visao')===(todas()?'todas':'minha')))})}
     [].forEach.call(document.querySelectorAll('[data-como-cliente]'),function(a){a.href=linkComoCliente()});

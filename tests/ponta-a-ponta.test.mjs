@@ -162,6 +162,9 @@ ok(/5511948907302/.test(A.url()) && /Maria Silva/.test(decodeURIComponent(A.url(
   await p.goto(BASE + 'links/');
   const href = await p.locator('a.main').evaluate((a) => a.href);
   ok(href === BASE + '#agendar', 'links: "Agendar" leva para a agenda do site (' + href.replace(BASE, '/') + ')');
+  const servs = await p.locator('a.l', { hasText: /Limpeza de pele|Auriculoterapia/ }).evaluateAll((l) => l.map((a) => a.href));
+  ok(servs.join() === [BASE + 'limpeza/', BASE + 'auriculo/'].join(), 'links: limpeza e auriculoterapia levam direto ao agendamento com o serviço já escolhido');
+  ok(/R\$ 75 até 19\/12/.test(await p.locator('a.l.nov').innerText()), 'links: o valor de inauguração mostra o prazo (até 19/12)');
   await foto(p, 'links');
   await p.close();
 }
@@ -183,6 +186,15 @@ await P.waitForSelector('#pedidos .ped');
 ok((await P.locator('#pedidos .ped').count()) === 3, 'painel mostra os 3 pedidos');
 ok((await P.title()).startsWith('(3)'), 'a aba mostra (3) pedidos');
 ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 'mostra a hora da última atualização');
+{
+  // "Visualizar agenda como cliente": abre o site numa aba nova, direto na agenda
+  const ver = P.locator('.atalhos .ver-site');
+  ok((await ver.innerText()).includes('Visualizar agenda como cliente') && (await ver.getAttribute('target')) === '_blank' && (await P.locator('#bVerSite').count()) === 1, 'painel: botão "Visualizar agenda como cliente" no Início e na Agenda');
+  const [aba] = await Promise.all([cAdm.waitForEvent('page'), ver.click()]);
+  await aba.waitForSelector('#o-servico .opt');
+  ok(new URL(aba.url()).hash === '#agendar' && (await aba.locator('#o-dia .opt').count()) > 0, 'painel: "Visualizar agenda como cliente" abre o site na agenda, com os dias que a cliente vê');
+  await aba.close();
+}
 // simples para quem nunca usou painel: abre no Início, com guia e abas
 ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
 ok(await P.locator('#boasVindas').isVisible(), 'primeira vez: aparece o guia de boas-vindas');
@@ -381,7 +393,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   const dim = await p.locator('#envio img.previa-img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight }));
   ok(dim.w === 1080 && dim.h >= 1350, `envio por imagem: imagem criada com ${dim.w}x${dim.h}`);
   if (CAPTURAS) {
-    const b64 = await p.locator('#envio img.previa-img').evaluate(async (i) => { const r = await fetch(i.src); const buf = new Uint8Array(await r.arrayBuffer()); let s = ''; for (const x of buf) s += String.fromCharCode(x); return btoa(s); });
+    const b64 = await p.locator('#envio img.previa-img').evaluate((i) => { const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; c.getContext('2d').drawImage(i, 0, 0); return c.toDataURL('image/png').split(',')[1]; });
     fs.writeFileSync(path.join(CAPTURAS, 'imagem-horarios.png'), Buffer.from(b64, 'base64'));
   }
   await p.click('#envio [data-acao=compartilhar]');
@@ -538,6 +550,19 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/R\$ 80/.test(await card.innerText()) && (await card.locator('.preco-svc s').innerText()) === 'R$ 100' && /extração/.test(await card.innerText()) && (await card.locator('li').allInnerTexts()).join() === 'Poros limpos,Pele macia', 'site: o cartão da limpeza mostra o preço riscado, o texto e os benefícios do painel');
   ok(/Dores, ansiedade e sono|Alívio de dores/.test(await site2.locator('#svcs .svc', { hasText: 'Auriculoterapia' }).innerText()), 'site: o cartão da auriculoterapia fala de dores');
   ok(/Limpeza de pele.*R\$ 80, por sessão/.test(await site2.locator('#novo').innerText()), 'site: a faixa de novidade usa o preço do painel (' + (await site2.locator('#novo').innerText()).replace(/\s+/g, ' ') + ')');
+  // o preço nunca quebra em duas linhas ("R$" em cima e o valor embaixo), em nenhuma largura de celular
+  for (const largura of [320, 360, 390, 430]) {
+    await site2.setViewportSize({ width: largura, height: 800 });
+    await site2.waitForTimeout(150);
+    const quebrados = await site2.evaluate(() => [...document.querySelectorAll('.preco-svc b, #novo b')].filter((e) => /R\$/.test(e.textContent)).map((e) => {
+      const r = document.createRange(); r.selectNodeContents(e);
+      const c = [...r.getClientRects()].filter((q) => q.width > 0).map((q) => (q.top + q.bottom) / 2).sort((x, y) => x - y);
+      let linhas = 0, ult = -1e9; for (const y of c) { if (y - ult > 7) linhas++; ult = y; }
+      return linhas > 1 ? e.textContent.trim() : null;
+    }).filter(Boolean));
+    const fora = await site2.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+    ok(!quebrados.length && !fora, `site em ${largura}px: preços numa linha só e sem rolagem para o lado` + (quebrados.length ? ' (quebrou: ' + quebrados.join(' | ') + ')' : ''));
+  }
   await card.locator('a.ir').click();
   ok((await site2.locator('#o-servico .opt[aria-pressed=true]').innerText()).includes('Limpeza de pele') && /R\$ 80/.test(await site2.locator('#o-servico .opt[aria-pressed=true]').innerText()), 'site: "Agendar limpeza de pele" já escolhe o serviço, com o preço');
   ok(/Seu nome e WhatsApp ficam só com a Amanda/.test(await site2.locator('#agendar').innerText()), 'site: aviso de privacidade junto do agendamento');
@@ -846,6 +871,36 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await M.waitForFunction(() => document.getElementById('nMais').hidden);
   ok((await q(`select count(*)::int n from alertas where visto_em is null`))[0].n === 0, 'abrir a Segurança marca os alertas como vistos');
   await foto(M, 'painel-seguranca');
+
+  // todas as telas do painel em celulares estreitos: nada para fora da tela, nenhuma rolagem para o lado,
+  // nenhum preço ou palavra curta quebrada em duas linhas
+  const problemasDeLayout = (pagina) => pagina.evaluate(() => {
+    const A = [], vw = innerWidth;
+    const nome = (e) => (e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : '')).slice(0, 60);
+    if (document.documentElement.scrollWidth > vw + 1) A.push('rolagem para o lado (' + document.documentElement.scrollWidth + ' > ' + vw + ')');
+    for (const e of document.querySelectorAll('#vApp *')) {
+      const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed' || e.closest('[hidden],svg')) continue;
+      const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+      if (r.right > vw + 1 || r.left < -1) { let rola = false; for (let q = e.parentElement; q; q = q.parentElement) { const o = getComputedStyle(q).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden' || o === 'clip') { rola = true; break; } } if (!rola) A.push('fora da tela: ' + nome(e)); }
+      const t = e.textContent.trim().replace(/\s+/g, ' ');
+      if (t && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && ((/R\$\s?\d/.test(t) && t.length <= 22) || (!e.children.length && t.length <= 9 && !/\s/.test(t)))) {
+        const g = document.createRange(); g.selectNodeContents(e);
+        const c = [...g.getClientRects()].filter((x) => x.width > 0).map((x) => (x.top + x.bottom) / 2).sort((x, y) => x - y);
+        let linhas = 0, ult = -1e9; for (const y of c) { if (y - ult > 7) linhas++; ult = y; }
+        if (linhas > 1) A.push('quebrado em ' + linhas + ' linhas: "' + t + '" (' + nome(e) + ')');
+      }
+    }
+    return [...new Set(A)];
+  });
+  for (const largura of [320, 360, 390]) {
+    await M.setViewportSize({ width: largura, height: 800 });
+    const todos = [];
+    for (const t of ['inicio', 'agenda', 'enviar']) { await aba(M, t); await M.waitForTimeout(120); todos.push(...(await problemasDeLayout(M)).map((x) => t + ': ' + x)); }
+    for (const t of ['numeros', 'clientes', 'servicos', 'historico', 'seguranca', 'ajuda', 'conta']) { await doMais(M, t); await M.waitForTimeout(120); todos.push(...(await problemasDeLayout(M)).map((x) => t + ': ' + x)); }
+    ok(!todos.length, `painel em ${largura}px: 10 telas sem nada fora do lugar` + (todos.length ? ' (' + todos.slice(0, 4).join(' | ') + ')' : ''));
+  }
+  await M.setViewportSize({ width: 390, height: 844 });
+  await doMais(M, 'seguranca');
 
   // proteção ligada na mão: o site leva a cliente direto para o WhatsApp
   await M.click('#gStatus [data-acao=protecao]');
@@ -1185,6 +1240,22 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   }
   await c.close();
 }
+// ===== 5a. Links curtos (/agendar, /limpeza, /auriculo): fáceis de falar, levam direto à agenda =====
+{
+  const c = await contexto(IPHONE);
+  const p = await c.newPage();
+  for (const [curto, nome] of [['agendar', null], ['limpeza', 'Limpeza de pele'], ['auriculo', 'Auriculoterapia']]) {
+    await p.goto(BASE + curto + '/?o=instagram');
+    await p.waitForURL(/#agendar$/);
+    await p.waitForSelector('#o-servico .opt');
+    const u = new URL(p.url());
+    const marcado = await p.locator('#o-servico .opt[aria-pressed="true"]').allInnerTexts();
+    ok(u.pathname === new URL(BASE).pathname && u.searchParams.get('o') === 'instagram' && (nome ? u.searchParams.get('s') === curto && marcado.length === 1 && marcado[0].includes(nome) : !u.searchParams.has('s') && !marcado.length),
+      `link curto /${curto}: abre a agenda` + (nome ? ` com ${nome.toLowerCase()} já escolhida` : '') + ' e leva junto a origem da visita');
+  }
+  await c.close();
+}
+
 // ===== 5b. O painel só executa o próprio código e só fala com o Supabase (CSP) =====
 {
   ok(!violacoes.length, 'o painel inteiro rodou nos testes acima sem nenhuma violação da política de segurança (CSP)' + (violacoes.length ? ': ' + violacoes[0] : ''));
