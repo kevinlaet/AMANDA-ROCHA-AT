@@ -393,7 +393,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   const dim = await p.locator('#envio img.previa-img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight }));
   ok(dim.w === 1080 && dim.h >= 1350, `envio por imagem: imagem criada com ${dim.w}x${dim.h}`);
   if (CAPTURAS) {
-    const b64 = await p.locator('#envio img.previa-img').evaluate(async (i) => { const r = await fetch(i.src); const buf = new Uint8Array(await r.arrayBuffer()); let s = ''; for (const x of buf) s += String.fromCharCode(x); return btoa(s); });
+    const b64 = await p.locator('#envio img.previa-img').evaluate((i) => { const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; c.getContext('2d').drawImage(i, 0, 0); return c.toDataURL('image/png').split(',')[1]; });
     fs.writeFileSync(path.join(CAPTURAS, 'imagem-horarios.png'), Buffer.from(b64, 'base64'));
   }
   await p.click('#envio [data-acao=compartilhar]');
