@@ -183,6 +183,15 @@ await P.waitForSelector('#pedidos .ped');
 ok((await P.locator('#pedidos .ped').count()) === 3, 'painel mostra os 3 pedidos');
 ok((await P.title()).startsWith('(3)'), 'a aba mostra (3) pedidos');
 ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 'mostra a hora da última atualização');
+{
+  // "Visualizar agenda como cliente": abre o site numa aba nova, direto na agenda
+  const ver = P.locator('.atalhos .ver-site');
+  ok((await ver.innerText()).includes('Visualizar agenda como cliente') && (await ver.getAttribute('target')) === '_blank' && (await P.locator('#bVerSite').count()) === 1, 'painel: botão "Visualizar agenda como cliente" no Início e na Agenda');
+  const [aba] = await Promise.all([cAdm.waitForEvent('page'), ver.click()]);
+  await aba.waitForSelector('#o-servico .opt');
+  ok(new URL(aba.url()).hash === '#agendar' && (await aba.locator('#o-dia .opt').count()) > 0, 'painel: "Visualizar agenda como cliente" abre o site na agenda, com os dias que a cliente vê');
+  await aba.close();
+}
 // simples para quem nunca usou painel: abre no Início, com guia e abas
 ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
 ok(await P.locator('#boasVindas').isVisible(), 'primeira vez: aparece o guia de boas-vindas');
