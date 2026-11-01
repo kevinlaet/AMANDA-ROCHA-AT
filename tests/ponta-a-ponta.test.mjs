@@ -550,6 +550,19 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/R\$ 80/.test(await card.innerText()) && (await card.locator('.preco-svc s').innerText()) === 'R$ 100' && /extração/.test(await card.innerText()) && (await card.locator('li').allInnerTexts()).join() === 'Poros limpos,Pele macia', 'site: o cartão da limpeza mostra o preço riscado, o texto e os benefícios do painel');
   ok(/Dores, ansiedade e sono|Alívio de dores/.test(await site2.locator('#svcs .svc', { hasText: 'Auriculoterapia' }).innerText()), 'site: o cartão da auriculoterapia fala de dores');
   ok(/Limpeza de pele.*R\$ 80, por sessão/.test(await site2.locator('#novo').innerText()), 'site: a faixa de novidade usa o preço do painel (' + (await site2.locator('#novo').innerText()).replace(/\s+/g, ' ') + ')');
+  // o preço nunca quebra em duas linhas ("R$" em cima e o valor embaixo), em nenhuma largura de celular
+  for (const largura of [320, 360, 390, 430]) {
+    await site2.setViewportSize({ width: largura, height: 800 });
+    await site2.waitForTimeout(150);
+    const quebrados = await site2.evaluate(() => [...document.querySelectorAll('.preco-svc b, #novo b')].filter((e) => /R\$/.test(e.textContent)).map((e) => {
+      const r = document.createRange(); r.selectNodeContents(e);
+      const c = [...r.getClientRects()].filter((q) => q.width > 0).map((q) => (q.top + q.bottom) / 2).sort((x, y) => x - y);
+      let linhas = 0, ult = -1e9; for (const y of c) { if (y - ult > 7) linhas++; ult = y; }
+      return linhas > 1 ? e.textContent.trim() : null;
+    }).filter(Boolean));
+    const fora = await site2.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+    ok(!quebrados.length && !fora, `site em ${largura}px: preços numa linha só e sem rolagem para o lado` + (quebrados.length ? ' (quebrou: ' + quebrados.join(' | ') + ')' : ''));
+  }
   await card.locator('a.ir').click();
   ok((await site2.locator('#o-servico .opt[aria-pressed=true]').innerText()).includes('Limpeza de pele') && /R\$ 80/.test(await site2.locator('#o-servico .opt[aria-pressed=true]').innerText()), 'site: "Agendar limpeza de pele" já escolhe o serviço, com o preço');
   ok(/Seu nome e WhatsApp ficam só com a Amanda/.test(await site2.locator('#agendar').innerText()), 'site: aviso de privacidade junto do agendamento');
@@ -858,6 +871,36 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await M.waitForFunction(() => document.getElementById('nMais').hidden);
   ok((await q(`select count(*)::int n from alertas where visto_em is null`))[0].n === 0, 'abrir a Segurança marca os alertas como vistos');
   await foto(M, 'painel-seguranca');
+
+  // todas as telas do painel em celulares estreitos: nada para fora da tela, nenhuma rolagem para o lado,
+  // nenhum preço ou palavra curta quebrada em duas linhas
+  const problemasDeLayout = (pagina) => pagina.evaluate(() => {
+    const A = [], vw = innerWidth;
+    const nome = (e) => (e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : '')).slice(0, 60);
+    if (document.documentElement.scrollWidth > vw + 1) A.push('rolagem para o lado (' + document.documentElement.scrollWidth + ' > ' + vw + ')');
+    for (const e of document.querySelectorAll('#vApp *')) {
+      const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed' || e.closest('[hidden],svg')) continue;
+      const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+      if (r.right > vw + 1 || r.left < -1) { let rola = false; for (let q = e.parentElement; q; q = q.parentElement) { const o = getComputedStyle(q).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden' || o === 'clip') { rola = true; break; } } if (!rola) A.push('fora da tela: ' + nome(e)); }
+      const t = e.textContent.trim().replace(/\s+/g, ' ');
+      if (t && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && ((/R\$\s?\d/.test(t) && t.length <= 22) || (!e.children.length && t.length <= 9 && !/\s/.test(t)))) {
+        const g = document.createRange(); g.selectNodeContents(e);
+        const c = [...g.getClientRects()].filter((x) => x.width > 0).map((x) => (x.top + x.bottom) / 2).sort((x, y) => x - y);
+        let linhas = 0, ult = -1e9; for (const y of c) { if (y - ult > 7) linhas++; ult = y; }
+        if (linhas > 1) A.push('quebrado em ' + linhas + ' linhas: "' + t + '" (' + nome(e) + ')');
+      }
+    }
+    return [...new Set(A)];
+  });
+  for (const largura of [320, 360, 390]) {
+    await M.setViewportSize({ width: largura, height: 800 });
+    const todos = [];
+    for (const t of ['inicio', 'agenda', 'enviar']) { await aba(M, t); await M.waitForTimeout(120); todos.push(...(await problemasDeLayout(M)).map((x) => t + ': ' + x)); }
+    for (const t of ['numeros', 'clientes', 'servicos', 'historico', 'seguranca', 'ajuda', 'conta']) { await doMais(M, t); await M.waitForTimeout(120); todos.push(...(await problemasDeLayout(M)).map((x) => t + ': ' + x)); }
+    ok(!todos.length, `painel em ${largura}px: 10 telas sem nada fora do lugar` + (todos.length ? ' (' + todos.slice(0, 4).join(' | ') + ')' : ''));
+  }
+  await M.setViewportSize({ width: 390, height: 844 });
+  await doMais(M, 'seguranca');
 
   // proteção ligada na mão: o site leva a cliente direto para o WhatsApp
   await M.click('#gStatus [data-acao=protecao]');

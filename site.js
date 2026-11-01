@@ -78,7 +78,7 @@
         '<a class="ir" href="#agendar" data-servico="'+escH(s.id)+'">Agendar '+escH(s.nome.toLowerCase())+'</a></article>'}).join('');
     var nv=$('novo'),s=A.servicos.filter(function(x){return x.novidade})[0];
     if(nv){nv.hidden=!s;if(s)nv.innerHTML='<span class="pill">NOVIDADE</span><span><b>'+escH(s.nome)+'</b>'+(s.desde&&s.desde>hojeLocal()?' a partir de <b>'+curta(s.desde)+'</b>':'')+
-      (s.preco!=null?' por <b>'+reais(s.preco)+'</b>'+(s.preco_obs?', '+escH(s.preco_obs):''):'')+'.</span><span class="seta" aria-hidden="true">→</span>';
+      (s.preco!=null?' por <b class="nw">'+reais(s.preco)+'</b>'+(s.preco_obs?', '+escH(s.preco_obs):''):'')+'.</span><span class="seta" aria-hidden="true">→</span>';
       if(s)nv.setAttribute('data-servico',s.id)}
   }
   // "Agendar ..." já deixa o serviço escolhido
