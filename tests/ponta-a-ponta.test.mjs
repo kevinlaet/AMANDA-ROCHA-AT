@@ -291,11 +291,14 @@ ok(true, 'abrir de novo os mesmos horários não duplica nada');
 
 // abrir hoje: horários que já passaram ficam de fora
 const hoje = await dia(0);
+const HORAS_HOJE = `('08:00','09:00','10:00','11:00','12:00','13:00','13:30','14:00','15:00','16:00','17:00','18:00','19:00')`;
+// só vale o que ESTE botão cria: horários de hoje abertos antes (quando ainda era mais cedo) não entram na conta
+const jaExistiam = new Set((await q(`select hora from horarios where data = $1 and hora in ${HORAS_HOJE}`, [hoje])).map((r) => r.hora));
 const [{ h: horaAgora }] = await q(`select to_char(public.agora_sp(), 'HH24:MI') h`);
 await P.fill('#novaData', hoje); await P.selectOption('#repetir', '1');
 await P.click('#bAbrir');
 await P.waitForFunction(() => !document.getElementById('toast').hidden && /(aberto|Nenhum)/.test(document.getElementById('toast').innerText));
-const criadosHoje = await q(`select hora from horarios where data = $1 and hora in ('08:00','09:00','10:00','11:00','12:00','13:00','13:30','14:00','15:00','16:00','17:00','18:00','19:00')`, [hoje]);
+const criadosHoje = (await q(`select hora from horarios where data = $1 and hora in ${HORAS_HOJE}`, [hoje])).filter((r) => !jaExistiam.has(r.hora));
 ok(criadosHoje.every((r) => r.hora > horaAgora), `abrir hoje (${horaAgora}): nenhum horário passado foi criado`);
 
 // o painel de ações abre na tela mesmo com muitos dias abertos
