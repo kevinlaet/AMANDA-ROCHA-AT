@@ -1460,6 +1460,20 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   const cartao = B2.locator('#cliLista .card', { hasText: 'Gisele' }).first();
   ok(/Cadastro travado/.test(await cartao.innerText()) && (await cartao.locator('[data-acao="contato-editar"]').count()) === 0, 'cadastro: para a parceira o cartão mostra "Cadastro travado" e não oferece editar nem apagar');
   ok((await cartao.locator('a', { hasText: 'Pedir correção' }).count()) === 1, 'cadastro: e oferece "Pedir correção" pelo WhatsApp');
+  // story "Horários livres": só os horários livres dela que o site também mostra
+  await sb.db.exec(`insert into horarios (data, hora, profissional) select (public.agora_sp() + interval '1 day')::date, h, 'bia' from unnest(array['09:00','10:00','15:30']) h on conflict do nothing`);
+  await B2.click('#bAtualizar'); await aba(B2, 'inicio');
+  await B2.click('[data-aba="inicio"] [data-acao="story"]');
+  await B2.waitForSelector('#envio');
+  ok(/não tem horários livres hoje/.test(await B2.locator('#envio').innerText()), 'story: sem horários livres hoje, avisa e oferece o dia seguinte');
+  await B2.click('#envio [data-quando="amanha"]');
+  await B2.waitForSelector('#envio img.previa-img');
+  const dim = await B2.locator('#envio img.previa-img').evaluate((i) => i.complete ? [i.naturalWidth, i.naturalHeight] : new Promise((r) => { i.onload = () => r([i.naturalWidth, i.naturalHeight]); }));
+  ok(dim[0] === 1080 && dim[1] === 1920, 'story: a imagem sai com 1080 x 1920, o tamanho do story');
+  const txt = await B2.locator('#envio').innerText();
+  ok(/3 horários livres: 9h, 10h, 15h30/.test(txt), 'story: lista os horários livres de amanhã');
+  ok(!/Bia Santos|Lia|Rosa/.test(txt), 'story: não mostra nenhum nome de cliente');
+  await B2.click('#envio [data-acao="fecharEnvio"]');
   await cB2.close();
 
   const cS2 = await contexto(ANDROID, { apiDoBanco: apiS });

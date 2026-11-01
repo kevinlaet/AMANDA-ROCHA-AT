@@ -589,6 +589,63 @@
         '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>');
     }).catch(function(){abrirEnvio('<div><div class="t" id="envT">Não consegui criar a imagem</div><div class="d">Tente de novo. Se continuar, envie o link.</div></div><button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>')});
   };
+  // ---------- story "Horários livres" (1080 x 1920, para postar no Instagram) ----------
+  // só entram os horários livres da própria agenda que o site também mostra (mais de 1 h à frente e que cabem um serviço)
+  function horasLivresDia(d){var lim=limiteTxt(),dur=menorDuracao(minhaProf());
+    return rows.filter(function(r){return r.status==='livre'&&r.data===d&&profDe(r)===minhaProf()&&(r.data+' '+r.hora)>lim&&cabeEm(r,dur)}).map(function(r){return r.hora}).sort()}
+  function criarStory(d,horas){
+    var W=1080,H=1920,F='Montserrat, system-ui, sans-serif',T=IMG,com=P.agenda?'com a '+primeiro(nomeProf(minhaProf())):'';
+    var fontes=[document.fonts.load('48px "Great Vibes"'),document.fonts.load('800 40px Montserrat'),document.fonts.load('600 40px Montserrat'),document.fonts.load('600 28px Cormorant')];
+    return Promise.all(fontes).catch(function(){}).then(function(){return new Promise(function(res){var im=new Image();im.onload=function(){res(im)};im.onerror=function(){res(null)};im.src=T.logo})}).then(function(logo){
+      var c=document.createElement('canvas'),x=c.getContext('2d');c.width=W;c.height=H;
+      function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+      var g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,T.fundo[0]);g.addColorStop(.45,T.fundo[1]);g.addColorStop(1,T.fundo[2]);x.fillStyle=g;x.fillRect(0,0,W,H);
+      x.strokeStyle=T.linha;x.lineWidth=2;x.beginPath();x.arc(W+80,60,420,0,7);x.stroke();x.beginPath();x.arc(-100,H-260,380,0,7);x.stroke();
+      x.textAlign='center';x.textBaseline='alphabetic';
+      // as faixas de cima e de baixo do story ficam livres: o Instagram põe o nome e a caixa de resposta ali
+      if(logo)x.drawImage(logo,W/2-70,250,140,140*(logo.naturalHeight/logo.naturalWidth||1));
+      x.fillStyle=T.claro;x.font='600 34px Cormorant, Georgia, serif';x.fillText(String(T.titulo).toUpperCase().split('').join(' '),W/2,480);
+      x.fillStyle=T.destaque;x.font='400 150px "Great Vibes", cursive';x.fillText('Horários livres',W/2,640);
+      var y=730;x.fillStyle=T.papel;x.font='800 54px '+F;x.fillText(cap(dataLonga(d)),W/2,y);
+      if(com){y+=64;x.fillStyle=T.claro;x.font='600 40px '+F;x.fillText(com,W/2,y)}
+      // horários em linhas de 3, centralizados
+      var ls=[],i,max=12,mostrar=horas.slice(0,max),extra=horas.length-mostrar.length;
+      for(i=0;i<mostrar.length;i+=3)ls.push(mostrar.slice(i,i+3));
+      var PW=270,PH=116,GAP=24,topo=y+90;
+      ls.forEach(function(ln,li){var tot=ln.length*PW+(ln.length-1)*GAP,px=(W-tot)/2,py=topo+li*(PH+GAP);
+        ln.forEach(function(h){x.fillStyle=T.papel;rr(px,py,PW,PH,36);x.fill();x.fillStyle=T.tinta;x.font='800 62px '+F;x.fillText(hh(h),px+PW/2,py+PH/2+22);px+=PW+GAP})});
+      var fim=topo+ls.length*(PH+GAP);
+      if(extra>0){x.fillStyle=T.claro;x.font='700 40px '+F;x.fillText('e mais '+extra+(extra>1?' horários':' horário'),W/2,fim+36);fim+=70}
+      // chamada para agendar
+      var cy=Math.max(fim+50,1260);if(cy>1500)cy=1500;
+      x.fillStyle=T.destaque;rr(70,cy,W-140,300,44);x.fill();
+      x.fillStyle=T.tinta;x.font='800 58px '+F;x.fillText('Agende pelo link da bio',W/2,cy+96);
+      x.font='600 40px '+F;x.fillText('ou chame no WhatsApp',W/2,cy+156);
+      x.font='800 60px '+F;x.fillText(fmtZap(),W/2,cy+246);
+      return new Promise(function(res){c.toBlob(res,'image/png')});
+    });
+  }
+  function abrirStory(alvo){
+    if(!eu)return;
+    var d=alvo==='amanha'?somaDias(hojeSP(),1):hojeSP(),outro=alvo==='amanha'?'hoje':'amanha',horas=horasLivresDia(d);
+    var quando=alvo==='amanha'?'amanhã':'hoje',nomeArq=(P.arquivoStory||'story-horarios-livres.png');
+    var abas='<div class="row"><button class="btn '+(alvo!=='amanha'?'main':'ghost')+'" type="button" data-acao="story" data-quando="hoje">Hoje</button><button class="btn '+(alvo==='amanha'?'main':'ghost')+'" type="button" data-acao="story" data-quando="amanha">Amanhã</button></div>';
+    if(!horas.length){
+      abrirEnvio('<div><span class="estado livre">Story</span><div class="t" id="envT">Horários livres '+quando+'</div></div>'+abas+
+        '<p class="vazio">Você não tem horários livres '+quando+'. Abra horários na Agenda, ou veja o outro dia.</p>'+
+        '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>');return}
+    abrirEnvio('<div><span class="estado pedido">Story</span><div class="t" id="envT">Criando a imagem…</div></div>'+abas);
+    criarStory(d,horas).then(function(blob){
+      if(!blob)throw 0;var url=URL.createObjectURL(blob),file;try{file=new File([blob],nomeArq,{type:'image/png'})}catch(e){file=null}
+      envImg={url:url,file:file,texto:''};
+      abrirEnvio('<div><span class="estado pedido">Story</span><div class="t" id="envT">Story de '+quando+' pronto</div><div class="d">'+horas.length+(horas.length>1?' horários livres: ':' horário livre: ')+horas.map(hh).join(', ')+'</div></div>'+abas+
+        '<img class="previa-img" alt="Story com os horários livres" src="'+url+'">'+
+        '<button class="btn zap" data-acao="compartilhar" type="button">Enviar ou postar</button>'+
+        '<a class="btn ghost" href="'+url+'" download="'+esc(nomeArq)+'">Salvar imagem</a>'+
+        '<p class="nota">No celular, toque em Enviar ou postar e escolha o Instagram. Se não abrir, segure o dedo na imagem e toque em Salvar; depois é só postar no story. Só aparecem horários que o site também mostra.</p>'+
+        '<button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>')
+    }).catch(function(){abrirEnvio('<div><div class="t" id="envT">Não consegui criar a imagem</div><div class="d">Tente de novo.</div></div><button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>')});
+  }
   function compartilhar(){
     if(!envImg||!envImg.file){toast('Este aparelho não envia imagem direto. Toque em Salvar imagem.',true);return}
     var d={files:[envImg.file],text:envImg.texto};
@@ -613,6 +670,7 @@
     if(a==='serv-salvar')salvarServ(b.getAttribute('data-serv'),b);
     if(a==='serv-remover-perg')abrirServ(b.getAttribute('data-serv'),true);
     if(a==='serv-remover')removerServ(b.getAttribute('data-serv'),b);
+    if(a==='story')abrirStory(b.getAttribute('data-quando'));
     if(a==='cad-confirmar')cadastrar(b);
     if(a==='contato-editar')abrirContato(b.getAttribute('data-contato'));
     if(a==='contato-salvar')salvarContato(b.getAttribute('data-contato'),b);
