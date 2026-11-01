@@ -162,6 +162,9 @@ ok(/5511948907302/.test(A.url()) && /Maria Silva/.test(decodeURIComponent(A.url(
   await p.goto(BASE + 'links/');
   const href = await p.locator('a.main').evaluate((a) => a.href);
   ok(href === BASE + '#agendar', 'links: "Agendar" leva para a agenda do site (' + href.replace(BASE, '/') + ')');
+  const servs = await p.locator('a.l', { hasText: /Limpeza de pele|Auriculoterapia/ }).evaluateAll((l) => l.map((a) => a.href));
+  ok(servs.join() === [BASE + 'limpeza/', BASE + 'auriculo/'].join(), 'links: limpeza e auriculoterapia levam direto ao agendamento com o serviço já escolhido');
+  ok(/R\$ 75 até 19\/12/.test(await p.locator('a.l.nov').innerText()), 'links: o valor de inauguração mostra o prazo (até 19/12)');
   await foto(p, 'links');
   await p.close();
 }
