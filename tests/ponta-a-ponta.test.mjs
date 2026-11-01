@@ -1382,6 +1382,7 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   await S.click('[data-visao="minha"]');
   await aba(S, 'agenda');
   await S.waitForFunction(() => document.querySelector('#tAgenda').textContent === 'Minha agenda');
+  await S.waitForSelector('#agenda .prof-t', { state: 'detached' }); // a agenda recarrega depois de trocar a visão
   ok((await S.locator('#agenda .prof-t').count()) === 0, 'sócia: voltando para "Só a minha agenda", some a agenda das outras');
   await cS.close();
 
