@@ -293,6 +293,13 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .num-ult span{display:block;font-size:13.5px;color:var(--muted)}
 .num-ult .btn{width:auto;min-height:44px;padding:8px 14px;font-size:14px}
 .num-ult li.faltou b{color:var(--muted)}
+/* várias profissionais: qual agenda ver, de quem é cada horário */
+.visao{display:flex;gap:6px;padding:4px;margin:0 0 14px;border-radius:14px;background:var(--sand);border:1px solid var(--line)}
+.visao button{flex:1;min-height:44px;border:0;border-radius:10px;background:transparent;font-weight:700;font-size:14px;color:var(--muted)}
+.visao button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tag-prof{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:99px;background:var(--sand);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted);vertical-align:2px}
+.prof-t{font-size:13px;font-weight:700;color:var(--muted);margin:10px 0 6px;letter-spacing:.02em}
+.como-cliente{display:block;text-align:center;margin:10px 0 0}
 </style>
 </head>
 <body>
@@ -313,9 +320,10 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 </section>
 
 <section id="vApp" hidden>
-  <header><div><h1>Amanda Rocha</h1><small>Agenda</small></div><button class="selo" id="selo" type="button" data-ir="seguranca" hidden></button></header>
+  <header><div><h1 id="cabNome">Amanda Rocha</h1><small>Agenda</small></div><button class="selo" id="selo" type="button" data-ir="seguranca" hidden></button></header>
   <div class="wrap">
     <div class="sync"><span id="atualizado">Carregando…</span><button type="button" id="bAtualizar">Atualizar agora</button></div>
+    <div class="visao" id="visao" role="group" aria-label="Qual agenda ver" hidden><button type="button" data-visao="minha" aria-pressed="true">Só a minha agenda</button><button type="button" data-visao="todas" aria-pressed="false">Todas as profissionais</button></div>
     <div class="banner" id="bancoVelho" role="alert" hidden>Falta atualizar o banco para usar todas as funções (serviços, remarcar, lembretes, histórico completo e guardião). Rode o arquivo supabase/atualizacao.sql no Supabase (passo no README).</div>
     <div class="banner" id="semNet" role="alert" hidden>Sem conexão. O que você vê pode estar desatualizado. Não confirme nada até a internet voltar.</div>
     <button class="banner guarda" id="avisoGuarda" type="button" data-ir="seguranca" hidden></button>
@@ -339,15 +347,17 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     <p class="dica" style="margin:-6px 0 10px">Confirmados nos próximos 7 dias. Um dia antes, toque em “Mandar lembrete”.</p>
     <div id="proximos"></div>
 
-    <div class="atalhos"><button class="btn ghost" type="button" data-ir="agenda" data-abrir-form>Abrir novos horários</button><button class="btn ghost" type="button" data-ir="enviar">Enviar horários para uma cliente</button></div>
+    <div class="atalhos"><button class="btn ghost" type="button" data-ir="agenda" data-abrir-form>Abrir novos horários</button><button class="btn ghost" type="button" data-ir="enviar">Enviar horários para uma cliente</button><a class="btn ghost" data-como-cliente target="_blank" rel="noopener" href="../#agendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Visualizar agenda como cliente</a></div>
     </section>
 
     <section class="aba" data-aba="agenda" hidden>
     <div class="aba-topo"><h2 class="aba-t">Agenda</h2><p>Seus dias e horários. O que você muda aqui aparece no site na hora.</p></div>
     <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Toque em <b>Abrir novos horários</b>, escolha o dia e os horários e confirme.</li><li>Toque em qualquer horário da lista para <b>marcar uma cliente, mudar, remarcar ou apagar</b>.</li><li>Em <b>Opções do dia</b> você adiciona um horário avulso ou limpa os horários livres do dia.</li></ol></details>
     <button class="btn main" type="button" id="bMostrarAbrir">Abrir novos horários</button>
+    <a class="btn ghost como-cliente" data-como-cliente target="_blank" rel="noopener" href="../#agendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Visualizar agenda como cliente</a>
     <div class="card" id="cardAbrir" hidden>
       <h3 class="card-t">Abrir novos horários</h3>
+      <div id="paraQuemBox" hidden><label for="paraQuem">Para quem</label><select id="paraQuem"></select></div>
       <label for="novaData">Dia</label>
       <input type="date" id="novaData">
       <span class="label" id="lHoras">Horários (toque para escolher)</span>
@@ -365,7 +375,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
       <button class="btn main" type="button" id="bAbrir" style="margin-top:14px">Abrir horários</button>
     </div>
 
-    <h2>Minha agenda</h2>
+    <h2 id="tAgenda">Minha agenda</h2>
     <div class="legenda"><span><i style="background:var(--livre)"></i>livre</span><span><i style="background:var(--warn)"></i>pedido</span><span><i style="background:var(--ok)"></i>confirmado</span><span><i style="background:#F4F4F1;border:1.5px dashed #CFCFC8"></i>bloqueado</span></div>
     <div id="agenda"></div>
 
@@ -400,6 +410,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
         <button type="button" data-ir="numeros"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="li-tx"><b>Seus números</b><small>Atendimentos, faturamento e meta do mês</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="clientes"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c1-4 4-6 7-6s6 2 7 6"/><path d="M16 4a4 4 0 0 1 0 8M22 21c-.5-2.5-2-4.3-4-5.3"/></svg></span><span class="li-tx"><b>Clientes</b><small>Ficha de cada cliente: última vez, próximo horário e anotações</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="servicos"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span class="li-tx"><b>Serviços e preços</b><small>O que aparece no site para a cliente escolher</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" data-ir="profissionais" id="mProf" hidden><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3.5"/><circle cx="16.5" cy="9" r="3"/><path d="M1.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M14.5 14.6c3.4-.6 6.4 1.2 7.5 5.4"/></svg></span><span class="li-tx"><b>Profissionais</b><small>Quem atende no salão e o que cada uma pode ver</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="historico"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="li-tx"><b>Histórico</b><small>Tudo o que aconteceu na agenda</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="seguranca"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="li-tx"><b>Segurança</b><small>Guardião do site e aparelhos conectados</small></span><em class="st" id="mSeg" hidden></em><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button type="button" data-ir="ajuda"><span class="li-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 3.7M12 17h.01"/></svg></span><span class="li-tx"><b>Como funciona</b><small>Respostas rápidas sobre o painel e o site</small></span><svg class="li-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
@@ -438,6 +449,13 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     <button class="btn ghost" id="bNovoServ" type="button">Adicionar serviço</button>
     </section>
 
+    <section class="aba" data-aba="profissionais" hidden>
+    <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
+    <div class="aba-topo"><h2 class="aba-t">Profissionais</h2><p>Quem atende no salão. Sócias veem a agenda de todas; parceiras, só a própria.</p></div>
+    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Toque em <b>Adicionar profissional</b> e escreva o nome e o e-mail dela.</li><li>Escolha <b>Parceira</b> (vê só a própria agenda) ou <b>Sócia</b> (vê todas).</li><li>O Kevin cria o acesso com o mesmo e-mail no Supabase. Ela entra pelo painel do salão com a senha que escolher.</li></ol></details>
+    <div id="profLista"></div>
+    <button class="btn ghost" id="bNovaProf" type="button">Adicionar profissional</button>
+    </section>
     <section class="aba" data-aba="historico" hidden>
     <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
     <div class="aba-topo"><h2 class="aba-t">Histórico</h2><p>Tudo o que aconteceu na agenda, do mais recente para o mais antigo. Ninguém consegue apagar este registro.</p></div>
