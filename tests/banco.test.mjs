@@ -582,6 +582,45 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok(sitB && sitB.parceira === true && sitB.ntfy === 'bia-teste' && sitB.alertas.length === 0, 'na Segurança, a parceira vê o código das notificações dela e nenhum alerta do salão');
   ok((await nq(`select count(*)::int n from alertas where tipo = 'intruso'`))[0].n === 0, 'e a parceira abrindo o painel não gera alerta de intruso');
 
+  // contatos: cada profissional cadastra as próprias clientes; depois de salvo, só as sócias alteram
+  {
+    const cad = (email, nome, tel, prof) => comoQ(email, `select public.cadastrar_contato($1, $2, $3) j`, [nome, tel, prof ?? null]).then((r) => r[0].j);
+    ok((await cad(BIA, 'Rosa Lima', '(11) 93000-0099')).r === 'ok', 'contatos: a parceira cadastra uma cliente (nome e WhatsApp)');
+    ok((await nq(`select telefone, profissional, criado_por from contatos`))[0].telefone === '11930000099' && (await nq(`select profissional, criado_por from contatos`))[0].profissional === 'bia' && (await nq(`select criado_por from contatos`))[0].criado_por === BIA, 'contatos: o WhatsApp é guardado limpo e o cadastro fica no nome dela');
+    ok((await cad(BIA, 'Rosa de novo', '+55 11 93000-0099')).r === 'existe', 'contatos: a mesma cliente (mesmo WhatsApp) não duplica na lista dela');
+    ok((await cad(BIA, 'A', '11930000050')).r === 'dados' && (await cad(BIA, 'Ana Souza', '123')).r === 'dados' && (await cad(BIA, 'Ana www.golpe.com', '11930000050')).r === 'dados' && (await cad(BIA, 'Ana Souza', '11111111111')).r === 'dados', 'contatos: nome curto, telefone inválido, link e número repetido são recusados');
+    ok((await cad(BIA, 'Cliente da Amanda', '11930000077', 'amanda')).r === 'sem_acesso', 'contatos: a parceira não cadastra na lista de outra profissional');
+    ok((await cad('outra@pessoa.com', 'Intrusa', '11930000066')).r === 'sem_acesso', 'contatos: quem não é profissional não cadastra');
+    ok(!!(await tentaQ(BIA, `insert into contatos (profissional, nome, telefone) values ('bia', 'Direto', '11930000044')`)).erro, 'contatos: não dá para inserir direto na tabela, só pelo cadastro');
+    // travado para a parceira
+    ok((await comoQ(BIA, `update contatos set nome = 'Outro nome' where profissional = 'bia' returning id`)).length === 0 && (await nq(`select nome from contatos where profissional = 'bia'`))[0].nome === 'Rosa Lima', 'contatos: depois de cadastrado, a parceira não consegue alterar o nome');
+    ok((await comoQ(BIA, `update contatos set telefone = '11930000011' where profissional = 'bia' returning id`)).length === 0, 'contatos: nem o WhatsApp');
+    ok((await comoQ(BIA, `delete from contatos where profissional = 'bia' returning id`)).length === 0 && (await nq(`select count(*)::int n from contatos where profissional = 'bia'`))[0].n === 1, 'contatos: nem apagar');
+    // vê só os dela; as sócias veem de todas
+    await cad(SANDRA, 'Cliente da Sandra', '11930000088');
+    ok((await comoQ(BIA, `select nome from contatos`)).map((r) => r.nome).join() === 'Rosa Lima', 'contatos: a parceira só enxerga os que ela cadastrou');
+    ok((await comoQ(SANDRA, `select count(*)::int n from contatos`))[0].n === 2 && (await comoQ(EMAIL_ADMIN, `select count(*)::int n from contatos`))[0].n === 2, 'contatos: Sandra e Amanda veem os de todas');
+    // lista de clientes: cadastradas aparecem, mesmo sem horário
+    const lb = (await comoQ(BIA, `select public.clientes_resumo() j`))[0].j.map((c) => c.nome);
+    ok(lb.includes('Rosa Lima') && !lb.includes('Cliente da Sandra'), 'contatos: a Bia vê na lista de clientes a que cadastrou, sem horário, e não a da Sandra');
+    ok((await comoQ(SANDRA, `select public.clientes_resumo() j`))[0].j.map((c) => c.nome).includes('Rosa Lima'), 'contatos: a Sandra, em "Todas", vê também a da Bia');
+    const rosa = (await comoQ(SANDRA, `select public.clientes_resumo('bia') j`))[0].j.filter((c) => c.telefone === '11930000099');
+    ok(rosa.length === 1 && rosa[0].contato_id && rosa[0].atendimentos === 0, 'contatos: a cadastrada aparece uma vez, como cliente nova');
+    // quem marca pelo site com a Bia entra sozinha na lista dela; se já era contato, não duplica
+    await comoQ(EMAIL_ADMIN, `insert into horarios (data, hora, profissional) values ($1, '19:00', 'bia')`, [dia]);
+    ok(await pedir(await id('bia', '19:00'), 'Massagem', 'Rosa Lima', '11930000099') === 'ok', 'contatos: (preparo) a Rosa também marca horário com a Bia pelo site');
+    const rosa2 = (await comoQ(BIA, `select public.clientes_resumo() j`))[0].j.filter((c) => c.telefone === '11930000099');
+    ok(rosa2.length === 1 && rosa2[0].contato_id, 'contatos: quem já é contato e marca horário aparece uma vez só, com o cadastro');
+    ok((await comoQ(BIA, `select public.clientes_resumo() j`))[0].j.some((c) => c.nome === 'Nina Reis'), 'contatos: quem marca pelo site com a Bia entra sozinha na lista dela');
+    // as sócias alteram e apagam
+    ok((await comoQ(SANDRA, `update contatos set nome = 'Rosa Lima Santos' where profissional = 'bia' returning id`)).length === 1, 'contatos: a Sandra corrige o nome de um contato da Bia');
+    ok((await comoQ(EMAIL_ADMIN, `update contatos set telefone = '11930000098' where profissional = 'bia' returning id`)).length === 1, 'contatos: a Amanda corrige o WhatsApp');
+    ok((await comoQ(SANDRA, `delete from contatos where profissional = 'sandra' returning id`)).length === 1, 'contatos: a Sandra apaga um contato');
+    // anotações: a parceira ainda anota na ficha da própria cliente
+    ok((await comoQ(BIA, `select public.salvar_cliente('11930000098', 'alergia a lavanda') r`))[0].r === true, 'contatos: a parceira ainda escreve anotações na ficha das próprias clientes');
+    ok((await comoQ(BIA, `select public.clientes_resumo() j`))[0].j.find((c) => c.telefone === '11930000098').obs === 'alergia a lavanda', 'contatos: e a anotação aparece na lista dela');
+  }
+
   // a atualização roda de novo sem estragar nada
   const rr = await tenta(sal.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8')));
   ok(!rr.erro && (await nq(`select count(*)::int n from profissionais`))[0].n === 3 && (await nq(`select recurso from servicos where id = 'limpeza'`))[0].recurso === 'maca', 'rodar a atualização de novo mantém as profissionais e os recursos' + (rr.erro ? ': ' + rr.erro : ''));

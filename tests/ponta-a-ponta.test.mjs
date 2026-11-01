@@ -1430,6 +1430,54 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   await B.keyboard.press('Escape');
   await aba(B, 'mais'); await B.click('[data-ir="seguranca"]');
   ok(/Sua conta/.test(await B.locator('#gStatus').innerText()) && (await B.locator('#gStatus [data-acao="protecao"]').count()) === 0, 'parceira: na Segurança, vê só a própria conta, sem ligar a proteção do salão');
+  // cadastro de clientes: sugestão desde a 1ª letra, cadastro travado e correção só pelas sócias
+  const cB2 = await contexto(ANDROID, { apiDoBanco: apiS });
+  const B2 = await entrarComo(cB2, 'bia@teste.com');
+  await aba(B2, 'enviar');
+  await B2.fill('#envNome', 'Gisele');
+  ok(await B2.locator('#cadBox').isVisible() && await B2.locator('#bCadastrar').isDisabled(), 'cadastro: ao digitar o nome, aparece "Cadastrar como nova cliente", ainda desligado sem o WhatsApp');
+  ok(/preencha também o WhatsApp/.test(await B2.locator('#cadDica').innerText()), 'cadastro: e explica o que falta');
+  await B2.fill('#envTel', '(11) 94000-1111');
+  ok(!(await B2.locator('#bCadastrar').isDisabled()), 'cadastro: com nome e WhatsApp o botão liga');
+  await B2.click('#bCadastrar');
+  ok(/só a Sandra e a Amanda/.test(await B2.locator('#envio').innerText()), 'cadastro: antes de salvar, avisa que depois só a Sandra e a Amanda alteram');
+  await B2.click('#envio [data-acao="cad-confirmar"]');
+  await B2.waitForSelector('#toast:not([hidden])');
+  ok((await sq(`select nome, profissional from contatos where telefone = '11940001111'`))[0].profissional === 'bia', 'cadastro: a cliente entra na lista da Bia');
+  await B2.fill('#envNome', ''); await B2.fill('#envTel', '');
+  await B2.fill('#envNome', 'g');
+  await B2.waitForSelector('#sug-envNome button');
+  ok((await B2.locator('#sug-envNome button').first().innerText()).includes('Gisele'), 'cadastro: a sugestão aparece já na 1ª letra, com o nome e o WhatsApp');
+  await B2.fill('#envNome', 'Gi');
+  await B2.click('#sug-envNome button');
+  ok((await B2.inputValue('#envTel')) === '(11) 94000-1111', 'cadastro: tocando na sugestão, o WhatsApp já vem preenchido');
+  ok(/já está cadastrada/.test(await B2.locator('#cadDica').innerText()) && await B2.locator('#bCadastrar').isDisabled(), 'cadastro: uma cliente já cadastrada não é cadastrada de novo');
+  await aba(B2, 'mais'); await B2.click('[data-ir="clientes"]');
+  await B2.waitForSelector('#cliLista .card');
+  const cartao = B2.locator('#cliLista .card', { hasText: 'Gisele' }).first();
+  ok(/Cadastro travado/.test(await cartao.innerText()) && (await cartao.locator('[data-acao="contato-editar"]').count()) === 0, 'cadastro: para a parceira o cartão mostra "Cadastro travado" e não oferece editar nem apagar');
+  ok((await cartao.locator('a', { hasText: 'Pedir correção' }).count()) === 1, 'cadastro: e oferece "Pedir correção" pelo WhatsApp');
+  await cB2.close();
+
+  const cS2 = await contexto(ANDROID, { apiDoBanco: apiS });
+  const S2 = await entrarComo(cS2, 'sandra@teste.com');
+  await S2.click('[data-visao="todas"]');
+  await S2.waitForSelector('#visao [data-visao="todas"][aria-pressed="true"]');
+  await aba(S2, 'mais'); await S2.click('[data-ir="clientes"]');
+  await S2.waitForSelector('#cliLista .card');
+  const cartaoS = S2.locator('#cliLista .card', { hasText: '(11) 94000-1111' }).first();
+  ok(await cartaoS.locator('[data-acao="contato-editar"]').isVisible() && /com Bia/.test(await cartaoS.innerText()), 'cadastro: a Sandra, em "Todas", vê o contato da Bia, com quem é, e pode editar');
+  await cartaoS.locator('[data-acao="contato-editar"]').click();
+  await S2.fill('#ctNome', 'Gisele Alves Souza');
+  await S2.click('#envio [data-acao="contato-salvar"]');
+  await S2.waitForSelector('#toast:not([hidden])');
+  ok((await sq(`select nome from contatos where telefone = '11940001111'`))[0].nome === 'Gisele Alves Souza', 'cadastro: a Sandra corrige o nome e fica salvo');
+  await S2.locator('#cliLista .card', { hasText: 'Gisele Alves Souza' }).first().locator('[data-acao="contato-editar"]').click();
+  await S2.click('#envio [data-acao="contato-apagar-perg"]');
+  await S2.click('#envio [data-acao="contato-apagar"]');
+  await S2.waitForSelector('#toast:not([hidden])');
+  ok((await sq(`select count(*)::int n from contatos where telefone = '11940001111'`))[0].n === 0, 'cadastro: a Sandra apaga o contato');
+  await cS2.close();
   await cB.close();
 }
 

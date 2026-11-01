@@ -2010,6 +2010,140 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------
+-- Contatos: cada profissional cadastra as próprias clientes (nome e WhatsApp).
+-- Depois de salvo, só as sócias (Amanda e Sandra) alteram ou apagam.
+-- A parceira só vê os contatos dela; as sócias veem os de todas.
+-- ---------------------------------------------------------------------
+create table if not exists public.contatos (
+  id uuid primary key default gen_random_uuid(),
+  profissional text not null references public.profissionais (id),
+  nome text not null check (length(btrim(nome)) between 2 and 60),
+  telefone text not null check (telefone ~ '^[1-9][1-9][0-9]{8,9}$'),
+  criado_por text,
+  criado_em timestamptz not null default now(),
+  unique (profissional, telefone)
+);
+alter table public.contatos enable row level security;
+revoke all on public.contatos from anon;
+revoke insert on public.contatos from authenticated;
+grant select, update, delete on public.contatos to authenticated;
+
+drop policy if exists "contatos_leitura" on public.contatos;
+create policy "contatos_leitura" on public.contatos
+  for select to authenticated
+  using (public.posso(profissional));
+-- alterar e apagar: só sócias
+drop policy if exists "contatos_alteram" on public.contatos;
+create policy "contatos_alteram" on public.contatos
+  for update to authenticated
+  using (public.sou_admin())
+  with check (public.sou_admin());
+drop policy if exists "contatos_apagam" on public.contatos;
+create policy "contatos_apagam" on public.contatos
+  for delete to authenticated
+  using (public.sou_admin());
+
+-- Cadastrar uma cliente (a única forma de criar um contato).
+-- Resposta: {r: 'ok'|'existe'|'dados'|'sem_acesso', id}
+create or replace function public.cadastrar_contato(p_nome text, p_telefone text, p_prof text default null)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_prof text := coalesce(p_prof, public.minha_profissional(), case when public.sou_admin() then 'amanda' end);
+  v_tel text := regexp_replace(coalesce(p_telefone, ''), '[^0-9]', '', 'g');
+  v_nome text;
+  v_id uuid;
+begin
+  if v_prof is null or not public.posso(v_prof) then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  if v_tel like '55%' and length(v_tel) in (12, 13) then
+    v_tel := substr(v_tel, 3);
+  end if;
+  v_nome := regexp_replace(coalesce(p_nome, ''), '[​-‏‪-‮⁠-⁩﻿]', '', 'g');
+  v_nome := left(btrim(regexp_replace(regexp_replace(v_nome, '[[:cntrl:]]', ' ', 'g'), '\s+', ' ', 'g')), 60);
+  if length(v_nome) < 2 or v_nome !~ '[[:alpha:]]'
+     or v_nome ~* '(https?:|www\.|\.(com|net|org|br|ly|me|io)(\W|$)|@)'
+     or length(v_tel) not in (10, 11) or v_tel !~ '^[1-9][1-9]' or v_tel ~ '^(\d)\1+$' then
+    return json_build_object('r', 'dados');
+  end if;
+  select c.id into v_id from public.contatos c where c.profissional = v_prof and c.telefone = v_tel;
+  if found then
+    return json_build_object('r', 'existe', 'id', v_id);
+  end if;
+  insert into public.contatos (profissional, nome, telefone, criado_por)
+  values (v_prof, v_nome, v_tel, lower(coalesce(auth.jwt() ->> 'email', '')))
+  returning id into v_id;
+  return json_build_object('r', 'ok', 'id', v_id);
+end;
+$$;
+
+-- Lista de clientes: as da agenda (quem pediu ou marcou horário) mais as cadastradas à mão.
+-- Cada contato aparece uma vez por profissional; uma cliente da agenda que também foi cadastrada
+-- aparece só uma vez, com o selo de cadastro.
+drop function if exists public.clientes_resumo(text);
+create or replace function public.clientes_resumo(p_prof text default null)
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_eu text := public.minha_profissional();
+  v_socia boolean := public.sou_admin();
+  v_obs text;
+begin
+  if not v_socia and v_eu is null then
+    return null;
+  end if;
+  if not v_socia then
+    p_prof := v_eu;
+  end if;
+  v_obs := coalesce(p_prof, v_eu, 'amanda');
+  return (
+    select coalesce(json_agg(t order by t.recente desc), '[]'::json)
+      from (
+        select k.chave,
+               (array_agg(h.nome order by h.data desc, h.hora desc))[1] as nome,
+               max(h.telefone) as telefone,
+               count(*) filter (where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()) as atendimentos,
+               max(h.data) filter (where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()) as ultima,
+               min(h.data + h.hora::time) filter (where (h.data + h.hora::time) > public.agora_sp()) as proxima,
+               array_agg(distinct h.servico) filter (where h.servico is not null and h.servico not in ('Combinado por fora', 'Manual')) as servicos,
+               (array_agg(h.servico order by h.data desc, h.hora desc) filter (where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()))[1] as ultimo_servico,
+               count(*) filter (where h.faltou) as faltas,
+               min(h.data) as desde,
+               max(h.data) as recente,
+               array_agg(distinct h.profissional) as profissionais,
+               c.obs,
+               (array_agg(ct.id))[1] as contato_id,
+               (array_agg(ct.nome))[1] as contato_nome
+          from public.horarios h
+          cross join lateral (select coalesce(h.telefone, 'nome:' || lower(btrim(h.nome))) as chave) k
+          left join public.clientes c on c.chave = k.chave and c.profissional = v_obs
+          left join public.contatos ct on ct.telefone = h.telefone and ct.profissional = h.profissional
+         where h.status in ('pedido', 'confirmado') and h.nome is not null and h.nome <> 'Marcado por fora'
+           and (p_prof is null or h.profissional = p_prof)
+         group by k.chave, c.obs
+        union all
+        select ct.telefone, ct.nome, ct.telefone, 0::bigint, null::date, null::timestamp, null::text[], null::text, 0::bigint,
+               ct.criado_em::date, ct.criado_em::date, array[ct.profissional], c.obs, ct.id, ct.nome
+          from public.contatos ct
+          left join public.clientes c on c.chave = ct.telefone and c.profissional = v_obs
+         where (p_prof is null or ct.profissional = p_prof)
+           and not exists (select 1 from public.horarios h
+                            where h.telefone = ct.telefone and h.profissional = ct.profissional
+                              and h.status in ('pedido', 'confirmado') and h.nome is not null and h.nome <> 'Marcado por fora')
+      ) t
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- Permissões das funções
 -- (o Supabase dá acesso automático a funções novas; aqui tudo é fechado e
 -- depois liberado só para quem precisa)
@@ -2031,6 +2165,7 @@ revoke all on function public.definir_protecao(boolean) from public, anon, authe
 revoke all on function public.marcar_alertas_vistos() from public, anon, authenticated;
 revoke all on function public.guardiao_publico() from public, anon, authenticated;
 revoke all on function public.clientes_resumo(text) from public, anon, authenticated;
+revoke all on function public.cadastrar_contato(text, text, text) from public, anon, authenticated;
 revoke all on function public.notificar(text, text, integer, text) from public, anon, authenticated;
 revoke all on function public.notifica_alerta() from public, anon, authenticated;
 revoke all on function public.notificacoes_disponiveis() from public, anon, authenticated;
@@ -2072,6 +2207,7 @@ grant execute on function public.situacao_guardiao() to authenticated;
 grant execute on function public.definir_protecao(boolean) to authenticated;
 grant execute on function public.marcar_alertas_vistos() to authenticated;
 grant execute on function public.clientes_resumo(text) to authenticated;
+grant execute on function public.cadastrar_contato(text, text, text) to authenticated;
 grant execute on function public.testar_notificacao() to authenticated;
 grant execute on function public.enviar_resumo_agora() to authenticated;
 -- a regra dos benefícios roda quando a Amanda salva um serviço

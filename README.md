@@ -69,6 +69,7 @@ A agenda da Amanda é também a agenda do salão: **um banco só**, com uma agen
 - **Parceiras** veem e mexem só na própria agenda, clientes, números e histórico. Quem garante isso é o banco (regras de acesso), não a tela.
 - **Visualizar agenda como cliente:** botão no Início e na Agenda que abre o site como a cliente vê.
 - **A maca trava entre elas:** em Serviços e preços, cada serviço diz se usa a maca, uma cadeira ou a mesa de unhas. Um atendimento que usa a maca impede outra profissional de marcar a maca no mesmo horário, pelo site, pelo painel ou ao remarcar.
+- **Cadastro de clientes** (em Enviar horários): ao digitar o nome, o painel sugere as clientes já cadastradas, desde a 1ª letra. Quem não está na lista é cadastrada com nome e WhatsApp, depois de uma tela de conferência. **Depois de salvo, só as sócias alteram ou apagam** (garantido pelo banco); a parceira vê "Cadastro travado" e pode pedir a correção por WhatsApp. Cada profissional tem a própria lista: quem marca horário pelo site com ela entra sozinha, e a parceira ainda pode escrever anotações na ficha das próprias clientes. As sócias veem as listas de todas, em "Todas as profissionais".
 - **Mais › Profissionais** (só sócias): cadastrar a Sandra e as parceiras, com nome, e-mail e o que cada uma pode ver.
 - Cada pedido novo avisa **a profissional do horário** no celular dela (app ntfy, código em Mais › Segurança).
 

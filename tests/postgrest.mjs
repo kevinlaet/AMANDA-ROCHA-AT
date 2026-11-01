@@ -109,6 +109,19 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/definir_protecao') return json(route, (await db.query('select public.definir_protecao($1) j', [!!(req.postDataJSON() || {}).p_pausar])).rows[0].j);
         if (caminho === '/rest/v1/rpc/meus_numeros') return json(route, (await db.query('select public.meus_numeros($1) j', [corpo().p_prof ?? null])).rows[0].j);
         if (caminho === '/rest/v1/rpc/definir_meta') { const b = corpo(); return json(route, (await db.query('select public.definir_meta($1, $2) j', [b.p_valor ?? null, b.p_prof ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/cadastrar_contato') { const b = corpo(); return json(route, (await db.query('select public.cadastrar_contato($1, $2, $3) j', [b.p_nome, b.p_telefone, b.p_prof ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/contatos') {
+          const params = [], pid = url.searchParams.get('id') || '';
+          if (pid.startsWith('eq.')) params.push(pid.slice(3));
+          const onde = params.length ? ' where id = $1::uuid' : ' where false';
+          if (metodo === 'PATCH') {
+            const b = req.postDataJSON(), sets = [];
+            for (const k of Object.keys(b)) { if (!['nome', 'telefone'].includes(k)) throw new Error('coluna não permitida: ' + k); params.push(b[k]); sets.push(`${k} = $${params.length}`); }
+            const r = await lista(`update public.contatos set ${sets.join(', ')}${onde} returning id`, params);
+            return prefer.includes('return=representation') ? json(route, r) : route.fulfill({ status: 204, headers: CORS });
+          }
+          if (metodo === 'DELETE') { const r = await lista(`delete from public.contatos${onde} returning id`, params); return prefer.includes('return=representation') ? json(route, r) : route.fulfill({ status: 204, headers: CORS }); }
+        }
         if (caminho === '/rest/v1/recursos') return json(route, await lista('select id, nome from public.recursos order by nome'));
         if (caminho === '/rest/v1/profissionais') {
           const params = [];

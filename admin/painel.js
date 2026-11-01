@@ -613,6 +613,11 @@
     if(a==='serv-salvar')salvarServ(b.getAttribute('data-serv'),b);
     if(a==='serv-remover-perg')abrirServ(b.getAttribute('data-serv'),true);
     if(a==='serv-remover')removerServ(b.getAttribute('data-serv'),b);
+    if(a==='cad-confirmar')cadastrar(b);
+    if(a==='contato-editar')abrirContato(b.getAttribute('data-contato'));
+    if(a==='contato-salvar')salvarContato(b.getAttribute('data-contato'),b);
+    if(a==='contato-apagar-perg')abrirContato(b.getAttribute('data-contato'),true);
+    if(a==='contato-apagar')apagarContato(b.getAttribute('data-contato'),b);
     if(a==='prof-editar')abrirProf(b.getAttribute('data-prof'));
     if(a==='prof-salvar')salvarProf(b.getAttribute('data-prof'),b);
   });
@@ -949,7 +954,7 @@
   var clientes=null,cliFiltro='todas',DIAS_SEM_VIR=10;
   function carregarClientes(){
     if(!clientes)$('cliLista').innerHTML='<p class="vazio">Carregando…</p>';
-    api('POST','rpc/clientes_resumo',comProf()).then(function(j){clientes=j||[];desenharClientes()},function(e){
+    api('POST','rpc/clientes_resumo',comProf()).then(function(j){clientes=j||[];desenharClientes();desenharCadastro()},function(e){
       if(e==='sessao')return;
       $('cliLista').innerHTML='<p class="vazio">'+(e==='ausente'?'Para ver as clientes aqui, falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).':e==='rede'?'Sem conexão. Tente de novo quando a internet voltar.':'Não consegui carregar as clientes agora.')+'</p>'});
   }
@@ -1043,12 +1048,13 @@
 
   // ---------- sugestão de nomes: ao digitar, mostra clientes que já existem ----------
   var CAMPO_TEL={fNome:'fTel',envNome:'envTel'};
-  document.addEventListener('input',function(e){var t=e.target;if(t&&CAMPO_TEL[t.id])sugerir(t)});
+  document.addEventListener('input',function(e){var t=e.target;if(t&&CAMPO_TEL[t.id])sugerir(t);if(t&&(t.id==='envNome'||t.id==='envTel'))desenharCadastro()});
   function sugerir(inp){
     var box=document.getElementById('sug-'+inp.id);
     if(!box){box=document.createElement('div');box.className='sug';box.id='sug-'+inp.id;box.setAttribute('role','listbox');inp.insertAdjacentElement('afterend',box)}
     var v=semAcento(inp.value.trim());
-    var l=v.length<2||!clientes?[]:clientes.filter(function(x){var n=semAcento(x.nome);return n.indexOf(v)>=0&&n!==v}).slice(0,5);
+    var l=v.length<1||!clientes?[]:clientes.filter(function(x){var n=semAcento(x.nome);return n.indexOf(v)>=0&&n!==v})
+      .sort(function(a,b){var pa=semAcento(a.nome).indexOf(v)===0?0:1,pb=semAcento(b.nome).indexOf(v)===0?0:1;return pa-pb||String(a.nome).localeCompare(b.nome)}).slice(0,6);
     box.hidden=!l.length;
     box.innerHTML=l.map(function(x){return '<button type="button" role="option" data-sug="'+esc(x.chave)+'" data-para="'+inp.id+'">'+esc(x.nome)+'<small>'+(x.telefone?esc(fmtTel(x.telefone)):'sem WhatsApp')+'</small></button>'}).join('');
   }
@@ -1058,8 +1064,70 @@
     inp.value=x.nome;if(tel&&x.telefone)tel.value=fmtTel(x.telefone);
     var box=$('sug-'+id);if(box)box.hidden=true;
     if(id==='envNome')desenharEnvio();
+    desenharCadastro();
     (tel||inp).focus();
   });
+  // ---------- cadastrar cliente nova (a partir de Enviar horários) ----------
+  // depois de salvo, só a Sandra e a Amanda alteram ou apagam: a conferência acontece antes
+  function jaCadastrada(tel){return !!tel&&(clientes||[]).some(function(x){return x.telefone===tel})}
+  function desenharCadastro(){
+    var box=$('cadBox');if(!box)return;
+    var nome=nomeEnv(),tel=telEnv(),temTel=$('envTel').value.trim().length>0;
+    var ok=nome.length>=2&&!!tel&&!jaCadastrada(tel)&&!!eu&&!eu.velho;
+    box.hidden=!(nome.length>=2&&!(eu&&eu.velho));
+    var b=$('bCadastrar');b.disabled=!ok;
+    $('cadDica').textContent=!tel?(temTel?'Confira o WhatsApp: use o número com DDD.':'Para cadastrar, preencha também o WhatsApp dela.'):jaCadastrada(tel)?'Esta cliente já está cadastrada.':'Depois de cadastrada, só a Sandra e a Amanda conseguem alterar ou apagar.';
+  }
+  function abrirCadastro(){
+    var nome=nomeEnv(),tel=telEnv();if(!nome||!tel)return;
+    abrirEnvio('<div><span class="estado livre">Nova cliente</span><div class="t" id="envT">Confira antes de cadastrar</div></div>'+
+      '<div class="card"><div class="cli-t"><b>'+esc(nome)+'</b></div><div class="cli-d">'+esc(fmtTel(tel))+'</div></div>'+
+      '<div class="pergunta">Depois de cadastrada, <b>só a Sandra e a Amanda</b> conseguem corrigir ou apagar este contato. Se algo estiver errado, corrija agora.</div>'+
+      '<button class="btn main" type="button" data-acao="cad-confirmar">Cadastrar cliente</button>'+
+      '<button class="btn ghost" type="button" data-acao="fecharEnvio">Voltar e corrigir</button>');
+  }
+  function cadastrar(b){
+    var nome=nomeEnv(),tel=telEnv();b.disabled=true;
+    api('POST','rpc/cadastrar_contato',{p_nome:nome,p_telefone:tel,p_prof:minhaProf()}).then(function(j){
+      var r=j&&j.r;
+      if(r==='ok'||r==='existe'){toast(r==='ok'?primeiro(nome)+' cadastrada.':primeiro(nome)+' já estava cadastrada.');fecharEnvio();return carregarClientes()}
+      toast(r==='dados'?'Confira o nome e o WhatsApp.':'Não deu certo. Tente de novo.',true);
+    },function(e){if(e==='ausente'){toast('Para cadastrar clientes, falta atualizar o banco (arquivo supabase/atualizacao.sql).',true);return}falha(e)})
+      .then(function(){b.disabled=false;desenharCadastro()});
+  }
+  if($('bCadastrar'))$('bCadastrar').onclick=abrirCadastro;
+
+  // contatos cadastrados: só as sócias corrigem ou apagam; a parceira pede a correção
+  function abrirContato(id,apagar){
+    var x=(clientes||[]).filter(function(c){return c.contato_id===id})[0];if(!x){toast(MUDOU,true);return}
+    if(apagar){abrirEnvio('<div><span class="estado livre">Contato</span><div class="t" id="envT">'+esc(x.nome)+'</div></div>'+
+      '<div class="pergunta">Apagar o contato de '+esc(primeiro(x.nome))+'? Os horários dela na agenda continuam.</div>'+
+      '<button class="btn bad-solid" type="button" data-acao="contato-apagar" data-contato="'+esc(id)+'">Sim, apagar contato</button>'+
+      '<button class="btn ghost" type="button" data-acao="contato-editar" data-contato="'+esc(id)+'">Voltar</button>');return}
+    abrirEnvio('<div><span class="estado livre">Contato</span><div class="t" id="envT">'+esc(x.nome)+'</div><div class="d">Só você e a '+(minhaProf()==='sandra'?'Amanda':'Sandra')+' conseguem alterar um contato cadastrado.</div></div>'+
+      '<label for="ctNome">Nome</label><input type="text" id="ctNome" maxlength="60" value="'+esc(x.nome)+'">'+
+      '<label for="ctTel">WhatsApp</label><input type="tel" id="ctTel" inputmode="tel" value="'+esc(fmtTel(x.telefone))+'">'+
+      '<button class="btn main" type="button" data-acao="contato-salvar" data-contato="'+esc(id)+'">Salvar</button>'+
+      '<button class="btn bad" type="button" data-acao="contato-apagar-perg" data-contato="'+esc(id)+'">Apagar contato…</button>'+
+      '<button class="btn ghost" type="button" data-acao="fecharEnvio">Fechar</button>');
+  }
+  function salvarContato(id,b){
+    var nome=($('ctNome').value||'').trim().replace(/\s+/g,' '),tel=normTel($('ctTel').value);
+    if(nome.length<2||!tel){toast('Confira o nome e o WhatsApp (com DDD).',true);return}
+    b.disabled=true;
+    api('PATCH','contatos?id=eq.'+encodeURIComponent(id),{nome:nome.slice(0,60),telefone:tel},{Prefer:'return=representation'}).then(function(j){
+      if(!j||!j.length){toast('Não consegui alterar. Só a Sandra e a Amanda podem.',true);return}
+      toast('Contato atualizado.');fecharEnvio();return carregarClientes()},
+      function(e){if(e==='erro'){toast('Não deu certo: já existe uma cliente com esse WhatsApp.',true);return}falha(e)}).then(function(){b.disabled=false});
+  }
+  function apagarContato(id,b){
+    b.disabled=true;
+    api('DELETE','contatos?id=eq.'+encodeURIComponent(id),undefined,{Prefer:'return=representation'}).then(function(j){
+      if(!j||!j.length){toast('Não consegui apagar. Só a Sandra e a Amanda podem.',true);return}
+      toast('Contato apagado.');fecharEnvio();return carregarClientes()},falha).then(function(){b.disabled=false});
+  }
+  function zapCorrecao(x){var n=String(AG.whatsapp||'').replace(/\D/g,'');if(!n)return '';
+    return 'https://wa.me/'+n+'?text='+encodeURIComponent('Oi! Preciso corrigir o contato de '+x.nome+' ('+fmtTel(x.telefone)+') no painel. O certo é: ')}
   // horários livres que o site também mostra (mais de 1 h à frente), respeitando a estreia do serviço
   function proximosLivres(servNome,n){var sv=listaServ().filter(function(s){return s.nome===servNome})[0],desde=sv&&sv.desde,lim=limiteTxt();
     var dur=duracaoDe(servNome),l=rows.filter(function(r){return r.status==='livre'&&profDe(r)===minhaProf()&&(r.data+' '+r.hora)>lim&&(!desde||r.data>=desde)&&cabeEm(r,dur)});
@@ -1090,11 +1158,13 @@
     if(cliFiltro==='sumidas')l.sort(function(a,c){return a.ultima<c.ultima?-1:1});
     var total=(clientes||[]).length;
     $('cliResumo').textContent=cliFiltro==='sumidas'?(nSum?'Clientes sem horário marcado e que não vêm há mais de '+DIAS_SEM_VIR+' dias. Que tal chamar?':''):total?total+(total>1?' clientes':' cliente')+(b?' · '+l.length+' encontrada'+(l.length===1?'':'s'):''):'';
-    if(!l.length){el.innerHTML='<p class="vazio">'+(cliFiltro==='sumidas'&&!b?'Nenhuma cliente há mais de '+DIAS_SEM_VIR+' dias sem vir. Ótimo sinal!':b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui assim que marcarem o primeiro horário.')+'</p>';return}
+    if(!l.length){el.innerHTML='<p class="vazio">'+(cliFiltro==='sumidas'&&!b?'Nenhuma cliente há mais de '+DIAS_SEM_VIR+' dias sem vir. Ótimo sinal!':b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui quando marcam o primeiro horário ou quando você as cadastra em Enviar.')+'</p>';return}
     el.innerHTML=l.map(function(x){
       var prox=x.proxima?String(x.proxima).replace('T',' '):'',pd=prox.slice(0,10),ph=prox.slice(11,16);
       var sumiu=sumida(x),z=zapCliente(x,sumiu);
-      return '<div class="card cli"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+'</div>'+
+      var cad=x.contato_id?(eu&&eu.socia?'<button class="btn ghost" type="button" data-acao="contato-editar" data-contato="'+esc(x.contato_id)+'">Editar contato</button>':
+        (function(zc){return zc?'<a class="btn ghost" target="_blank" rel="noopener" href="'+esc(zc)+'">Pedir correção</a>':''})(zapCorrecao(x))):'';
+      return '<div class="card cli"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+(x.contato_id?'<span class="tag">Cadastro travado</span>':'')+(todas()&&x.profissionais&&x.profissionais.length?'<span class="tag-prof">com '+esc(x.profissionais.map(function(i){return primeiro(nomeProf(i))}).join(', '))+'</span>':'')+'</div>'+
         '<div class="cli-d">'+(x.telefone?esc(fmtTel(x.telefone)):'Sem WhatsApp')+(x.servicos&&x.servicos.length?' · '+esc(x.servicos.join(', ')):'')+(x.faltas?' · não veio '+x.faltas+(x.faltas>1?' vezes':' vez'):'')+'</div>'+
         '<div class="cli-n"><div><b>'+x.atendimentos+'</b>'+(x.atendimentos===1?'atendimento':'atendimentos')+'</div>'+
           '<div><b>'+(x.ultima?esc(curta(x.ultima)):'—')+'</b>última vez'+(x.ultima?' ('+(diasDesde(x.ultima)===0?'hoje':'há '+diasDesde(x.ultima)+' dia'+(diasDesde(x.ultima)===1?'':'s'))+')':'')+'</div>'+
@@ -1102,7 +1172,7 @@
         (sumiu?'<div class="cli-volta">Faz '+diasDesde(x.ultima)+' dias que ela não vem. Que tal chamar?</div>':'')+
         (x.obs?'<div class="cli-obs">'+esc(x.obs)+'</div>':'')+
         '<div class="row">'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">'+(sumiu?'Convidar a voltar':'WhatsApp')+'</a>':'<span></span>')+
-        '<button class="btn ghost" type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+(x.obs?'Editar anotação':'Anotar')+'</button></div></div>'}).join('');
+        '<button class="btn ghost" type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+(x.obs?'Editar anotação':'Anotar')+'</button></div>'+(cad?'<div class="row" style="margin-top:8px">'+cad+'</div>':'')+'</div>'}).join('');
   }
   $('cliBusca').oninput=desenharClientes;
   function cliPorChave(k){return (clientes||[]).filter(function(x){return x.chave===k})[0]}
