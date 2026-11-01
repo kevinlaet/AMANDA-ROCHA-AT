@@ -35,18 +35,22 @@
 
   // Com o Supabase ligado, o banco decide o que aparece (horário de Brasília).
   // Sem ele, usa a lista do agenda.js.
+  // A agenda do Studio La Rocha tem várias profissionais: este site pede só os horários e serviços da Amanda.
+  // Banco ainda sem profissionais (responde 404 ao filtro): pede como antes.
+  function daAmanda(f){var u=C.url+'/rest/v1/rpc/'+f;
+    return fetch(u,{method:'POST',headers:cab(),body:'{"p_profissional":"amanda"}'}).then(function(r){return r.status===404?fetch(u,{method:'POST',headers:cab(),body:'{}'}):r})}
   function load(){
     if(!live){slots=[];var h=hojeLocal();A.dias.forEach(function(d){if(d.data<h)return;d.horarios.forEach(function(x){
       slots.push({id:d.data+' '+x,data:d.data,hora:x,status:(A.ocupados[d.data]||[]).indexOf(x)<0?'livre':'ocupado'})})});return Promise.resolve()}
     // serviços: os que a Amanda cadastrou no painel; se o banco ainda não tiver a tabela, ficam os do agenda.js
-    var serv=fetch(C.url+'/rest/v1/rpc/servicos_publicos',{method:'POST',headers:cab(),body:'{}'})
+    var serv=daAmanda('servicos_publicos')
       .then(function(r){if(!r.ok)throw 0;return r.json()})
       .then(function(j){if(Array.isArray(j)){A.servicos=j.map(function(x){return {id:x.id,nome:x.nome,detalhe:x.detalhe||'',novidade:!!x.novidade,desde:x.desde||null,duracao:+x.duracao||0,
         preco:x.preco==null?null:+x.preco,preco_antes:x.preco_antes==null?null:+x.preco_antes,preco_obs:x.preco_obs||'',descricao:x.descricao||'',beneficios:x.beneficios||[]}});
         // banco com a personalização (preço, texto e benefícios): os cartões e a faixa de novidade vêm dele
         if(j.length&&('descricao' in j[0]))vitrine()}})
       .catch(function(){});
-    var ag=fetch(C.url+'/rest/v1/rpc/agenda_publica',{method:'POST',headers:cab(),body:'{}'})
+    var ag=daAmanda('agenda_publica')
       .then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){slots=j||[];falhou=false}).catch(function(){falhou=true});
     return Promise.all([serv,ag]);
   }

@@ -60,6 +60,22 @@ O painel é organizado como aplicativo: **Início** (pedidos e lembretes do dia)
 - Nomes e telefones das clientes só aparecem no painel, nunca no site.
 - Toda mudança fica registrada na tabela `historico`: quem, quando e de que status para qual. No Supabase, ela fica em Table Editor > historico.
 
+## Agenda do Studio La Rocha (várias profissionais)
+
+A agenda da Amanda é também a agenda do salão: **um banco só**, com uma agenda por profissional.
+
+- Tudo o que já existia continua sendo da Amanda. O site dela mostra **só os horários e serviços dela**.
+- **Sócias** (Amanda e Sandra) veem a agenda de todas. No painel, a chave **Só a minha agenda / Todas as profissionais** troca a visão. Em "Todas", cada horário mostra de quem é, e "Abrir novos horários" pergunta **para quem**.
+- **Parceiras** veem e mexem só na própria agenda, clientes, números e histórico. Quem garante isso é o banco (regras de acesso), não a tela.
+- **Visualizar agenda como cliente:** botão no Início e na Agenda que abre o site como a cliente vê.
+- **A maca trava entre elas:** em Serviços e preços, cada serviço diz se usa a maca, uma cadeira ou a mesa de unhas. Um atendimento que usa a maca impede outra profissional de marcar a maca no mesmo horário, pelo site, pelo painel ou ao remarcar.
+- **Mais › Profissionais** (só sócias): cadastrar a Sandra e as parceiras, com nome, e-mail e o que cada uma pode ver.
+- Cada pedido novo avisa **a profissional do horário** no celular dela (app ntfy, código em Mais › Segurança).
+
+O painel do salão (repositório `studiolarocha`, pasta `painel/`) é este mesmo painel com a cara do Studio La Rocha, copiado por `ferramentas/painel.mjs` de lá.
+
+**Para ligar:** rode `supabase/atualizacao.sql` no Supabase (SQL Editor › colar › Run). Depois, em Mais › Profissionais, coloque o e-mail da Sandra e crie o acesso dela em Authentication › Add user, com o mesmo e-mail.
+
 ## Colocar no ar
 
 ### 1. GitHub Pages (o site)
