@@ -956,6 +956,29 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/a cada 12 horas/.test(await M.locator('#mLogin').innerText()), 'depois de 12 horas o painel pede a senha de novo, explicando o motivo');
   await c.close();
 
+  // "Manter conectada neste aparelho": e-mail lembrado, 30 dias, e a senha nunca fica guardada
+  {
+    const cm = await contexto(IPHONE);
+    const L = await cm.newPage();
+    await L.goto(BASE + 'admin/');
+    ok(await L.locator('#manter').isVisible() && !(await L.locator('#manter').isChecked()), 'login: a opção "Manter conectada neste aparelho" aparece desmarcada');
+    await L.fill('#email', EMAIL_ADMIN); await L.fill('#senha', 'certa'); await L.check('#manter'); await L.click('#bLogin');
+    await L.waitForSelector('#vApp:not([hidden])');
+    const guardado = await L.evaluate(() => Object.keys(localStorage).map((k) => k + '=' + localStorage.getItem(k)).join('\n'));
+    ok(!/certa/.test(guardado.replace(/amanda-sess=.*/g, '')) && !/"password"|"senha"/.test(guardado), 'a senha nunca fica guardada no aparelho');
+    await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 13 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+    await L.reload();
+    await L.waitForSelector('#vApp:not([hidden])');
+    ok(await L.locator('#vLogin').isHidden(), 'conectada: 13 horas depois continua dentro, sem pedir a senha');
+    await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 31 * 24 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+    await L.reload();
+    await L.waitForSelector('#vLogin:not([hidden])');
+    ok(/a cada 30 dias/.test(await L.locator('#mLogin').innerText()), 'conectada: depois de 30 dias pede a senha, explicando o motivo');
+    ok((await L.inputValue('#email')) === EMAIL_ADMIN && await L.locator('#manter').isChecked() && (await L.inputValue('#senha')) === '', 'no login seguinte: e-mail já preenchido, opção marcada e senha vazia (vem do Chaveiro do celular)');
+    ok(await L.evaluate(() => document.activeElement && document.activeElement.id === 'senha'), 'e o cursor já está na senha');
+    await cm.close();
+  }
+
   // acesso estranho (um programa logado com a senha dela): desconecta todos os aparelhos
   const c4 = await contexto(IPHONE);
   const E = await entrar(c4);

@@ -86,18 +86,21 @@
             function(){var e=new Error('rede');e.rede=true;throw e});
   }
   // novo login (email informado) começa a contar as 12 horas; renovar o token mantém o início
-  function paraSessao(j,email){return {token:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-120000,
-    email:String(email||(j.user&&j.user.email)||(sess&&sess.email)||'').toLowerCase(),inicio:email||!sess?Date.now():(sess.inicio||Date.now())}}
-  // por segurança, a cada 12 horas o painel pede a senha de novo
-  var DOZE_HORAS=12*3600*1000;
+  // "manter conectada" (longa): só vale se ela marcou no login; renovar o token mantém a escolha
+  function paraSessao(j,email,longa){return {token:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-120000,
+    email:String(email||(j.user&&j.user.email)||(sess&&sess.email)||'').toLowerCase(),inicio:email||!sess?Date.now():(sess.inicio||Date.now()),
+    longa:email?!!longa:!!(sess&&sess.longa)}}
+  // por segurança, a cada 12 horas o painel pede a senha de novo; com "Manter conectada neste aparelho", a cada 30 dias
+  var DOZE_HORAS=12*3600*1000,TRINTA_DIAS=30*24*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
-  function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>DOZE_HORAS)}
+  function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>(sess.longa?TRINTA_DIAS:DOZE_HORAS))}
   function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;irAba('inicio');mostrar(msg);return fim}
-  var MSG_12H='Por segurança, o painel pede a senha a cada 12 horas. Entre de novo, por favor.';
+  var MSG_12H='Por segurança, o painel pede a senha a cada 12 horas. Entre de novo, por favor.',MSG_30D='Por segurança, o painel pede a senha de novo a cada 30 dias. Entre de novo, por favor.';
+  function msgExpirou(){return sess&&sess.longa?MSG_30D:MSG_12H}
   var renovando=null;
   function token(){
     if(!sess)return Promise.reject('sessao');
-    if(expirou()){var s0=sess;salvar(null);fetch(C.url+'/auth/v1/logout',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+s0.token}}).catch(function(){});rows=[];mostrar(MSG_12H);return Promise.reject('sessao')}
+    if(expirou()){var s0=sess,msg0=msgExpirou();salvar(null);fetch(C.url+'/auth/v1/logout',{method:'POST',headers:{apikey:C.anonKey,Authorization:'Bearer '+s0.token}}).catch(function(){});rows=[];mostrar(msg0);return Promise.reject('sessao')}
     if(Date.now()<sess.exp)return Promise.resolve(sess.token);
     if(!renovando)renovando=auth('token?grant_type=refresh_token',{refresh_token:sess.refresh})
       .then(function(j){if(!sess)throw 'sessao';salvar(paraSessao(j));return sess.token},function(e){if(e.rede)throw 'rede';salvar(null);throw 'sessao'})
@@ -121,18 +124,24 @@
   function mostrar(msgLogin){
     var on=!!(sess&&C.url&&C.anonKey);
     $('vLogin').hidden=on;$('vApp').hidden=!on;fecharSheet();
+    if(!on&&$('email').value){try{$('senha').focus()}catch(e){}}
     if(!C.url||!C.anonKey){$('bLogin').disabled=true;erroLogin('O painel ainda não foi ligado ao Supabase. Preencha o arquivo config.js.')}
     else if(msgLogin)erroLogin(msgLogin);
     if(on)carregar();
   }
   function erroLogin(t){var m=$('mLogin');m.textContent=t;m.hidden=!t}
 
+  // lembra só o e-mail e a escolha "manter conectada" neste aparelho; a senha vem do Chaveiro/gerenciador do celular
+  function lembrarLogin(email,manter){try{localStorage.setItem('amanda-email',email);localStorage.setItem('amanda-manter',manter?'1':'0')}catch(e){}}
+  (function(){var em='',mt='0';try{em=localStorage.getItem('amanda-email')||'';mt=localStorage.getItem('amanda-manter')||'0'}catch(e){}
+    if(em&&!$('email').value)$('email').value=em;$('manter').checked=mt==='1';
+  })();
   $('fLogin').onsubmit=function(e){
     e.preventDefault();var em=$('email').value.trim().toLowerCase(),se=$('senha').value;
     if(!em||!se){erroLogin('Preencha o e-mail e a senha.');return}
     $('bLogin').disabled=true;$('bLogin').textContent='Entrando…';erroLogin('');
     auth('token?grant_type=password',{email:em,password:se})
-      .then(function(j){salvar(paraSessao(j,em));return quemSou()})
+      .then(function(j){salvar(paraSessao(j,em,$('manter').checked));lembrarLogin(em,$('manter').checked);return quemSou()})
       .then(function(q){
         if(!q){salvar(null);erroLogin('Este e-mail entrou, mas não tem acesso à agenda. Confira o e-mail cadastrado no arquivo do banco.');return}
         $('senha').value='';mostrar();
@@ -212,7 +221,7 @@
         if(e==='velho'||minha!==geracao)return;
         if(e==='rede'||e==='erro'){$('semNet').hidden=false;if(!ultimo)$('pedidos').innerHTML='<p class="vazio">Não consegui carregar.</p>'}});
   }
-  setInterval(function(){if(sess&&expirou()){encerrar(MSG_12H);return}if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
+  setInterval(function(){if(sess&&expirou()){encerrar(msgExpirou());return}if(sess&&!document.hidden&&!ocupado&&!pergunta)carregar()},30000);
   document.addEventListener('visibilitychange',function(){if(sess&&!document.hidden&&!ocupado)carregar()});
   window.addEventListener('online',function(){if(sess)carregar()});
   $('bAtualizar').onclick=function(){carregar()};
