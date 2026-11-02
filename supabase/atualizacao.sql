@@ -1148,7 +1148,7 @@ on conflict (id) do nothing;
 -- A Sandra entra sem e-mail: uma sócia preenche no painel (Mais › Profissionais) e ela já pode entrar.
 insert into public.profissionais (id, nome, papel, ordem, ntfy_topico, painel_url)
 values ('sandra', 'Sandra', 'socia', 2, 'salao-' || substr(md5(random()::text || clock_timestamp()::text), 1, 20),
-        'https://kevinlaet.github.io/studiolarocha/painel/')
+        'https://studiolarocha.com.br/painel/')
 on conflict (id) do nothing;
 
 -- O que é dividido no salão: um atendimento que usa a maca trava a maca para todas.
