@@ -199,7 +199,7 @@ ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 
 ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
 ok(await P.locator('#boasVindas').isVisible(), 'primeira vez: aparece o guia de boas-vindas');
 ok((await P.locator('#nPedNav').innerText()) === '3', 'a barra de baixo mostra 3 pedidos no botão Início');
-ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('details.ajuda summary', { hasText: 'Como usar esta parte' }).count()) === 4, 'são 4 abas, cada uma com "Como usar esta parte"');
+ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('[data-aba]:not([data-aba="profissionais"]) details.ajuda summary', { hasText: 'Como usar esta parte' }).count()) === 4, 'são 4 abas, cada uma com "Como usar esta parte"');
 await foto(P, 'painel-pedidos');
 
 // confirmar pelo cartão do pedido
@@ -793,7 +793,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok((await M.locator('#selo').innerText()) === 'Protegido', 'topo do painel mostra o selo "Protegido" do guardião');
   ok(await M.locator('#bancoVelho').isHidden(), 'com o banco atualizado, não aparece aviso de atualização');
   await aba(M, 'mais');
-  ok((await M.locator('[data-aba="mais"] .lista [data-ir]').count()) === 7, 'Mais tem 7 páginas: Seus números, Clientes, Serviços, Histórico, Segurança, Como funciona e Minha conta');
+  ok((await M.locator('[data-aba="mais"] .lista [data-ir]:visible').count()) === 8, 'Mais tem 8 páginas: Seus números, Clientes, Serviços, Profissionais (para sócias), Histórico, Segurança, Como funciona e Minha conta');
   ok(await M.locator('#nMais').isVisible(), 'o botão Mais avisa que há alertas novos (logins de outros aparelhos nos testes)');
 
   // clientes
@@ -1336,6 +1336,78 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   await p.click('.ck [data-ck="nao"]');
   ok(!(await c.cookies()).some((k) => k.name.startsWith('_ga')) && await p.evaluate((id) => window['ga-disable-' + id] === true, ID), 'cookies: recusar depois de aceitar desliga a medição e apaga os cookies do Google');
   await c.close();
+}
+
+// ===== 5. Studio La Rocha: várias profissionais no mesmo painel =====
+{
+  const sb = await criarBanco();
+  const apiS = criarApi(sb);
+  const sq = async (sql, p) => (await apiS.sql(sql, p)).rows;
+  await sb.db.exec(`insert into auth.users (email) values ('sandra@teste.com'), ('bia@teste.com')`);
+  await sb.db.exec(`update profissionais set email = 'sandra@teste.com' where id = 'sandra'`);
+  await sb.db.exec(`insert into profissionais (id, nome, email, papel, ordem) values ('bia', 'Bia Santos', 'bia@teste.com', 'parceira', 3)`);
+  await sb.db.exec(`update servicos set desde = null, recurso = case when id = 'limpeza' then 'maca' end`);
+  await sb.db.exec(`insert into servicos (id, nome, profissional, duracao, recurso) values ('bia-massagem', 'Massagem', 'bia', 60, 'maca')`);
+  const d7 = (await sq(`select (public.agora_sp() + interval '7 days')::date::text d`))[0].d;
+  await sb.db.exec(`insert into horarios (data, hora, profissional) values ('${d7}', '14:00', 'amanda'), ('${d7}', '14:00', 'bia'), ('${d7}', '16:00', 'bia')`);
+  await sb.db.exec(`update horarios set status = 'confirmado', nome = 'Lia Souza', telefone = '11930000001', servico = 'Limpeza de pele', pedido_em = now() where profissional = 'amanda' and data = '${d7}' and hora = '14:00'`);
+  const entrarComo = async (c, email) => { const p = await c.newPage(); await p.goto(BASE + 'admin/'); await p.fill('#email', email); await p.fill('#senha', 'certa'); await p.click('#bLogin'); await p.waitForSelector('#vApp:not([hidden])'); await p.waitForFunction(() => /^Atualizado/.test(document.querySelector('#atualizado').textContent)); return p; };
+
+  // Sandra (sócia)
+  const cS = await contexto(ANDROID, { apiDoBanco: apiS });
+  const S = await entrarComo(cS, 'sandra@teste.com');
+  ok(await S.locator('#visao').isVisible(), 'sócia: aparece a chave "Só a minha agenda / Todas as profissionais"');
+  await aba(S, 'agenda');
+  ok((await S.locator('#tAgenda').innerText()) === 'Minha agenda' && (await S.locator('#agenda .s').count()) === 0, 'sócia: começa vendo só a própria agenda (a Sandra ainda não abriu horários)');
+  const como = S.locator('[data-aba="agenda"] [data-como-cliente]');
+  ok(await como.isVisible() && (await como.getAttribute('target')) === '_blank' && /#agendar$/.test(await como.getAttribute('href')), 'botão "Visualizar agenda como cliente" abre o site como a cliente vê, em outra aba');
+  await S.click('[data-visao="todas"]');
+  await S.waitForSelector('#agenda .prof-t');
+  ok((await S.locator('#tAgenda').innerText()) === 'Agenda de todas as profissionais', 'sócia: em "Todas as profissionais", o título muda');
+  const grupos = await S.locator('#agenda .prof-t').allInnerTexts();
+  ok(grupos.includes('Amanda Rocha') && grupos.includes('Bia Santos'), 'sócia: vê os horários da Amanda e da Bia, separados por profissional');
+  await aba(S, 'inicio');
+  ok(/com Lia|com Amanda/.test(await S.locator('#proximos').innerText()), 'sócia: os próximos atendimentos dizem com qual profissional é');
+  await formAbrir(S);
+  ok(await S.locator('#paraQuemBox').isVisible(), 'sócia: em "Todas", abrir horários pergunta para quem');
+  await S.selectOption('#paraQuem', 'bia');
+  await S.fill('#novaData', d7);
+  await S.click('#bAbrir');
+  await S.waitForSelector('#toast:not([hidden])');
+  ok((await sq(`select count(*)::int n from horarios where profissional = 'bia' and data = $1 and hora = '13:00'`, [d7]))[0].n === 1 && (await sq(`select count(*)::int n from horarios where profissional = 'sandra'`))[0].n === 0, 'sócia: os horários abertos "para a Bia" entram na agenda da Bia');
+  await aba(S, 'mais');
+  ok(await S.locator('#mProf').isVisible(), 'sócia: Mais tem a página Profissionais');
+  await S.click('#mProf');
+  ok((await S.locator('#profLista .card').count()) === 3, 'sócia: a página Profissionais lista a Amanda, a Sandra e a Bia');
+  await S.click('[data-visao="minha"]');
+  await aba(S, 'agenda');
+  await S.waitForFunction(() => document.querySelector('#tAgenda').textContent === 'Minha agenda');
+  await S.waitForSelector('#agenda .prof-t', { state: 'detached' }); // a agenda recarrega depois de trocar a visão
+  ok((await S.locator('#agenda .prof-t').count()) === 0, 'sócia: voltando para "Só a minha agenda", some a agenda das outras');
+  await cS.close();
+
+  // Bia (parceira)
+  const cB = await contexto(ANDROID, { apiDoBanco: apiS });
+  const B = await entrarComo(cB, 'bia@teste.com');
+  ok(await B.locator('#visao').isHidden(), 'parceira: não aparece a chave de ver todas as agendas');
+  await aba(B, 'mais');
+  ok(await B.locator('#mProf').isHidden(), 'parceira: não vê a página Profissionais');
+  await aba(B, 'agenda');
+  const horasBia = await B.locator('#agenda .s').count();
+  ok(horasBia === (await sq(`select count(*)::int n from horarios where profissional = 'bia'`))[0].n, 'parceira: a agenda mostra só os horários dela');
+  // marcar massagem (maca) às 14h, quando a maca está com a Amanda
+  const b14 = (await sq(`select id from horarios where profissional = 'bia' and data = $1 and hora = '14:00'`, [d7]))[0].id;
+  await B.click(`[data-abrir="${b14}"]`);
+  await B.click('#sheet [data-a=perg-ocupar]');
+  await B.fill('#fNome', 'Rosa Lima'); await B.selectOption('#fServ', 'Massagem');
+  await B.click('#sheet [data-a=ocupar]');
+  await B.waitForSelector('#toast:not([hidden])');
+  ok(/maca/.test(await B.locator('#toast').innerText()), 'parceira: marcar a maca já ocupada pela Amanda mostra aviso claro de maca ocupada');
+  ok((await sq(`select status from horarios where id = $1`, [b14]))[0].status === 'livre', 'e nada é alterado');
+  await B.keyboard.press('Escape');
+  await aba(B, 'mais'); await B.click('[data-ir="seguranca"]');
+  ok(/Sua conta/.test(await B.locator('#gStatus').innerText()) && (await B.locator('#gStatus [data-acao="protecao"]').count()) === 0, 'parceira: na Segurança, vê só a própria conta, sem ligar a proteção do salão');
+  await cB.close();
 }
 
 ok(erros.length === 0, 'nenhum erro de JavaScript nas páginas' + (erros.length ? ': ' + erros.join(' | ') : ''));

@@ -5,10 +5,10 @@ import { EMAIL_ADMIN } from './banco.mjs';
 
 export const SUPABASE_URL = 'https://teste.supabase.co';
 export const ANON_KEY = 'sb_publishable_chave_de_teste';
-export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa' };
+export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa', 'sandra@teste.com': 'certa', 'bia@teste.com': 'certa' };
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora', 'valor', 'faltou']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao', 'preco', 'preco_antes', 'preco_obs', 'descricao', 'beneficios']) };
+const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora', 'valor', 'faltou', 'profissional']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao', 'preco', 'preco_antes', 'preco_obs', 'descricao', 'beneficios', 'profissional', 'recurso']), profissionais: new Set(['id', 'nome', 'email', 'papel', 'ativo', 'ordem']) };
 
 const FILAS = new WeakMap();
 export function criarApi({ db, como, opcoes = {} }) {
@@ -22,7 +22,8 @@ export function criarApi({ db, como, opcoes = {} }) {
   function filtros(url, params, tabela = 'horarios') {
     const w = [];
     for (const [k, v] of url.searchParams) {
-      if (k === 'id' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(tabela === 'servicos' ? `id = $${params.length}` : `id = $${params.length}::uuid`); }
+      if (k === 'id' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(tabela === 'horarios' ? `id = $${params.length}::uuid` : `id = $${params.length}`); }
+      if (k === 'profissional' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`profissional = $${params.length}`); }
       if (k === 'data' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`data = $${params.length}::date`); }
       if (k === 'status' && v.startsWith('eq.')) { params.push(v.slice(3)); w.push(`status = $${params.length}`); }
       if (k === 'status' && v.startsWith('in.(')) { params.push(v.slice(4, -1).split(',')); w.push(`status = any($${params.length})`); }
@@ -92,19 +93,38 @@ export function criarApi({ db, como, opcoes = {} }) {
 
     return emSerie(() => como(papel, email, async () => {
       try {
-        if (caminho === '/rest/v1/rpc/agenda_publica') return json(route, await lista('select * from public.agenda_publica()'));
+        const corpo = () => { try { return req.postDataJSON() || {}; } catch { return {}; } };
+        if (caminho === '/rest/v1/rpc/agenda_publica') return json(route, await lista('select * from public.agenda_publica($1)', [corpo().p_profissional ?? null]));
+        if (caminho === '/rest/v1/rpc/profissionais_publicas') return json(route, await lista('select * from public.profissionais_publicas()'));
+        if (caminho === '/rest/v1/rpc/quem_sou') return json(route, (await db.query('select public.quem_sou() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/agora_sp') return json(route, (await db.query('select to_json(public.agora_sp()) j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/sou_admin') return json(route, (await db.query('select public.sou_admin() j')).rows[0].j);
-        if (caminho === '/rest/v1/rpc/servicos_publicos') return json(route, await lista('select * from public.servicos_publicos()'));
+        if (caminho === '/rest/v1/rpc/servicos_publicos') return json(route, await lista('select * from public.servicos_publicos($1)', [corpo().p_profissional ?? null]));
         const rpc1 = { '/rest/v1/rpc/situacao_guardiao': 'select public.situacao_guardiao() j', '/rest/v1/rpc/marcar_alertas_vistos': 'select public.marcar_alertas_vistos() j', '/rest/v1/rpc/guardiao_publico': 'select public.guardiao_publico() j' };
         if (rpc1[caminho]) return json(route, (await db.query(rpc1[caminho])).rows[0].j);
         if (caminho === '/rest/v1/rpc/enviar_resumo_agora') return json(route, (await db.query('select public.enviar_resumo_agora() j')).rows[0].j);
         if (caminho === '/rest/v1/rpc/testar_notificacao') return json(route, (await db.query('select public.testar_notificacao() j')).rows[0].j);
-        if (caminho === '/rest/v1/rpc/clientes_resumo') return json(route, (await db.query('select public.clientes_resumo() j')).rows[0].j);
-        if (caminho === '/rest/v1/rpc/salvar_cliente') { const b = req.postDataJSON() || {}; return json(route, (await db.query('select public.salvar_cliente($1, $2) j', [b.p_chave, b.p_obs])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/clientes_resumo') return json(route, (await db.query('select public.clientes_resumo($1) j', [corpo().p_prof ?? null])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/salvar_cliente') { const b = corpo(); return json(route, (await db.query('select public.salvar_cliente($1, $2, $3) j', [b.p_chave, b.p_obs, b.p_prof ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/definir_protecao') return json(route, (await db.query('select public.definir_protecao($1) j', [!!(req.postDataJSON() || {}).p_pausar])).rows[0].j);
-        if (caminho === '/rest/v1/rpc/meus_numeros') return json(route, (await db.query('select public.meus_numeros() j')).rows[0].j);
-        if (caminho === '/rest/v1/rpc/definir_meta') { const b = req.postDataJSON() || {}; return json(route, (await db.query('select public.definir_meta($1) j', [b.p_valor ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/meus_numeros') return json(route, (await db.query('select public.meus_numeros($1) j', [corpo().p_prof ?? null])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/definir_meta') { const b = corpo(); return json(route, (await db.query('select public.definir_meta($1, $2) j', [b.p_valor ?? null, b.p_prof ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/recursos') return json(route, await lista('select id, nome from public.recursos order by nome'));
+        if (caminho === '/rest/v1/profissionais') {
+          const params = [];
+          if (metodo === 'GET') return json(route, await lista(`select id, nome, papel, ativo, email, ordem from public.profissionais${filtros(url, params, 'profissionais')} order by ordem, nome`, params));
+          if (metodo === 'POST') {
+            const n = req.postDataJSON(), cols = Object.keys(n).filter((k) => COLUNAS.profissionais.has(k));
+            const r = await lista(`insert into public.profissionais (${cols.join(', ')}) values (${cols.map((_, i) => '$' + (i + 1)).join(', ')}) returning id, nome, papel, ativo, email, ordem`, cols.map((k) => n[k]));
+            return prefer.includes('return=representation') ? json(route, r, 201) : route.fulfill({ status: 201, headers: CORS });
+          }
+          if (metodo === 'PATCH') {
+            const b = req.postDataJSON(), sets = [];
+            for (const k of Object.keys(b)) { if (!COLUNAS.profissionais.has(k)) throw new Error('coluna não permitida: ' + k); params.push(b[k]); sets.push(`${k} = $${params.length}`); }
+            const r = await lista(`update public.profissionais set ${sets.join(', ')}${filtros(url, params, 'profissionais')} returning id, nome, papel, ativo, email, ordem`, params);
+            return prefer.includes('return=representation') ? json(route, r) : route.fulfill({ status: 204, headers: CORS });
+          }
+        }
         if (caminho === '/rest/v1/rpc/remarcar') { const b = req.postDataJSON(); return json(route, (await db.query('select public.remarcar($1, $2) j', [b.p_de, b.p_para])).rows[0].j); }
         if (caminho === '/rest/v1/servicos') {
           const params = [];
@@ -129,6 +149,8 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/historico') {
           const params = [], w = [], nome = url.searchParams.get('nome') || '';
           if (nome.startsWith('ilike.')) { params.push(nome.slice(6).replace(/\*/g, '%')); w.push(`nome ilike $${params.length}`); }
+          const pf = url.searchParams.get('profissional') || '';
+          if (pf.startsWith('eq.')) { params.push(pf.slice(3)); w.push(`profissional = $${params.length}`); }
           const lim = Math.min(Number(url.searchParams.get('limit')) || 1000, 1000), off = Number(url.searchParams.get('offset')) || 0;
           return json(route, await lista(`select * from public.historico${w.length ? ' where ' + w.join(' and ') : ''} order by em desc, id desc limit ${lim} offset ${off}`, params));
         }
@@ -138,8 +160,12 @@ export function criarApi({ db, como, opcoes = {} }) {
           if (metodo === 'GET') return json(route, await lista(`select * from public.horarios${filtros(url, params)} order by data, hora${url.searchParams.get('limit') ? ' limit ' + Number(url.searchParams.get('limit')) : ''}`, params));
           if (metodo === 'POST') {
             const novos = req.postDataJSON();
-            const ignorar = prefer.includes('resolution=ignore-duplicates') ? ' on conflict (data, hora) do nothing' : '';
-            const r = await lista(`insert into public.horarios (data, hora) select * from json_to_recordset($1::json) as x(data date, hora text)${ignorar} returning *`, [JSON.stringify(novos)]);
+            const alvo = (url.searchParams.get('on_conflict') || 'data,hora').split(',').map((c) => c.trim()).join(', ');
+            const ignorar = prefer.includes('resolution=ignore-duplicates') ? ` on conflict (${alvo}) do nothing` : '';
+            const comProf = novos.some((x) => 'profissional' in x);
+            const r = await lista(comProf
+              ? `insert into public.horarios (data, hora, profissional) select data, hora, coalesce(profissional, 'amanda') from json_to_recordset($1::json) as x(data date, hora text, profissional text)${ignorar} returning *`
+              : `insert into public.horarios (data, hora) select * from json_to_recordset($1::json) as x(data date, hora text)${ignorar} returning *`, [JSON.stringify(novos)]);
             return prefer.includes('return=representation') ? json(route, r, 201) : route.fulfill({ status: 201, headers: CORS });
           }
           if (metodo === 'PATCH') {

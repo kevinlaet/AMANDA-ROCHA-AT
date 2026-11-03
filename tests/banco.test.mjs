@@ -42,7 +42,7 @@ const ids = new Set(pub.map((r) => r.id));
 ok(!ids.has(passado), 'horário que já passou não aparece no site');
 ok(!ids.has(em30), 'horário que começa em 30 min não aparece (antecedência de 1 h)');
 ok(ids.has(em90) && ids.has(amanha), 'horários futuros aparecem');
-ok(pub.length && Object.keys(pub[0]).sort().join() === 'ate,data,hora,id,status', 'site recebe só id, dia, hora, status e até quando o horário está ocupado');
+ok(pub.length && Object.keys(pub[0]).sort().join() === 'ate,data,hora,id,profissional,recurso,status', 'site recebe só id, dia, hora, status, até quando o horário está ocupado, a profissional e o recurso');
 
 // 3. Quem pode ver o quê
 for (const t of ['horarios', 'historico', 'admins']) {
@@ -482,6 +482,110 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok(!r.erro, 'atualização com os números roda em cima de um banco antigo' + (r.erro ? ': ' + r.erro : ''));
   const v = await velho.db.query(`select hora, valor, faltou from horarios order by hora`);
   ok(v.rows.map((x) => x.hora + ':' + (x.valor === null ? '-' : Number(x.valor)) + ':' + x.faltou).join() === '10:00:75:false,13:00:-:false,15:00:-:false', 'limpeza já marcada ganha R$ 75; auriculoterapia ainda sem preço fica sem valor; horário livre fica vazio');
+}
+
+// 12. Várias profissionais numa agenda só (Studio La Rocha)
+{
+  const sal = await criarBanco();
+  const nq = async (s, p) => (await sal.db.query(s, p)).rows;
+  const SANDRA = 'sandra@teste.com', BIA = 'bia@teste.com';
+  await sal.db.exec(`insert into auth.users (email) values ('${SANDRA}'), ('${BIA}')`);
+  const comoQ = (email, s, p) => sal.como(email ? 'authenticated' : 'anon', email, () => nq(s, p));
+  const tentaQ = (email, s, p) => sal.como(email ? 'authenticated' : 'anon', email, () => tenta(nq(s, p)));
+
+  ok((await nq(`select string_agg(id || ':' || papel, ',' order by ordem) l from profissionais`))[0].l === 'amanda:socia,sandra:socia', 'o banco já nasce com a Amanda e a Sandra como sócias');
+  ok((await nq(`select count(*)::int n from horarios where profissional <> 'amanda'`))[0].n === 0 && (await nq(`select count(*)::int n from servicos where profissional <> 'amanda'`))[0].n === 0, 'tudo o que já existia fica sendo da Amanda');
+  ok((await comoQ(SANDRA, `select public.quem_sou() q`))[0].q === null, 'a Sandra ainda não entra enquanto o e-mail dela não for cadastrado');
+  await comoQ(EMAIL_ADMIN, `update profissionais set email = $1 where id = 'sandra'`, [SANDRA]);
+  const qs = (await comoQ(SANDRA, `select public.quem_sou() q`))[0].q;
+  ok(qs && qs.profissional === 'sandra' && qs.socia === true, 'a Amanda cadastra o e-mail da Sandra e ela entra como sócia');
+  ok(!!(await tentaQ(BIA, `insert into profissionais (id, nome, email, papel) values ('bia', 'Bia', $1, 'socia')`, [BIA])).erro, 'quem não é sócia não se cadastra sozinha');
+  await comoQ(SANDRA, `insert into profissionais (id, nome, email, papel, ordem) values ('bia', 'Bia', $1, 'parceira', 3)`, [BIA]);
+  const qb = (await comoQ(BIA, `select public.quem_sou() q`))[0].q;
+  ok(qb && qb.profissional === 'bia' && qb.socia === false, 'a Sandra cadastra uma parceira (Bia), que entra só como parceira');
+  ok((await comoQ(BIA, `update profissionais set papel = 'socia' where id = 'bia' returning id`)).length === 0 && (await nq(`select papel from profissionais where id = 'bia'`))[0].papel === 'parceira', 'a parceira não consegue se promover a sócia');
+  ok((await comoQ(BIA, `select id from profissionais`)).map((r) => r.id).join() === 'bia', 'a parceira só enxerga o próprio cadastro');
+
+  // serviços: a limpeza da Amanda e a massagem da Bia usam a maca
+  await comoQ(EMAIL_ADMIN, `update servicos set recurso = 'maca' where id = 'limpeza'`);
+  await comoQ(EMAIL_ADMIN, `update servicos set desde = null`);
+  await comoQ(BIA, `insert into servicos (id, nome, profissional, duracao, recurso) values ('bia-massagem', 'Massagem', 'bia', 60, 'maca')`);
+  ok(!!(await tentaQ(BIA, `insert into servicos (id, nome, profissional) values ('bia-falso', 'Falso', 'amanda')`)).erro, 'a parceira não cria serviço na agenda da Amanda');
+  await comoQ(SANDRA, `insert into servicos (id, nome, profissional, duracao, recurso) values ('sandra-manicure', 'Manicure', 'sandra', 60, 'mesa-unhas')`);
+
+  // horários: o mesmo dia e hora para três profissionais
+  const dia = (await nq(`select (public.agora_sp() + interval '6 days')::date::text d`))[0].d;
+  await comoQ(EMAIL_ADMIN, `insert into horarios (data, hora) values ($1, '14:00'), ($1, '16:00')`, [dia]);
+  await comoQ(BIA, `insert into horarios (data, hora, profissional) values ($1, '14:00', 'bia'), ($1, '14:30', 'bia'), ($1, '16:00', 'bia')`, [dia]);
+  await comoQ(SANDRA, `insert into horarios (data, hora, profissional) values ($1, '14:00', 'sandra')`, [dia]);
+  ok((await nq(`select count(*)::int n from horarios where data = $1 and hora = '14:00'`, [dia]))[0].n === 3, 'o mesmo dia e hora podem existir para profissionais diferentes');
+  ok(!!(await tentaQ(BIA, `insert into horarios (data, hora, profissional) values ($1, '14:00', 'bia')`, [dia])).erro, 'mas a mesma profissional não repete dia e hora');
+  ok(!!(await tentaQ(BIA, `insert into horarios (data, hora, profissional) values ($1, '18:00', 'amanda')`, [dia])).erro, 'a parceira não abre horário na agenda da Amanda');
+  const id = async (prof, hora) => (await nq(`select id from horarios where profissional = $1 and data = $2 and hora = $3`, [prof, dia, hora]))[0].id;
+  const a14 = await id('amanda', '14:00'), a16 = await id('amanda', '16:00'), b14 = await id('bia', '14:00'), b1430 = await id('bia', '14:30'), b16 = await id('bia', '16:00'), s14 = await id('sandra', '14:00');
+
+  // quem vê o quê
+  ok((await comoQ(BIA, `select profissional from horarios`)).every((r) => r.profissional === 'bia'), 'a parceira só vê os próprios horários');
+  ok((await comoQ(SANDRA, `select distinct profissional from horarios order by 1`)).map((r) => r.profissional).join() === 'amanda,bia,sandra', 'a Sandra (sócia) vê a agenda de todas');
+  ok((await comoQ(EMAIL_ADMIN, `select distinct profissional from horarios order by 1`)).map((r) => r.profissional).join() === 'amanda,bia,sandra', 'a Amanda (sócia) também vê a agenda de todas');
+  ok((await comoQ(BIA, `update horarios set status = 'confirmado', nome = 'X' where id = $1 returning id`, [a16])).length === 0, 'a parceira não altera horário da Amanda');
+  ok((await comoQ(BIA, `delete from horarios where id = $1 returning id`, [s14])).length === 0, 'nem apaga horário da Sandra');
+
+  // site: cada agenda separada, ou todas juntas
+  const pubA = await comoQ(null, `select * from public.agenda_publica('amanda')`);
+  ok(pubA.length && pubA.every((r) => r.profissional === 'amanda'), 'o site da Amanda recebe só os horários dela');
+  ok(new Set((await comoQ(null, `select profissional from public.agenda_publica()`)).map((r) => r.profissional)).size === 3, 'a página do salão recebe os horários de todas');
+  ok((await comoQ(null, `select * from public.servicos_publicos('bia')`)).map((r) => r.nome + ':' + r.recurso).join() === 'Massagem:maca', 'o site recebe os serviços de cada profissional, com o recurso que usam');
+  ok((await comoQ(null, `select string_agg(id, ',' order by id) l from public.profissionais_publicas()`))[0].l === 'amanda,bia,sandra', 'o site recebe a lista de profissionais (sem e-mail)');
+  ok(!('email' in (await comoQ(null, `select * from public.profissionais_publicas()`))[0]), 'e nunca o e-mail delas');
+
+  // pedidos e a trava da maca
+  const pedir = (hid, serv, nome, tel) => sal.como('anon', null, async () => (await nq('select public.pedir_horario($1, $2, $3, $4) r', [hid, serv, nome, tel]))[0].r);
+  ok(await pedir(b14, 'Auriculoterapia', 'Lia Souza', '11930000001') === 'servico', 'no horário da Bia não dá para pedir serviço da Amanda');
+  ok(await pedir(a14, 'Limpeza de pele', 'Lia Souza', '11930000001') === 'ok', 'cliente pede limpeza de pele (maca) com a Amanda às 14h');
+  ok(await pedir(b1430, 'Massagem', 'Rosa Lima', '11930000002') === 'conflito', 'massagem (maca) com a Bia às 14h30 é recusada: a maca está com a Amanda');
+  ok(await pedir(s14, 'Manicure', 'Rosa Lima', '11930000002') === 'ok', 'manicure com a Sandra às 14h é aceita: não usa a maca');
+  const tentaMaca = await tentaQ(BIA, `update horarios set status = 'confirmado', nome = 'Por fora', servico = 'Massagem' where id = $1`, [b14]);
+  ok(tentaMaca.erro && /recurso_ocupado/.test(tentaMaca.erro), 'nem pelo painel a Bia consegue marcar a maca ocupada pela Amanda');
+  ok(await pedir(b16, 'Massagem', 'Rosa Lima', '11930000002') === 'ok', 'às 16h a maca está livre e a massagem com a Bia é aceita');
+  const amanda16 = await tentaQ(EMAIL_ADMIN, `update horarios set status = 'confirmado', nome = 'Por fora', servico = 'Limpeza de pele' where id = $1`, [a16]);
+  ok(amanda16.erro && /recurso_ocupado/.test(amanda16.erro), 'e a Amanda não consegue marcar limpeza (maca) às 16h, porque a maca está com a Bia');
+  ok(!(await tentaQ(EMAIL_ADMIN, `update horarios set status = 'confirmado', nome = 'Por fora', servico = 'Auriculoterapia' where id = $1`, [a16])).erro, 'mas pode marcar auriculoterapia (sem maca) no mesmo horário');
+  const pubT = await comoQ(null, `select * from public.agenda_publica() where id = $1`, [a14]);
+  ok(pubT[0].recurso === 'maca' && pubT[0].status === 'ocupado', 'o site sabe que a maca está ocupada às 14h (sem saber quem é a cliente)');
+
+  // remarcar só dentro da mesma agenda
+  ok((await comoQ(SANDRA, `select public.remarcar($1, $2) r`, [s14, b1430]))[0].r === 'indisponivel', 'remarcar não leva a cliente da Sandra para a agenda da Bia');
+  ok((await comoQ(BIA, `select public.remarcar($1, $2) r`, [a14, b1430]))[0].r === 'sem_acesso', 'a parceira não remarca cliente da Amanda');
+
+  // clientes, números, histórico e notificações de cada uma
+  const cliB = (await comoQ(BIA, `select public.clientes_resumo() j`))[0].j;
+  ok(cliB.length === 1 && cliB[0].nome === 'Rosa Lima', 'a parceira só vê as próprias clientes');
+  const cliS = (await comoQ(SANDRA, `select public.clientes_resumo() j`))[0].j;
+  ok(cliS.length === 3 && cliS.some((c) => c.nome === 'Rosa Lima' && c.profissionais.length === 2), 'a sócia vê as clientes de todas juntas (a Rosa, atendida pela Sandra e pela Bia, aparece uma vez só)');
+  ok((await comoQ(SANDRA, `select public.clientes_resumo('amanda') j`))[0].j.map((c) => c.nome).sort().join() === 'Lia Souza,Por fora', 'ou só as de uma profissional');
+  ok((await comoQ(BIA, `select public.clientes_resumo('amanda') j`))[0].j.every((c) => c.nome === 'Rosa Lima'), 'a parceira pedindo as clientes da Amanda continua vendo só as dela');
+  ok((await comoQ(BIA, `select public.salvar_cliente('11930000001', 'anotação', 'amanda') r`))[0].r === false, 'a parceira não escreve anotação na ficha da Amanda');
+  ok((await comoQ(BIA, `select public.salvar_cliente('11930000002', 'prefere óleo de lavanda') r`))[0].r === true, 'e escreve na própria');
+  ok((await comoQ(SANDRA, `select public.clientes_resumo('sandra') j`))[0].j[0].obs == null, 'a anotação da Bia não aparece na ficha da mesma cliente para a Sandra');
+  ok((await comoQ(BIA, `select public.meus_numeros('amanda') j`))[0].j.marcados.atendimentos === (await comoQ(BIA, `select public.meus_numeros() j`))[0].j.marcados.atendimentos, 'nos números, a parceira pedindo os da Amanda recebe só os dela');
+  ok((await comoQ(BIA, `select public.definir_meta(500, 'amanda') r`))[0].r === false && (await comoQ(BIA, `select public.definir_meta(800) r`))[0].r === true, 'a parceira define só a própria meta');
+  ok((await comoQ(BIA, `select distinct profissional from historico`)).map((r) => r.profissional).join() === 'bia', 'a parceira só vê o histórico dela');
+  await sal.db.exec(`delete from net.enviados`);
+  await comoQ(EMAIL_ADMIN, `update profissionais set ntfy_topico = 'bia-teste' where id = 'bia'`);
+  await comoQ(EMAIL_ADMIN, `update horarios set status = 'livre', nome = null, servico = null, telefone = null, pedido_em = null where id = $1`, [b1430]);
+  ok(await pedir(b1430, 'Massagem', 'Nina Reis', '11930000003') === 'conflito', 'a maca continua travada às 14h30 (limpeza da Amanda até 15h30)');
+  await comoQ(EMAIL_ADMIN, `insert into horarios (data, hora, profissional) values ($1, '18:00', 'bia')`, [dia]);
+  ok(await pedir(await id('bia', '18:00'), 'Massagem', 'Nina Reis', '11930000003') === 'ok', 'pedido para a Bia às 18h é aceito');
+  ok((await nq(`select body->>'topic' t from net.enviados order by id desc limit 1`))[0].t === 'bia-teste', 'e o aviso de pedido novo vai para o celular da Bia, não da Amanda');
+  const sitB = (await comoQ(BIA, `select public.situacao_guardiao() g`))[0].g;
+  ok(sitB && sitB.parceira === true && sitB.ntfy === 'bia-teste' && sitB.alertas.length === 0, 'na Segurança, a parceira vê o código das notificações dela e nenhum alerta do salão');
+  ok((await nq(`select count(*)::int n from alertas where tipo = 'intruso'`))[0].n === 0, 'e a parceira abrindo o painel não gera alerta de intruso');
+
+  // a atualização roda de novo sem estragar nada
+  const rr = await tenta(sal.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8')));
+  ok(!rr.erro && (await nq(`select count(*)::int n from profissionais`))[0].n === 3 && (await nq(`select recurso from servicos where id = 'limpeza'`))[0].recurso === 'maca', 'rodar a atualização de novo mantém as profissionais e os recursos' + (rr.erro ? ': ' + rr.erro : ''));
+  ok((await comoQ(BIA, `select profissional from horarios`)).every((r) => r.profissional === 'bia'), 'e as regras de acesso continuam valendo');
 }
 
 fim('banco');
