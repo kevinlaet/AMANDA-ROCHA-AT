@@ -952,32 +952,31 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await c3.close();
   SENHAS[EMAIL_ADMIN] = 'certa';
 
-  // sessão de 12 horas
+  // sessão de 24 horas: fica aberta o dia todo e pede a senha uma vez por dia
   await M.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 13 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
   await M.reload();
+  await M.waitForSelector('#vApp:not([hidden])');
+  ok(await M.locator('#vLogin').isHidden(), '13 horas depois continua conectada, sem pedir a senha');
+  await M.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 25 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+  await M.reload();
   await M.waitForSelector('#vLogin:not([hidden])');
-  ok(/a cada 12 horas/.test(await M.locator('#mLogin').innerText()), 'depois de 12 horas o painel pede a senha de novo, explicando o motivo');
+  ok(/uma vez por dia/.test(await M.locator('#mLogin').innerText()), 'depois de 24 horas o painel pede a senha de novo, explicando o motivo');
   await c.close();
 
-  // "Manter conectada neste aparelho": e-mail lembrado, 30 dias, e a senha nunca fica guardada
+  // login: e-mail lembrado, sem opção de "manter 30 dias", e a senha nunca fica guardada
   {
     const cm = await contexto(IPHONE);
     const L = await cm.newPage();
     await L.goto(BASE + 'admin/');
-    ok(await L.locator('#manter').isVisible() && !(await L.locator('#manter').isChecked()), 'login: a opção "Manter conectada neste aparelho" aparece desmarcada');
-    await L.fill('#email', EMAIL_ADMIN); await L.fill('#senha', 'certa'); await L.check('#manter'); await L.click('#bLogin');
+    ok((await L.locator('#manter').count()) === 0 && /24 horas/.test(await L.locator('#fLogin').innerText()), 'login: não há mais "manter 30 dias"; avisa que fica conectada por 24 horas');
+    await L.fill('#email', EMAIL_ADMIN); await L.fill('#senha', 'certa'); await L.click('#bLogin');
     await L.waitForSelector('#vApp:not([hidden])');
     const guardado = await L.evaluate(() => Object.keys(localStorage).map((k) => k + '=' + localStorage.getItem(k)).join('\n'));
     ok(!/certa/.test(guardado.replace(/amanda-sess=.*/g, '')) && !/"password"|"senha"/.test(guardado), 'a senha nunca fica guardada no aparelho');
-    await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 13 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
-    await L.reload();
-    await L.waitForSelector('#vApp:not([hidden])');
-    ok(await L.locator('#vLogin').isHidden(), 'conectada: 13 horas depois continua dentro, sem pedir a senha');
-    await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 31 * 24 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+    await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 25 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
     await L.reload();
     await L.waitForSelector('#vLogin:not([hidden])');
-    ok(/a cada 30 dias/.test(await L.locator('#mLogin').innerText()), 'conectada: depois de 30 dias pede a senha, explicando o motivo');
-    ok((await L.inputValue('#email')) === EMAIL_ADMIN && await L.locator('#manter').isChecked() && (await L.inputValue('#senha')) === '', 'no login seguinte: e-mail já preenchido, opção marcada e senha vazia (vem do Chaveiro do celular)');
+    ok((await L.inputValue('#email')) === EMAIL_ADMIN && (await L.inputValue('#senha')) === '', 'no login seguinte: e-mail já preenchido e senha vazia (vem do Chaveiro do celular)');
     ok(await L.evaluate(() => document.activeElement && document.activeElement.id === 'senha'), 'e o cursor já está na senha');
     await cm.close();
   }
@@ -991,6 +990,19 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/acesso estranho/.test(await E.locator('#mLogin').innerText()), 'acesso de um programa automático: o painel desconecta e pede a senha');
   ok((await q(`select count(*)::int n from auth.sessions s join auth.users u on u.id = s.user_id where u.email = $1`, [EMAIL_ADMIN]))[0].n === 0, 'e todas as sessões, inclusive a do invasor, são encerradas');
   await c4.close();
+
+  // alerta grave novo do guardião (muitos cancelamentos de uma vez): fecha na hora; o que já existia antes de entrar não conta
+  await q(`insert into public.alertas (tipo, nivel, titulo, detalhe, chave) values ('cancelamentos', 'grave', 'Muitos horários com cliente cancelados de uma vez', 'teste antigo', 'teste:antigo')`);
+  const c5 = await contexto(IPHONE);
+  const G = await entrar(c5);
+  ok(await G.locator('#vApp').isVisible(), 'alerta grave que já existia antes de entrar não derruba a sessão');
+  await q(`insert into public.alertas (tipo, nivel, titulo, detalhe, chave) values ('cancelamentos', 'grave', 'Muitos horários com cliente cancelados de uma vez', 'teste novo', 'teste:novo')`);
+  await G.click('#bAtualizar');
+  await G.waitForSelector('#vLogin:not([hidden])');
+  ok(/guardião viu algo estranho/.test(await G.locator('#mLogin').innerText()), 'alerta grave novo: o painel desconecta na hora e explica');
+  ok((await q(`select count(*)::int n from auth.sessions s join auth.users u on u.id = s.user_id where u.email = $1`, [EMAIL_ADMIN]))[0].n === 0, 'e todas as sessões são encerradas');
+  await q(`delete from public.alertas where chave like 'teste:%'`);
+  await c5.close();
 }
 
 // ===== 4g. Guardião externo (o robô que confere o site a cada 15 minutos) =====
