@@ -1,0 +1,391 @@
+<title>Logo Studio La Rocha</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Great+Vibes&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Layout: coluna única, seções alternando branco e pedra clara. O logo é o único ornamento; tudo em volta fica quieto.
+   Pensada para o celular da Sandra e da Amanda. Tema claro de propósito: o logo foi desenhado para fundo claro. */
+:root{
+  --bg:#FBFAF8; --panel:#F2EEE8; --surface:#FFFFFF; --ink:#2B2622; --muted:#6B6259; --line:#E6DFD5;
+  --gold:#B08D57; --bronze:#8A6A36; --dark:#1F1A17;
+  --f-display:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --f-body:'Jost','Helvetica Neue',Arial,sans-serif;
+  --f-script:'Great Vibes','Brush Script MT',cursive;
+  --radius:16px; --shadow:0 1px 2px rgba(43,38,34,.06),0 14px 30px -16px rgba(43,38,34,.28);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;-webkit-text-size-adjust:100%;
+  --s:#B08D57;--n:#2B2622;--f:#9C7A45}
+.dark{--s:#C9A468;--n:#F4EBDD;--f:#C9A468}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.narrow{max-width:760px}
+.sec{padding-block:clamp(52px,9vw,96px);background:var(--bg)}
+.sec.alt{background:var(--panel)}
+h1,h2,h3{font-family:var(--f-display);font-weight:500;line-height:1.08;margin:0;text-wrap:balance}
+h1{font-size:clamp(2.5rem,8.4vw,4.7rem)}
+h2{font-size:clamp(1.95rem,5.2vw,3.05rem)}
+h3{font-size:1.55rem}
+p{margin:0}
+.eyebrow{font-size:.75rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--bronze);margin-bottom:14px}
+.lead{font-size:clamp(1.05rem,2.4vw,1.22rem);color:var(--muted);max-width:56ch}
+.sub{color:var(--muted);max-width:60ch;margin-top:14px}
+.logo{display:block;height:auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 26px;border-radius:999px;border:1.5px solid var(--ink);background:var(--ink);color:#fff;font:inherit;font-weight:500;text-decoration:none;cursor:pointer;text-align:center}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn[aria-disabled=true],.btn:disabled{opacity:.4;pointer-events:none}
+.btn:focus-visible,.tabs button:focus-visible,.radio input:focus-visible + .radio-box,#quem:focus-visible,.hero a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+/* abertura */
+.hero{padding-block:clamp(40px,8vw,88px) clamp(44px,7vw,80px);background:var(--bg)}
+.hero-grid{display:grid;gap:clamp(32px,6vw,64px);grid-template-columns:minmax(0,1fr);align-items:center}
+@media (min-width:900px){.hero-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)}}
+.hero .lead{margin-top:22px}
+.hero .botoes{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.hero-mark{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(20px,4vw,38px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;box-shadow:var(--shadow)}
+.hero-mark figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+.hero-mark .logo{height:clamp(110px,24vw,200px);width:auto;max-width:100%}
+.hero-mark figcaption{font-family:var(--f-display);font-size:1.6rem;line-height:1;color:var(--bronze)}
+
+/* o que mudou */
+.ad-wrap{display:grid;gap:20px;margin-top:38px}
+@media (min-width:760px){.ad-wrap{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ad{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.ad .quadro{display:grid;place-items:center;padding:clamp(18px,4vw,34px);min-height:300px}
+.ad .quadro img{display:block;width:min(100%,380px);height:auto}
+.ad .quadro .logo{width:min(100%,360px)}
+.ad figcaption{padding:14px 20px;border-top:1px solid var(--line);font-weight:500;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ad figcaption small{color:var(--muted);font-weight:400;font-size:.9rem}
+.checks{list-style:none;margin:34px 0 0;padding:0;display:grid;gap:14px;max-width:64ch}
+.checks li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:start}
+.checks svg{width:24px;height:24px;color:var(--bronze);margin-top:2px}
+
+/* as opções */
+.opcoes{display:grid;gap:22px;margin-top:40px}
+@media (min-width:980px){.opcoes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.op{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(20px,3vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.op.rec{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),var(--shadow)}
+.op-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.op-head .letra{font-family:var(--f-display);font-size:2.7rem;line-height:1;color:var(--bronze)}
+.tag{margin-left:auto;font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;background:var(--gold);color:#fff;border-radius:999px;padding:5px 12px;align-self:center}
+.op-logo{display:grid;place-items:center;padding:6px 0}
+.op-logo .logo{width:min(100%,330px)}
+.op dl{margin:0;display:grid;gap:12px;font-size:.96rem}
+.op dt{font-size:.72rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--bronze)}
+.op dd{margin:2px 0 0}
+.peq{border-top:1px solid var(--line);padding-top:16px;margin-top:auto;display:flex;align-items:flex-end;gap:20px}
+.peq small{margin-left:auto;font-size:.75rem;color:var(--muted);align-self:center;max-width:11ch;text-align:right;line-height:1.3}
+.sz-lg{height:96px;width:auto}.sz-md{height:56px;width:auto}.sz-sm{height:32px;width:auto}
+
+/* na prática */
+.tabs{display:inline-flex;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px;background:var(--surface);margin-top:26px}
+.tabs button{min-height:44px;padding:0 22px;border:0;border-radius:999px;background:transparent;font:inherit;font-weight:500;color:var(--muted);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--ink);color:#fff}
+.mostrando{margin-top:12px;font-size:.9rem;color:var(--muted)}
+.mock-grid{display:grid;gap:22px;margin-top:26px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.mock{margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
+.cena{flex:1;border-radius:var(--radius);background:var(--surface);border:1px solid var(--line);padding:clamp(18px,4vw,30px);display:grid;place-items:center;min-height:300px;overflow:hidden}
+.mock figcaption{font-size:.9rem;color:var(--muted)}
+.mock figcaption b{display:block;color:var(--ink);font-weight:500}
+.cartoes{position:relative;width:min(100%,340px);aspect-ratio:1.16/1}
+.cartao{position:absolute;width:78%;aspect-ratio:9/5;border-radius:5px;box-shadow:0 1px 2px rgba(31,26,23,.22),0 18px 28px -12px rgba(31,26,23,.5);overflow:hidden}
+.cartao.frente{background:var(--dark);left:0;top:0;transform:rotate(-4deg);display:grid;place-items:center;padding:6%}
+.cartao.frente .logo{height:100%;width:auto}
+.cartao.verso{background:#fff;right:0;bottom:0;transform:rotate(3deg);padding:7% 8%;display:flex;flex-direction:column;justify-content:space-between}
+.cartao.verso .logo{width:76%;height:auto}
+.linhas{display:grid;gap:5px}
+.linhas i{display:block;height:3px;border-radius:2px;background:#DAD3C8;width:60%}
+.linhas i:nth-child(2){width:44%}.linhas i:nth-child(3){width:52%}
+.fachada{width:min(100%,360px);border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#E6E0D6,#D6CEC1);box-shadow:var(--shadow);padding:8% 8% 0}
+.placa{background:var(--dark);border-radius:7px;padding:5% 6%;box-shadow:inset 0 0 0 1.5px rgba(201,164,104,.55),0 12px 18px -10px rgba(31,26,23,.55)}
+.placa .logo{width:100%;height:auto}
+.vitrine{display:grid;grid-template-columns:1.7fr 1fr;gap:7%;margin-top:11%;height:84px}
+.vitrine i{display:block;border-radius:4px 4px 0 0;background:linear-gradient(160deg,#4A423B,#2B2622)}
+.vitrine i+i{background:linear-gradient(160deg,#3A332D,#26211D)}
+.insta{width:min(100%,300px);background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:var(--shadow)}
+.insta .topo{display:flex;align-items:center;gap:16px}
+.avatar{width:76px;height:76px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.avatar .logo{height:62%;width:auto}
+.insta .nome{font-weight:600;line-height:1.3}
+.insta .cat{font-size:.82rem;color:var(--muted)}
+.barras{display:grid;gap:6px;margin-top:16px}
+.barras i{display:block;height:6px;border-radius:3px;background:#E8E2D8;width:92%}
+.barras i+i{width:64%}
+.seguir{margin-top:14px;display:inline-block;background:var(--ink);color:#fff;font-size:.85rem;font-weight:500;border-radius:8px;padding:6px 18px}
+.grade{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:16px}
+.grade i{display:block;aspect-ratio:1;background:#EFE7DA}
+.grade i:nth-child(even){background:#E3D6BE}
+.nota{margin-top:22px;font-size:.88rem;color:var(--muted);max-width:64ch}
+
+/* cores e letras */
+.cores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:36px}
+@media (min-width:760px){.cores{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.cor{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;min-width:0}
+.cor i{display:block;height:84px}
+.cor div{padding:12px 14px 14px}
+.cor b{display:block;font-weight:500}
+.cor span{display:block;font-size:.85rem;color:var(--muted)}
+.cor code{font:inherit;font-size:.85rem;color:var(--ink);user-select:all}
+.letras{display:grid;gap:20px;margin-top:20px}
+@media (min-width:760px){.letras{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.amostra{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.amostra small{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--bronze);font-weight:600}
+.nome-amostra{font-family:var(--f-display);font-weight:500;font-size:clamp(1.4rem,4.6vw,2.2rem);letter-spacing:.2em;text-transform:uppercase;line-height:1.15;overflow-wrap:anywhere}
+.frase-amostra{font-family:var(--f-script);font-size:clamp(1.9rem,5.4vw,2.7rem);color:#9C7A45;line-height:1.1}
+
+/* escolha */
+.radios{border:0;padding:0;margin:30px 0 0;display:grid;gap:12px}
+@media (min-width:640px){.radios{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.radio{position:relative;display:block}
+.radio input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.radio-box{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;min-height:84px}
+.radio input:checked + .radio-box{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.radio-box b{font-family:var(--f-display);font-size:1.9rem;line-height:1;color:var(--bronze);font-weight:500}
+.radio-box small{display:block;font-size:.85rem;color:var(--muted);line-height:1.25}
+.campo{margin-top:22px;display:grid;gap:6px;max-width:420px}
+.campo label{font-size:.85rem;font-weight:500}
+#quem{font:inherit;min-height:48px;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface);color:var(--ink)}
+.msg{margin-top:22px;padding:16px 18px;background:var(--surface);border:1px dashed #CFC5B6;border-radius:12px;min-height:56px}
+.acoes{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+
+/* próximos passos e assinatura */
+.passos{list-style:none;counter-reset:p;margin:36px 0 0;padding:0;display:grid;gap:16px}
+@media (min-width:860px){.passos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.passos li{counter-increment:p;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column;gap:8px}
+.passos li::before{content:counter(p);font-family:var(--f-display);font-size:2.5rem;line-height:1;color:var(--bronze)}
+.passos b{font-weight:500;font-size:1.1rem}
+.passos span{color:var(--muted)}
+.rodape{padding-block:44px 64px;background:var(--bg);text-align:center}
+.credito{font-family:var(--f-display);font-weight:600;font-size:.85rem;letter-spacing:.3em;text-transform:uppercase;color:var(--bronze);margin:0}
+.credito::before{content:"";display:block;width:44px;height:1px;background:var(--gold);margin:0 auto 16px}
+@media (prefers-reduced-motion:no-preference){.tabs button,.radio-box{transition:background-color .2s,box-shadow .2s,border-color .2s}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>@@DEFS@@</defs></svg>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Studio La Rocha · Proposta de logo</p>
+      <h1>O logo de vocês, mais fino e mais profissional</h1>
+      <p class="lead">Mantivemos o desenho de que vocês gostaram: as duas mulheres de perfil, o arco e o dourado. Ele ficou mais leve, mais limpo e pronto para placa, cartão e Instagram. São três acabamentos para escolher.</p>
+      <div class="botoes">
+        <a class="btn" href="#opcoes">Ver as três opções</a>
+        <a class="btn ghost" href="#escolha">Ir para a escolha</a>
+      </div>
+    </div>
+    <div class="hero-mark" role="group" aria-label="O símbolo nas opções A, B e C">
+      <figure>[[s:A]]<figcaption>A</figcaption></figure>
+      <figure>[[s:B]]<figcaption>B</figcaption></figure>
+      <figure>[[s:C]]<figcaption>C</figcaption></figure>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="sec alt" id="mudou">
+  <div class="wrap">
+    <p class="eyebrow">O que mudou</p>
+    <h2>O mesmo desenho, com acabamento de marca profissional</h2>
+    <div class="ad-wrap">
+      <figure class="ad">
+        <div class="quadro"><img src="@@ORIG@@" alt="Logo atual do Studio La Rocha, com efeito 3D e degradê dourado"></div>
+        <figcaption>Hoje <small>com efeito 3D e degradê</small></figcaption>
+      </figure>
+      <figure class="ad">
+        <div class="quadro">[[v:C]]</div>
+        <figcaption>Proposta <small>opção C, a que recomendamos</small></figcaption>
+      </figure>
+    </div>
+    <ul class="checks">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>O desenho é o mesmo: as duas mulheres de perfil dentro do arco.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Sem brilho, degradê nem sombra. O dourado agora é chapado e imprime bem em qualquer gráfica.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Traço mais fino e contornos limpos.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Letras novas, mais elegantes. Em “bem-estar” entrou o hífen, como pede a ortografia.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>É um arquivo vetorial: dá para ampliar até o tamanho de uma fachada sem perder a nitidez.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec" id="opcoes">
+  <div class="wrap">
+    <p class="eyebrow">As três opções</p>
+    <h2>Escolham o acabamento que mais combina com o salão</h2>
+    <p class="sub">Todas têm o mesmo desenho e as mesmas letras. O que muda é o peso do traço. Em cada cartão, o teste de tamanho mostra o símbolo grande, médio e pequeno, como numa foto de perfil ou num carimbo.</p>
+    <div class="opcoes">
+      <article class="op">
+        <div class="op-head"><span class="letra">A</span><h3>Fina</h3></div>
+        <div class="op-logo">[[v:A]]</div>
+        <p>Só linhas finas. É a mais delicada e sofisticada das três.</p>
+        <dl>
+          <div><dt>Fica linda em</dt><dd>papel, vitrine e fachada em tamanho grande.</dd></div>
+          <div><dt>Atenção</dt><dd>em tamanho pequeno, as linhas quase somem.</dd></div>
+        </dl>
+        <div class="peq">[[s:A:sz-lg deco]][[s:A:sz-md deco]][[s:A:sz-sm deco]]<small>teste de tamanho</small></div>
+      </article>
+      <article class="op">
+        <div class="op-head"><span class="letra">B</span><h3>Linha contínua</h3></div>
+        <div class="op-logo">[[v:B]]</div>
+        <p>Uma única espessura de linha, leve e aérea.</p>
+        <dl>
+          <div><dt>Fica linda em</dt><dd>papel timbrado, cartão e placa grande.</dd></div>
+          <div><dt>Atenção</dt><dd>perde força em foto de perfil e carimbo.</dd></div>
+        </dl>
+        <div class="peq">[[s:B:sz-lg deco]][[s:B:sz-md deco]][[s:B:sz-sm deco]]<small>teste de tamanho</small></div>
+      </article>
+      <article class="op rec">
+        <div class="op-head"><span class="letra">C</span><h3>Fiel ao original</h3><span class="tag">Recomendada</span></div>
+        <div class="op-logo">[[v:C]]</div>
+        <p>Mantém o cabelo cheio de que vocês gostaram, só que mais leve e limpo.</p>
+        <dl>
+          <div><dt>Fica linda em</dt><dd>qualquer tamanho: placa, cartão, foto de perfil e carimbo.</dd></div>
+          <div><dt>Atenção</dt><dd>é a menos leve das três, por causa do cabelo cheio.</dd></div>
+        </dl>
+        <div class="peq">[[s:C:sz-lg deco]][[s:C:sz-md deco]][[s:C:sz-sm deco]]<small>teste de tamanho</small></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="pratica">
+  <div class="wrap">
+    <p class="eyebrow">Na prática</p>
+    <h2>Veja a opção aplicada</h2>
+    <p class="sub">Toque em uma opção para ver o cartão, a placa e o perfil do Instagram com ela.</p>
+    <div class="tabs" role="group" aria-label="Escolher a opção para ver aplicada">
+      <button type="button" data-opt="A" aria-pressed="false">Opção A</button>
+      <button type="button" data-opt="B" aria-pressed="false">Opção B</button>
+      <button type="button" data-opt="C" aria-pressed="true">Opção C</button>
+    </div>
+    <p class="mostrando" id="mostrando" aria-live="polite"></p>
+    <div class="mock-grid">
+      <figure class="mock">
+        <div class="cena">
+          <div class="cartoes" aria-hidden="true">
+            <div class="cartao frente dark">[[v:C:swap deco]]</div>
+            <div class="cartao verso">[[h:C:swap deco]]<div class="linhas"><i></i><i></i><i></i></div></div>
+          </div>
+        </div>
+        <figcaption><b>Cartão de visita</b>9 x 5 cm, frente e verso.</figcaption>
+      </figure>
+      <figure class="mock">
+        <div class="cena">
+          <div class="fachada" aria-hidden="true">
+            <div class="placa dark">[[h:C:swap deco]]</div>
+            <div class="vitrine"><i></i><i></i></div>
+          </div>
+        </div>
+        <figcaption><b>Placa na fachada</b>Dourado sobre fundo escuro.</figcaption>
+      </figure>
+      <figure class="mock">
+        <div class="cena">
+          <div class="insta" aria-hidden="true">
+            <div class="topo"><div class="avatar">[[s:C:swap deco]]</div><div><div class="nome">Studio La Rocha</div><div class="cat">Salão de beleza</div></div></div>
+            <div class="barras"><i></i><i></i></div>
+            <span class="seguir">Seguir</span>
+            <div class="grade"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <figcaption><b>Perfil do Instagram</b>Foto de perfil com o símbolo.</figcaption>
+      </figure>
+    </div>
+    <p class="nota">Simulações ilustrativas. Telefone, endereço e fotos entram depois da escolha.</p>
+  </div>
+</section>
+
+<section class="sec" id="cores">
+  <div class="wrap">
+    <p class="eyebrow">Cores e letras</p>
+    <h2>Dourado, preto quente e duas letras</h2>
+    <div class="cores">
+      <div class="cor"><i style="background:#B08D57"></i><div><b>Dourado</b><span>Símbolo</span><code>#B08D57</code></div></div>
+      <div class="cor"><i style="background:#2B2622"></i><div><b>Preto quente</b><span>Nome</span><code>#2B2622</code></div></div>
+      <div class="cor"><i style="background:#9C7A45"></i><div><b>Bronze</b><span>Frase</span><code>#9C7A45</code></div></div>
+      <div class="cor"><i style="background:#1F1A17"></i><div><b>Marrom escuro</b><span>Fundo escuro</span><code>#1F1A17</code></div></div>
+    </div>
+    <div class="letras">
+      <div class="amostra"><small>O nome · Cormorant</small><div class="nome-amostra">Studio La Rocha</div></div>
+      <div class="amostra"><small>A frase · Great Vibes</small><div class="frase-amostra">Beleza, saúde e bem-estar</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="escolha">
+  <div class="wrap narrow">
+    <p class="eyebrow">A escolha</p>
+    <h2>Qual vocês escolhem?</h2>
+    <p class="sub">Cada uma pode responder. Marque a opção, escreva o seu nome e toque no botão: o WhatsApp abre com a mensagem pronta, é só escolher o contato do Kevin.</p>
+    <fieldset class="radios">
+      <legend class="sr">Opção de logo</legend>
+      <label class="radio"><input type="radio" name="escolha" value="A"><span class="radio-box">[[s:A:sz-md deco]]<span><b>A</b><small>Fina</small></span></span></label>
+      <label class="radio"><input type="radio" name="escolha" value="B"><span class="radio-box">[[s:B:sz-md deco]]<span><b>B</b><small>Linha contínua</small></span></span></label>
+      <label class="radio"><input type="radio" name="escolha" value="C"><span class="radio-box">[[s:C:sz-md deco]]<span><b>C</b><small>Fiel ao original</small></span></span></label>
+    </fieldset>
+    <div class="campo"><label for="quem">Seu nome</label><input id="quem" type="text" autocomplete="given-name" placeholder="Ex.: Sandra" maxlength="40"></div>
+    <p class="msg" id="msg" aria-live="polite"></p>
+    <div class="acoes">
+      <a class="btn" id="wa" href="#escolha" target="_blank" rel="noopener" aria-disabled="true">Abrir o WhatsApp com a minha escolha</a>
+      <button class="btn ghost" id="copiar" type="button" disabled>Copiar a mensagem</button>
+    </div>
+    <p class="nota">Prefere conversar? É só responder ao Kevin com a letra da opção.</p>
+  </div>
+</section>
+
+<section class="sec" id="depois">
+  <div class="wrap">
+    <p class="eyebrow">Depois da escolha</p>
+    <h2>O que acontece em seguida</h2>
+    <ol class="passos">
+      <li><b>Ajustes finos e arquivos finais</b><span>Qualquer retoque que vocês pedirem, e a entrega do logo pronto para gráfica, Instagram e WhatsApp.</span></li>
+      <li><b>Placa, cartão e perfis</b><span>A placa da fachada, o cartão de visita e os perfis do salão no Instagram, no WhatsApp e no Google, todos com o mesmo nome e endereço.</span></li>
+      <li><b>Site do salão</b><span>Uma página com os serviços, as profissionais, o espaço para alugar e como chegar. Nada é impresso nem publicado sem a aprovação de vocês.</span></li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<footer class="rodape">
+  <div class="wrap"><p class="credito">Desenvolvido por Kevin Laet</p></div>
+</footer>
+
+<script>
+(function(){
+  var NOMES={A:'Fina',B:'Linha contínua',C:'Fiel ao original'};
+  // opção mostrada nos exemplos de cartão, placa e Instagram
+  var tabs=[].slice.call(document.querySelectorAll('.tabs [data-opt]'));
+  function aplicar(k){
+    [].forEach.call(document.querySelectorAll('use[data-logo]'),function(u){u.setAttribute('href','#'+u.getAttribute('data-logo')+'-'+k)});
+    tabs.forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-opt')===k?'true':'false')});
+    document.getElementById('mostrando').textContent='Mostrando a opção '+k+', '+NOMES[k]+'.';
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){aplicar(b.getAttribute('data-opt'))})});
+  aplicar('C');
+
+  // escolha: monta a mensagem e o link do WhatsApp (o contato é escolhido por quem envia)
+  var radios=[].slice.call(document.querySelectorAll('input[name=escolha]')),quem=document.getElementById('quem'),
+      msg=document.getElementById('msg'),wa=document.getElementById('wa'),cp=document.getElementById('copiar');
+  function texto(){
+    var r=radios.filter(function(x){return x.checked})[0];if(!r)return '';
+    var n=(quem.value||'').trim().slice(0,40);
+    return 'Studio La Rocha: '+(n?'aqui é '+n+'. ':'')+'Escolho a opção '+r.value+' ('+NOMES[r.value]+').';
+  }
+  function atualizar(){
+    var t=texto();
+    msg.textContent=t||'Marque uma opção para montar a mensagem.';
+    wa.setAttribute('aria-disabled',t?'false':'true');
+    wa.setAttribute('href',t?'https://wa.me/?text='+encodeURIComponent(t):'#escolha');
+    cp.disabled=!t;
+  }
+  radios.forEach(function(r){r.addEventListener('change',atualizar)});
+  quem.addEventListener('input',atualizar);
+  cp.addEventListener('click',function(){
+    var t=texto();if(!t)return;
+    function ok(){cp.textContent='Mensagem copiada';setTimeout(function(){cp.textContent='Copiar a mensagem'},2200)}
+    function sel(){var r=document.createRange();r.selectNodeContents(msg);var s=getSelection();s.removeAllRanges();s.addRange(r)}
+    try{navigator.clipboard.writeText(t).then(ok,sel)}catch(e){sel()}
+  });
+  atualizar();
+})();
+</script>

@@ -1,0 +1,35 @@
+STUDIO LA ROCHA - kit de logo
+=============================
+
+Pastas
+  C-fiel-ao-original-ESCOLHIDA  kit completo (a opção ESCOLHIDA pela Sandra e pela Amanda em 31/10/2026)
+  A-fina, B-linha-continua        as outras duas opções, para comparar
+
+Qual arquivo usar
+  SVG ou PDF   para gráfica, fachada, adesivo, bordado, carimbo (vetor: amplia sem perder qualidade)
+  PNG          para Instagram, WhatsApp, site, apresentações (fundo transparente, alta resolução)
+  vertical     cartão, folder, placa, perfil quadrado
+  horizontal   cabeçalho de site, assinatura de e-mail, faixa, receituário
+  simbolo      foto de perfil, selo, bordado, marca d'água
+  preto        carimbo, nota, recibo, impressão em uma cor
+  branco       sobre fundo dourado, escuro ou foto
+  fundo-escuro versão pronta com o fundo escuro incluído
+
+Cores
+  Dourado do símbolo   #B08D57
+  Nome (preto quente)  #2B2622
+  Frase (bronze)       #9C7A45
+  Fundo escuro         #1F1A17   (no escuro: símbolo #C9A468, nome #F4EBDD)
+
+Letras (já transformadas em desenho, não precisa instalar nada)
+  Nome  STUDIO LA ROCHA: Cormorant Medium, maiúsculas, espaçamento largo
+  Frase "Beleza, saúde e bem-estar": Great Vibes
+  As duas são livres para uso comercial (licença SIL OFL).
+
+Tamanho mínimo
+  Logo completo: 35 mm de largura (ou 150 px na tela)
+  Só o símbolo: 14 mm de altura (ou 56 px na tela). Abaixo disso, prefira a opção C.
+
+Cuidados
+  Não esticar, não girar, não trocar as cores, não colocar sobre fundo com desenho.
+  Deixar ao redor do logo um respiro livre de pelo menos a altura de um "O" do nome.

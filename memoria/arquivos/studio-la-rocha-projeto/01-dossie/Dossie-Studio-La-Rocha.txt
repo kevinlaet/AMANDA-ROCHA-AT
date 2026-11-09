@@ -1,0 +1,1054 @@
+Dossiê · Studio La Rocha
+
+Dossiê · Studio La Rocha
+Atualizado em 31/10/2026 · ​@Kevin Laet
+
+Resumo
+O Studio La Rocha é o salão da Sandra, em Vila Nova Mauá (Mauá, SP). Este projeto dá ao
+salão uma marca própria e uma presença digital, reaproveitando o que já foi feito para a
+Amanda Rocha.
+Contexto: o salão e a marca da Amanda estão sendo inaugurados juntos. A Amanda,
+filha da Sandra, atende dentro do salão.
+Logo: Sandra e Amanda gostaram do desenho atual (duas mulheres de perfil num arco
+dourado) e pediram um acabamento mais fino e profissional. Foram redesenhadas 3
+opções (A, B e C) e, em 31/10/2026, Sandra e Amanda escolheram a opção C, a mais fiel
+ao original.
+Estrutura de marcas: Studio La Rocha é a marca principal; Amanda Rocha é uma marca
+profissional que funciona dentro dele.
+Logo escolhido: opção C (Fiel ao original). Agora placa, cartões, site e redes sociais
+podem usar esse logo; falta só a aprovação final do kit.
+Objetivo proposto, a confirmar com a Sandra: o salão ser encontrado e agendado com
+facilidade, e o espaço para profissionais parceiras (aluguel de cadeira e maca) ser
+anunciado com regras claras.
+
+Quem é quem
+Três pessoas tocam o projeto: a Sandra decide o salão, a Amanda atende dentro dele e o
+Kevin cuida da marca e dos sistemas.
+Pessoa
+
+Papel
+
+Observações
+
+Sandra
+
+Dona do Studio La Rocha. Decide
+serviços, regras e o aluguel de
+cadeira e maca.
+
+WhatsApp (11) 96768-2546, já
+usado nos folders de aluguel.
+
+Amanda Rocha
+
+Enfermeira de saúde mental
+(COREN-SP 617675). Atende
+auriculoterapia e limpeza de pele,
+só mulheres, aos sábados.
+
+Filha da Sandra. Tem marca, site e
+agenda próprios.
+
+Page 1 of 15
+
+Dossiê · Studio La Rocha
+
+Pessoa
+
+Papel
+
+Observações
+
+Kevin Laet
+
+Marca, site, materiais impressos e
+sistemas.
+
+Marido da Amanda. Assina os
+projetos: "Desenvolvido por Kevin
+Laet".
+
+Profissionais
+parceiras
+
+Quem alugar a mesa de nail ou a
+maca.
+
+Ainda a definir.
+
+Como as duas marcas convivem (proposta, a validar com Sandra e Amanda):
+O Studio La Rocha é a marca do lugar; a Amanda Rocha é a marca da profissional. Cada
+uma mantém seu logo, suas cores e seu perfil.
+Os materiais da Amanda dizem onde ela atende ("no Studio La Rocha"), com o logo do
+salão menor.
+O salão apresenta a Amanda como uma das profissionais, com link para o site dela.
+Cada profissional responde pelos próprios procedimentos, preços e promessas. O
+salão não anuncia resultado de procedimento de saúde.
+
+estrutura das marcas · 1 principal, 3 grupos
+
+O desenho mostra a proposta: o salão é a marca principal e a Amanda é uma das
+profissionais dentro dele.
+
+O que já sabemos do salão
+Do salão sabemos o nome, a dona, o endereço provável e o espaço para aluguel; faltam
+serviços, horários, equipe e a situação legal.
+Item
+
+O que sabemos
+
+Situação
+
+Nome
+
+Studio La Rocha
+
+​ Confirmado
+
+Page 2 of 15
+
+Dossiê · Studio La Rocha
+
+Item
+
+O que sabemos
+
+Situação
+
+Frase
+
+"Beleza, saúde e bem-estar". O logo atual
+escreve "bem estar", sem hífen.
+
+​ Confirmado
+
+Dona
+
+Sandra, mãe da Amanda
+
+​ Confirmado
+
+Endereço
+
+Rua Onivaldo Vanderlei Dionísio, 25, Vila
+Nova Mauá (Mauá, SP). Veio do
+questionário da Amanda; confirmar que é
+o endereço oficial do salão.
+
+​ A confirmar
+
+WhatsApp da Sandra
+
+(11) 96768-2546
+
+​ Confirmado
+
+Inauguração
+
+O salão está em inauguração junto com a
+marca da Amanda. A data não foi
+informada.
+
+​ A confirmar
+
+Espaço para parceiras
+
+Mesa de nail designer com aparelho e
+maca (massagem, cílios e maquiagem).
+Incluso: água, luz e cadeira. Materiais por
+conta da profissional. Valores a combinar.
+
+​ Confirmado
+
+Clientela
+
+A Amanda pediu para dizer que o salão já
+tem uma "cartela" de clientes na região de
+Vila Nova Mauá. Tamanho e perfil não
+foram informados.
+
+​ A confirmar
+
+Foto do espaço
+
+O folder de aluguel usa uma imagem
+ilustrativa. Falta uma foto real.
+
+​ Falta informação
+
+Serviços do salão
+
+Não informados (cabelo, unhas, outros?).
+
+​ Falta informação
+
+Horário de
+funcionamento
+
+Não informado.
+
+​ Falta informação
+
+Equipe atual
+
+Não informada.
+
+​ Falta informação
+
+Situação legal
+
+CNPJ, alvará e licença sanitária não
+informados.
+
+​ Falta informação
+
+Instagram, Google e
+Facebook
+
+Perfis do salão não informados. A Amanda
+tem @amandarochaat.
+
+​ Falta informação
+
+Page 3 of 15
+
+Dossiê · Studio La Rocha
+
+O que já existe e pode ser reaproveitado
+Quase tudo que o salão precisa já existe no projeto da Amanda; o que muda é a marca, os
+textos e uma decisão sobre a agenda.
+Ativo
+
+O que é
+
+Uso no Studio La Rocha
+
+Site da Amanda
+
+Site estático no GitHub Pages,
+leve (cerca de 150 KB), feito para
+celular, com letras próprias.
+
+Base visual e técnica do site do
+salão.
+
+Agenda e painel
+
+A cliente escolhe serviço, dia e
+hora; a profissional confirma pelo
+painel (Supabase).
+
+Só se o salão quiser agenda online.
+Hoje ela serve a uma única
+profissional.
+
+Guardião
+
+Conferência automática de fora
+algumas vezes por dia, mais
+proteção no banco, em tempo
+real, contra erro de horário e
+invasão.
+
+Reaproveitável quase sem
+mudança.
+
+Regras e
+combinados
+
+Página com pagamento só no
+salão, cancelamento, indicação,
+cartão fidelidade, fotos, dados
+(LGPD) e cookies.
+
+Base das regras do salão e do
+aluguel.
+
+Medição de
+visitas
+
+Google Analytics só depois de a
+visitante aceitar cookies, com
+origem marcada em cada QR
+code.
+
+Reaproveitável, com propriedade
+própria do salão.
+
+Kit de impressão
+
+Cartão 9 x 5 cm, cartaz A4,
+cartões de espelho, QR codes
+conferidos e scripts que geram os
+PDFs.
+
+Modelos para cartão e cartaz do
+salão.
+
+Folders de
+Instagram
+
+Feed e story, incluindo o folder de
+aluguel de cadeira ou maca com o
+WhatsApp da Sandra.
+
+Trocar o logo e a foto ilustrativa.
+
+Questionário e
+guia
+
+Questionário que a Amanda
+respondeu pelo celular para
+montar o site dela, e guia de
+atendimento, venda e segurança
+jurídica.
+
+Base de um questionário para a
+Sandra responder pelo celular (as
+perguntas deste dossiê) e de um
+guia do salão.
+
+Page 4 of 15
+
+Dossiê · Studio La Rocha
+
+Ativo
+
+O que é
+
+Uso no Studio La Rocha
+
+Logo
+
+3 opções vetoriais (A, B, C) com
+kit em SVG, PNG e PDF, e uma
+página de apresentação.
+
+Escolhida em 31/10/2026: opção C
+(Fiel ao original).
+
+A agenda atual é de uma única profissional. Se o salão tiver várias, é preciso decidir entre
+uma agenda por profissional e apenas o contato por WhatsApp (ver Escopo e entregas).
+
+Identidade visual
+A marca do salão fica em dourado e preto, com o desenho que Sandra e Amanda já
+aprovaram; dos três acabamentos, elas escolheram o C (Fiel ao original) em 31/10/2026.
+O que mudou em relação ao logo atual:
+Sem efeito 3D, degradê e sombra: dourado chapado.
+Traço mais fino e contorno limpo.
+Nome e frase refeitos com letras novas. "Bem-estar" agora leva hífen.
+Tudo em vetor: serve para placa, adesivo, bordado, cartão e Instagram.
+Opção
+
+Estilo
+
+Melhor uso
+
+Limite
+
+A, Fina
+
+Só linhas finas, bem
+delicada
+
+Papel e fachada, em
+tamanho grande
+
+Some em
+tamanho
+pequeno
+
+B, Linha contínua
+
+Uma só espessura
+de linha, aérea
+
+Papel e fachada
+
+Perde força no
+pequeno
+
+C, Fiel ao original
+(escolhida)
+
+Cabelo cheio, mais
+leve e limpo
+
+Qualquer tamanho, de
+placa a foto de perfil
+
+Menos leve que
+AeB
+
+Decisão (31/10/2026): C. Ela cumpre o pedido ("um pouco mais fino") sem perder o jeito
+do logo aprovado, e é a única que continua legível em foto de perfil e carimbo.
+Uso
+
+Cor
+
+Código
+
+Símbolo
+
+Dourado
+
+#B08D57
+
+Nome
+
+Preto quente
+
+#2B2622
+
+Frase
+
+Bronze
+
+#9C7A45
+
+Page 5 of 15
+
+Dossiê · Studio La Rocha
+
+Uso
+
+Cor
+
+Código
+
+Fundo escuro
+
+Marrom quase preto
+
+#1F1A17 (no escuro: símbolo #C9A468, nome
+#F4EBDD)
+
+Letras: o nome usa Cormorant Medium em maiúsculas com espaçamento largo; a frase
+usa Great Vibes. As duas têm licença livre para uso comercial (SIL OFL) e já estão
+transformadas em desenho nos arquivos.
+Regras de uso: logo completo com pelo menos 35 mm de largura (150 px na tela); símbolo
+sozinho com pelo menos 14 mm de altura (56 px). Não esticar, girar, trocar as cores nem
+colocar sobre fundo com desenho.
+Atenção: o desenho foi refeito com uma ferramenta de imagem a partir do logo atual. A
+proteção dele por direito autoral é incerta; o registro do nome e do logo como marca no
+INPI é o caminho seguro (ver Jurídico e conformidade).
+
+Escopo e entregas, em fases
+O projeto tem quatro fases; cada uma só termina quando o critério de pronto é conferido,
+para não imprimir nem publicar nada que ainda possa mudar.
+Fase
+
+Entregas
+
+Pronto quando
+
+1. Marca
+
+Logo final escolhido; kit em SVG,
+PNG e PDF; cores e letras; uma
+página de regras de uso; foto de
+perfil para WhatsApp e Instagram.
+
+A Sandra aprova a versão final do
+kit por escrito. A opção C já foi
+escolhida em 31/10/2026.
+
+2. Salão visível
+
+Placa ou fachada (briefing para o
+fornecedor); cartão de visita do
+salão; cartaz com QR; Perfil da
+Empresa no Google; WhatsApp
+Business; perfil do Instagram.
+
+Placa e cartão conferidos na mão e
+os três perfis no ar com os mesmos
+nome, endereço e telefone.
+
+3. Site
+
+Site do Studio La Rocha: início,
+serviços, profissionais, aluguel de
+cadeira e maca, como chegar e
+regras; página de links para o
+Instagram; medição de visitas com
+aviso de cookies; link cruzado com o
+site da Amanda.
+
+Publicado, testado em celular e
+com o guardião ligado.
+
+Page 6 of 15
+
+Dossiê · Studio La Rocha
+
+Fase
+
+Entregas
+
+Pronto quando
+
+4.
+Crescimento
+
+Relatório mensal de visitas e
+contatos; campanhas de datas;
+ajustes nos textos.
+
+Primeiro relatório entregue à
+Sandra.
+
+Decisões que mudam o escopo:
+Agenda online do salão: sim ou não? Se sim, uma agenda por profissional (mais
+trabalho) ou só contato por WhatsApp (rápido).
+Foto real do espaço: quem tira e quando. O folder de aluguel está com imagem
+ilustrativa.
+Domínio próprio: vale registrar studiolarocha.com.br (disponibilidade a verificar no
+Registro.br)? A Amanda já pensou em amandarocha.com.br; o ideal é decidir os dois
+juntos.
+Contas no nome do salão: Google, Instagram e domínio abertos com e-mail da Sandra
+ou do salão, não do Kevin, para ela nunca perder o controle.
+Fora do escopo por enquanto: loja virtual, venda de produtos, sistema de comissão das
+parceiras e aplicativo.
+
+Aluguel de cadeira e maca
+O aluguel já tem folder, mas ainda falta o que o protege: contrato, valor e regras do espaço.
+O que já existe (folder "Alugue sua cadeira ou maca"):
+Mesa de nail designer com aparelho e maca para massagem, cílios e maquiagem.
+Incluso: água, luz e cadeira. Materiais por conta da profissional.
+"Clientela já formada" na região de Vila Nova Mauá e "valores a combinar", com o
+WhatsApp da Sandra no QR code.
+Antes de anunciar de novo, ter pronto:
+Modelo da relação: aluguel fixo, diária ou percentual (parceria). Escolher um e
+escrever.
+Valor: pesquisar três salões da região e definir a tabela, dizendo o que está incluso.
+Contrato escrito com valor ou percentual, prazo, horários, responsabilidades, limpeza,
+danos e saída. A Lei 13.352/2016 (Salão-Parceiro) vale para a parceria por percentual
+com cabeleireiro, barbeiro, esteticista, manicure, pedicure, depilador e maquiador:
+contrato escrito, homologado no sindicato da categoria (sem sindicato, no Ministério
+do Trabalho) e assinado diante de duas testemunhas; sem isso, pode ser reconhecido
+
+Page 7 of 15
+
+Dossiê · Studio La Rocha
+
+vínculo de emprego. Aluguel fixo do espaço é outro tipo de contrato, e massagem e
+cílios não aparecem na lista da lei: confirmar o enquadramento com contador ou
+advogado.
+Regras do espaço: horários, esterilização e limpeza, materiais, clientes, cancelamentos
+e fotos.
+Perfil da profissional: documento, CNPJ ou MEI quando exigido e registro no conselho
+quando houver.
+Entrada de interessadas: perguntas padrão (serviço, experiência, dias e horários, fotos
+de trabalhos) e uma lista de espera.
+Foto real do espaço e um vídeo curto, no lugar da imagem ilustrativa.
+Caso da Amanda: ela também usa o espaço. Falta definir como: aluguel, percentual ou uso
+sem custo entre mãe e filha. Isso muda o contrato, os impostos e quem emite nota.
+
+Jurídico e conformidade
+Antes de anunciar, o salão precisa estar formalizado e ter a licença sanitária; o resto são
+contratos e cuidados com a marca. Isto é orientação geral, não consultoria jurídica: cada
+item deve ser confirmado com quem está na coluna da direita.
+Tema
+
+O que verificar
+
+Com quem confirmar
+
+Formalização do
+salão
+
+CNPJ ou MEI, atividade (CNAE)
+compatível com salão de beleza e
+jeito de emitir nota ou recibo.
+
+Contador
+
+Alvará e licença
+sanitária
+
+Alvará de funcionamento e licença
+da Vigilância Sanitária,
+principalmente por haver
+procedimento com agulha
+(auriculoterapia) e instrumentos de
+manicure.
+
+Prefeitura de Mauá e
+Vigilância Sanitária
+
+Parceiras (aluguel)
+
+Contrato escrito e enquadramento
+da relação. Na parceria (Lei
+13.352/2016, Salão-Parceiro), o
+contrato é homologado no sindicato
+e assinado diante de duas
+testemunhas; sem isso, pode virar
+vínculo de emprego.
+
+Advogado ou contador
+
+Page 8 of 15
+
+Dossiê · Studio La Rocha
+
+Tema
+
+O que verificar
+
+Com quem confirmar
+
+Marca
+
+Busca de anterioridade e registro do
+nome e do logo no INPI, em serviços
+de beleza. Guardar os arquivos-fonte
+e o histórico de criação do logo.
+
+INPI ou despachante
+
+Publicidade de
+saúde
+
+A Amanda segue o COFEN
+(Resolução 554/2017): sem
+promessa de resultado, sem
+sensacionalismo, imagem de cliente
+só com autorização escrita. Cada
+parceira segue o conselho da própria
+profissão.
+
+COREN-SP e demais
+conselhos
+
+Dados e cookies
+(LGPD)
+
+Aviso de privacidade, aviso de
+cookies e guarda segura das fichas
+das clientes. O site da Amanda já
+traz a base.
+
+Kevin, com revisão jurídica
+se possível
+
+Direito de imagem
+
+Autorização escrita para fotos e
+vídeos de clientes e de profissionais.
+
+Modelo no guia da Amanda
+
+Biossegurança
+
+Descarte de agulhas e lâminas em
+coletor próprio, esterilização de
+alicates e instrumentos, EPIs. A RDC
+222/2018 da Anvisa, sobre resíduos
+de serviços de saúde, vale também
+para salões de beleza, estética e
+acupuntura, e pede um plano de
+gerenciamento de resíduos (PGRSS).
+
+Vigilância Sanitária
+
+Oferta e preço
+
+O que é anunciado obriga (CDC, art.
+30): prazo de promoção escrito,
+preço certo e regras de indicação e
+fidelidade no site.
+
+Revisão antes de publicar
+
+Placa e fachada
+
+Regras de anúncio na fachada.
+
+Prefeitura de Mauá
+
+Exemplar do CDC
+
+A Lei 12.291/2010 pede um exemplar
+do Código de Defesa do Consumidor
+em local visível e de fácil acesso;
+quem fiscaliza é o Procon.
+
+Contador
+
+Page 9 of 15
+
+Dossiê · Studio La Rocha
+
+Perguntas para a Sandra
+As perguntas abaixo bastam para começar; as quatro primeiras destravam a marca e a
+placa. Marque cada uma quando for respondida.
+Para destravar a marca
+Qual opção de logo vocês escolhem: A, B ou C? Resposta em 31/10/2026: C (Fiel ao
+original).
+O nome oficial é "Studio La Rocha", como está no logo, ou "La Rocha Studio"?
+Qual a data da inauguração e vai haver um evento?
+O salão já tem placa ou fachada? Qual o orçamento para a placa nova?
+O salão
+Quais serviços o salão oferece hoje (cabelo, unhas, outros) e com quais preços?
+Qual o horário de funcionamento, dia a dia?
+Quantas profissionais trabalham aí hoje e o que cada uma faz?
+Como as clientes marcam hoje (WhatsApp, caderno, agenda) e quantas vêm por
+semana?
+Quem é a cliente principal do salão (idade, bairro, tipo de serviço)?
+O que o salão tem de diferente dos outros do bairro? Isso vira o texto do site.
+Quais formas de pagamento aceita?
+Aluguel de cadeira e maca
+Há interessadas? Quantos espaços estão disponíveis?
+Qual valor ou percentual a Sandra quer, por mês ou por dia?
+Em quais dias e horários as parceiras podem usar o espaço?
+Como a Amanda usa o espaço: aluguel, percentual ou sem custo?
+Formalização
+O salão tem CNPJ ou MEI? Em qual atividade?
+O alvará e a licença sanitária existem ou estão em andamento?
+Quem cuida da contabilidade?
+Presença digital
+Já existe Instagram, Facebook ou Google do salão? Quem guarda as senhas?
+Qual e-mail do salão pode abrir as contas (não o do Kevin)?
+O telefone oficial é o WhatsApp da Sandra, (11) 96768-2546, ou outro? Ele vai para a
+placa e os cartões.
+Existem fotos boas do espaço e dos trabalhos, e posso usar?
+
+Page 10 of 15
+
+Dossiê · Studio La Rocha
+
+O salão quer agenda online ou prefere atender pelo WhatsApp?
+
+Riscos e como evitar
+Os riscos maiores são imprimir antes de aprovar, anunciar o aluguel sem contrato e perder
+o controle das contas.
+Risco
+
+Por que importa
+
+Como evitar
+
+Sandra e Amanda não
+chegam a um acordo sobre o
+logo (resolvido: escolheram
+a C em 31/10/2026)
+
+Atrasa placa, cartões e
+site.
+
+Página de apresentação com a
+escolha enviada pelo
+WhatsApp e um prazo de uma
+semana.
+
+Imprimir antes da aprovação
+final
+
+Material errado custa
+dinheiro e confiança.
+
+Só imprimir depois da
+aprovação por escrito;
+primeiro lote pequeno, como
+os 100 cartões da Amanda.
+
+As duas marcas se
+confundirem
+
+A cliente não sabe quem
+atende o quê.
+
+Regras de convivência (ver
+Quem é quem) e logos
+distintos.
+
+Aluguel sem contrato
+
+Conflito com a parceira e
+risco de vínculo de
+emprego.
+
+Contrato escrito, revisado por
+contador ou advogado, antes
+de anunciar.
+
+Informação errada no ar
+
+Endereço, horário ou
+promoção sem prazo
+obrigam o salão.
+
+Lista de conferência antes de
+publicar e datas escritas por
+extenso.
+
+Golpe usando o nome do
+salão (Pix falso, perfil falso)
+
+Já houve casos em clínicas
+de estética.
+
+Aviso de que o pagamento é
+no salão, canais oficiais nas
+regras e verificação em duas
+etapas nas contas.
+
+Contas abertas no nome do
+Kevin
+
+Se algo mudar, a Sandra
+perde o controle.
+
+Abrir tudo com o e-mail do
+salão e dar a ela o acesso de
+dona.
+
+Manutenção depender de
+uma só pessoa
+
+O site para se o Kevin não
+puder.
+
+Documentação no repositório,
+guardião automático e
+acessos compartilhados.
+
+Escopo crescer sem fim
+
+O projeto nunca fica
+pronto.
+
+Fases com critério de pronto;
+ideias novas entram na fase
+seguinte.
+
+Page 11 of 15
+
+Dossiê · Studio La Rocha
+
+Risco
+
+Por que importa
+
+Como evitar
+
+Logo sem proteção por ter
+sido refeito com IA
+
+Terceiros podem copiar.
+
+Registrar a marca no INPI e
+guardar os arquivos-fonte.
+
+Cronograma e próximos passos
+A proposta leva cerca de oito semanas, contadas a partir da escolha do logo, até o site no
+ar; as datas são propostas e dependem das respostas da Sandra.
+
+plano em 4 fases · 4 critérios de pronto
+
+A fase 1 está em andamento: o logo (opção C) foi escolhido em 31/10/2026 e falta fechar e
+aprovar o kit final. Agora a placa, o cartão e os perfis podem andar juntos.
+Passo
+
+Quem
+
+Quando
+
+Mostrar a apresentação das opções de logo
+(feito)
+
+Kevin
+
+Esta semana
+
+Escolher A, B ou C (feito: C, em 31/10/2026)
+
+Sandra e
+Amanda
+
+Até uma semana
+depois
+
+Conversar e responder às perguntas deste
+dossiê
+
+Kevin e Sandra
+
+Semana 1
+
+Abrir ou recuperar Instagram, Google e e-mail
+do salão no nome dela
+
+Sandra e Kevin
+
+Semana 1
+
+Fechar o logo final e entregar o kit
+
+Kevin
+
+Semana 2
+
+Tirar fotos reais do espaço
+
+Sandra e
+Amanda
+
+Semana 2
+
+Pedir orçamento de placa e cartão
+
+Sandra e Kevin
+
+Semanas 2 e 3
+
+Page 12 of 15
+
+Dossiê · Studio La Rocha
+
+Passo
+
+Quem
+
+Quando
+
+Confirmar com contador e Vigilância Sanitária
+os itens de conformidade
+
+Sandra
+
+Semanas 1 a 4
+
+Como continuar em um chat novo
+Este dossiê é o ponto de partida do chat só do Studio La Rocha. Para começar, anexe este
+documento (ou o PDF) e o pacote de arquivos do logo, e cole o texto abaixo na primeira
+mensagem.
+Texto para colar na primeira mensagem:
+Você vai trabalhar comigo (Kevin Laet) no projeto do Studio La Rocha, o salão da
+Sandra em Vila Nova Mauá (Mauá, SP). Leia o dossiê anexo antes de responder. Em
+31/10/2026, Sandra e Amanda escolheram o logo opção C (Fiel ao original). Comece
+pela fase 1: fechar o kit final do logo e a página de regras de uso. Depois siga o
+cronograma do dossiê. Escreva em português do Brasil, em linguagem simples, e me
+pergunte quando faltar uma informação do salão em vez de inventar.
+Regras de trabalho, valem para todo o projeto:
+Português do Brasil, linguagem simples; textos para clientes, curtos.
+Nunca inventar dados do salão (serviços, preços, horários, endereço, CNPJ): marcar "a
+confirmar" e perguntar.
+Nunca pedir, guardar ou colar senhas, nem a "Secret key" ou a service_role do
+Supabase; só chaves públicas.
+Contas (Google, Instagram, domínio, WhatsApp Business) abertas com o e-mail da
+Sandra ou do salão, não com o do Kevin.
+Nada vai para impressão nem para o ar sem a aprovação por escrito da Sandra; primeiro
+lote impresso pequeno.
+Sem promessa de resultado em procedimento de saúde, e foto de cliente só com
+autorização escrita. Cada profissional responde pelos próprios procedimentos.
+Pagamento só no salão, nunca antecipado por mensagem; manter o aviso contra golpe
+nas regras.
+Medição de visitas só depois de a visitante aceitar os cookies; nome e telefone de
+cliente nunca vão para o Google.
+Toda página nova termina com "Desenvolvido por Kevin Laet".
+O que o chat novo recebe:
+
+Page 13 of 15
+
+Dossiê · Studio La Rocha
+
+Este dossiê, em PDF e em texto.
+Kit do logo C (SVG, PNG e PDF, em 4 cores) e o kit completo das opções A, B e C com o
+leia-me.
+A página de apresentação das opções e as pranchas de comparação.
+Os scripts que geraram e vetorizaram o logo, para refazer qualquer versão.
+Para reaproveitar: o site, a agenda, as regras e os kits de impressão da Amanda, no
+repositório kevinlaet/AMANDA-ROCHA-AT (site em amandarochabemestar.com.br,
+que é o domínio da Amanda; o do salão ainda precisa ser definido).
+Primeiros passos sugeridos, nesta ordem:
+1. Fechar o kit do logo C: conferir o "Bem-estar" com hífen, gerar a foto de perfil para
+WhatsApp e Instagram e a página de regras de uso.
+2. Montar o questionário de celular para a Sandra com as perguntas deste dossiê (as
+quatro primeiras destravam a placa).
+3. Escrever o briefing da placa e do cartão do salão e pedir orçamentos.
+4. Abrir as contas do salão (Google, Instagram, WhatsApp Business) com o e-mail da
+Sandra.
+5. Decidir a agenda online e começar o site do salão a partir do da Amanda.
+
+Anexos e links
+Tudo o que já existe está num destes lugares; os arquivos do logo foram enviados no chat e
+ainda não têm link.
+Item
+
+Onde
+
+Para quê
+
+Apresentação das
+opções de logo
+
+Link privado até o Kevin
+compartilhar
+
+Concluído em 31/10/2026: Sandra e
+Amanda escolheram a C
+
+Pacote do projeto (zip)
+
+Enviado no chat
+
+Logo C (escolhido) e as opções A
+e B, em SVG, PNG e PDF, com leiame, a apresentação e os scripts
+
+Site da Amanda
+
+Publicado
+
+Modelo do site do salão
+
+Regras e combinados da
+Amanda
+
+Publicado
+
+Modelo das regras do salão
+
+Folder de aluguel de
+cadeira e maca
+
+Publicado, formato feed
+
+Refazer com o logo novo e uma
+foto real
+
+Guia da Amanda
+
+Link do Kevin
+
+Modelo de guia para a Sandra
+
+Page 14 of 15
+
+Dossiê · Studio La Rocha
+
+Item
+
+Onde
+
+Para quê
+
+Repositório do projeto da
+Amanda
+
+GitHub
+
+Código, kit de impressão e
+README
+
+Referências legais: as leis e resoluções citadas em Jurídico e conformidade (Lei
+13.352/2016, Lei 12.291/2010, RDC 222/2018 da Anvisa e art. 30 do CDC) foram conferidas
+em 30/10/2026 em fontes públicas. A Resolução Cofen 554/2017 foi consultada no site do
+Cofen.
+Desenvolvido por Kevin Laet
+
+Page 15 of 15
+
+
