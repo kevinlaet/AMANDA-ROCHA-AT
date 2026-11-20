@@ -1,0 +1,155 @@
+# Black Friday 2026 · Amanda Rocha · carrossel de 5 telas (1080x1350)
+# Uso: python3 gerar.py && NODE_PATH=$(npm root -g) node exportar.cjs
+# ====== CAMPOS QUE A AMANDA CONFIRMA (troque aqui e gere de novo) ======
+PACOTES = None            # ex.: 4   -> "Só 4 pacotes 🖤"   (None = "Pacotes limitados 🖤")
+SABADOS = None            # ex.: ["28/11", "12/12"] -> "Sábados: 28/11 e 12/12" (None = "Atendimento aos sábados")
+VALIDADE_2A = None        # ex.: "31/01" -> "2ª sessão até 31/01" (None = linha some)
+PRAZO = "27/11"           # último dia para garantir o pacote
+PRECO = "100"             # valor do pacote (2 sessões)
+# =======================================================================
+import html
+def e(x): return html.escape(str(x))
+def lista(xs): return xs[0] if len(xs) == 1 else ', '.join(xs[:-1]) + ' e ' + xs[-1]
+txt_pac = f'Só {PACOTES} pacotes 🖤' if PACOTES else 'Pacotes limitados 🖤'
+txt_sab = f'Sábados: {lista(SABADOS)}' if SABADOS else 'Atendimento aos sábados'
+cada = int(PRECO) // 2
+
+CSS = r'''
+@font-face{font-family:"Cormorant";src:url(../../../fonts/cormorant.woff2) format("woff2");font-weight:300 700}
+@font-face{font-family:"Great Vibes";src:url(../../../fonts/greatvibes.woff2) format("woff2")}
+@font-face{font-family:"Montserrat";src:url(../../../fonts/montserrat.woff2) format("woff2");font-weight:100 900}
+:root{--teal:#0B5F59;--night2:#053F3A;--teal-l:#167469;--mint:#7BE0CC;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;--wa:#1FAF5A;
+--brilho:linear-gradient(100deg,#E9A877 0%,#F5C59D 35%,#FFE9D6 50%,#F5C59D 65%,#E9A877 100%)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#777}
+.t{position:relative;width:1080px;height:1350px;overflow:hidden;margin:0 0 30px;padding:96px 96px 0;font-family:Montserrat;isolation:isolate;display:flex;flex-direction:column}
+.escura{background:radial-gradient(120% 90% at 85% 0%,#0E6C64 0%,#053F3A 55%,#022B27 100%);color:var(--cream)}
+.clara{background:var(--cream);color:var(--ink)}
+.topo{display:flex;align-items:center;justify-content:space-between;flex:none}
+.marca{display:flex;align-items:center;gap:16px;font-family:Cormorant;font-weight:600;font-size:27px;letter-spacing:.2em;text-transform:uppercase}
+.marca img{width:58px;height:58px}
+.pag{font-weight:700;font-size:20px;letter-spacing:.2em;padding:11px 18px;border-radius:99px;border:1.5px solid rgba(245,197,157,.45)}
+.escura .pag{color:var(--peach)} .clara .pag{color:var(--teal);border-color:rgba(11,95,89,.3)}
+.bf{display:inline-flex;align-items:center;gap:14px;align-self:flex-start;background:#0A0A0A;color:#fff;font-weight:800;font-size:26px;letter-spacing:.3em;padding:16px 28px;border-radius:99px;box-shadow:0 0 0 2px rgba(245,197,157,.55)}
+.rot{font-weight:700;font-size:23px;letter-spacing:.32em;text-transform:uppercase}
+.escura .rot{color:var(--peach)} .clara .rot{color:var(--teal)}
+h1,h2{font-family:Cormorant;font-weight:500;line-height:.98;letter-spacing:-.005em}
+.script{font-family:"Great Vibes";font-weight:400}
+.escura em{font-style:normal;font-family:"Great Vibes";background:var(--brilho);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.08em}
+.clara em{font-style:normal;font-family:"Great Vibes";color:var(--teal);padding-right:.08em}
+p.lead{font-size:34px;line-height:1.5}
+.escura p.lead{color:rgba(255,248,241,.85)} .clara p.lead{color:var(--muted)}
+p.lead b{font-weight:700} .escura p.lead b{color:var(--cream)} .clara p.lead b{color:var(--ink)}
+.foto{position:absolute;z-index:-1;inset:0;background-size:cover;background-position:center}
+.rodape{position:absolute;left:96px;right:96px;bottom:70px;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:20px;letter-spacing:.18em;text-transform:uppercase}
+.escura .rodape{color:rgba(245,197,157,.85)} .clara .rodape{color:var(--teal)}
+.rodape svg{width:34px;height:34px;vertical-align:middle;margin-left:10px}
+/* capa */
+.capa .foto{background-image:linear-gradient(180deg,rgba(5,63,58,.15) 0%,rgba(5,63,58,.55) 38%,#053F3A 62%),url(../../../img/folder-limpeza.jpg);background-position:center 20%}
+.capa .bf{margin-top:120px}
+.capa h1{margin-top:auto;font-size:96px;line-height:1.02}
+.preco{display:flex;align-items:flex-end;gap:22px;margin-top:6px}
+.preco .rs{font-family:Cormorant;font-weight:600;font-size:96px;line-height:1;color:var(--peach);margin-bottom:34px}
+.preco .v{font-family:Cormorant;font-weight:600;font-size:300px;line-height:.8;background:var(--brilho);-webkit-background-clip:text;background-clip:text;color:transparent}
+.escassez{margin:40px 0 170px;display:flex;flex-wrap:wrap;gap:14px}
+.chip{display:inline-flex;align-items:center;gap:12px;padding:16px 26px;border-radius:99px;font-weight:700;font-size:28px}
+.escura .chip{background:rgba(255,248,241,.1);border:1.5px solid rgba(245,197,157,.45);color:var(--cream)}
+.chip.forte{background:var(--peach)!important;color:var(--night2)!important;border-color:var(--peach)!important}
+/* incomodo */
+.inc h2{margin-top:150px;font-size:118px}
+.inc p.lead{margin-top:40px;max-width:860px}
+.balao{margin-top:54px;display:grid;gap:18px}
+.balao div{display:flex;align-items:center;gap:22px;padding:28px 32px;border-radius:30px;background:#fff;border:1.5px solid var(--line);font-weight:600;font-size:33px;box-shadow:0 18px 40px rgba(22,48,44,.08)}
+.balao i{flex:none;width:62px;height:62px;border-radius:20px;background:var(--peach-l);display:grid;place-items:center}
+.balao svg{width:34px;height:34px}
+.leve{margin-top:46px;font-weight:700;font-size:30px;color:var(--teal)}
+/* resultado */
+.res .foto{background-image:linear-gradient(180deg,rgba(255,248,241,0) 0%,rgba(255,248,241,.15) 30%,rgba(255,248,241,.92) 52%,#FFF8F1 62%),url(../../../img/folder-serum.jpg);background-position:center 30%}
+.res h2{margin-top:auto;font-size:116px}
+.res p.lead{margin-top:30px;max-width:880px}
+.res .lista{margin:40px 0 170px;display:flex;flex-wrap:wrap;gap:14px}
+.res .lista span{padding:16px 26px;border-radius:99px;background:#fff;border:1.5px solid var(--line);font-weight:600;font-size:28px;color:var(--ink)}
+/* confianca */
+.conf .selo{margin-top:110px;width:150px;height:150px;border-radius:50%;background:var(--peach);display:grid;place-items:center;box-shadow:0 0 0 10px rgba(245,197,157,.18),0 26px 60px rgba(0,0,0,.35)}
+.conf .selo img{width:150px;height:150px}
+.conf h2{margin-top:44px;font-size:112px}
+.conf .itens{margin-top:46px;display:grid;gap:16px}
+.conf .itens div{display:flex;align-items:center;gap:24px;padding:24px 30px;border-radius:28px;background:rgba(255,248,241,.07);border:1.5px solid rgba(245,197,157,.3);font-size:31px;line-height:1.3}
+.conf .itens b{color:var(--cream)}
+.conf .itens svg{flex:none;width:42px;height:42px}
+.conf .frase{margin-top:36px;font-family:"Great Vibes";font-size:54px;color:var(--peach)}
+/* oferta */
+.of .rot{margin-top:100px}
+.of h2{margin-top:22px;font-size:104px}
+.caixa{margin-top:44px;border-radius:40px;padding:40px 44px;background:rgba(255,248,241,.07);border:2px solid rgba(245,197,157,.5);box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.caixa .l1{display:flex;align-items:flex-end;gap:18px}
+.caixa .l1 .v{font-family:Cormorant;font-weight:600;font-size:170px;line-height:.8;background:var(--brilho);-webkit-background-clip:text;background-clip:text;color:transparent}
+.caixa .l1 .rs{font-family:Cormorant;font-weight:600;font-size:64px;color:var(--peach);margin-bottom:18px}
+.caixa .l1 small{margin-left:auto;margin-bottom:14px;font-weight:700;font-size:26px;color:var(--night2);background:var(--peach);padding:12px 20px;border-radius:99px;white-space:nowrap}
+.caixa ul{list-style:none;margin-top:30px;display:grid;gap:14px}
+.caixa li{display:flex;align-items:center;gap:18px;font-size:29px;color:rgba(255,248,241,.9)}
+.caixa li svg{flex:none;width:34px;height:34px}
+.zap{margin-top:40px;display:flex;align-items:center;justify-content:center;gap:20px;background:var(--wa);color:#fff;font-weight:800;font-size:36px;padding:30px;border-radius:99px;box-shadow:0 24px 50px rgba(31,175,90,.35)}
+.zap svg{width:50px;height:50px}
+.miudo{margin-top:22px;text-align:center;font-size:22px;color:rgba(255,248,241,.6)}
+
+.v,.rs{font-feature-settings:"lnum" 1;font-variant-numeric:lining-nums}
+.capa .foto{background-image:linear-gradient(180deg,rgba(5,63,58,.85) 0%,rgba(5,63,58,.25) 18%,rgba(5,63,58,.55) 40%,#053F3A 62%),url(../../../img/folder-limpeza.jpg)!important}
+.res .foto{background-image:linear-gradient(180deg,rgba(255,248,241,.92) 0%,rgba(255,248,241,0) 16%,rgba(255,248,241,.15) 30%,rgba(255,248,241,.92) 52%,#FFF8F1 62%),url(../../../img/folder-serum.jpg)!important}
+.res .pag,.capa .pag{background:rgba(5,63,58,.55);color:#FBE3CE;border-color:rgba(251,227,206,.5)}
+.of .rot{margin-top:auto}
+.of .miudo{margin-bottom:auto;padding-bottom:40px}
+.of h2{font-size:112px}
+'''
+def ic(path, cor='#F5C59D', w=1.8): return f'<svg viewBox="0 0 24 24" fill="none" stroke="{cor}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round">{path}</svg>'
+OK='<path d="M5 12.5l4.5 4.5L19 7.5"/>'; CAL='<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'
+REL='<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'; ESC='<path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z"/><path d="M9 12l2 2 4-4"/>'
+PIN='<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'
+PES='<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>'
+GOTA='<path d="M12 3c3 4 6 7 6 10.5A6 6 0 0 1 6 13.5C6 10 9 7 12 3z"/>'; SOL='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+CARTAO='<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>'
+SET='<path d="M5 12h14M13 6l6 6-6 6"/>'
+WA='<svg viewBox="0 0 32 32"><path fill="#fff" d="M16 4.5a11.5 11.5 0 0 0-9.9 17.3L4.5 27.5l5.9-1.5A11.5 11.5 0 1 0 16 4.5zm6.7 16.1c-.3.8-1.6 1.6-2.3 1.7-1.1.2-1.9.1-4.2-.8-3.5-1.5-5.7-5-5.9-5.3-.2-.2-1.4-1.8-1.4-3.5s.9-2.5 1.2-2.9c.3-.3.7-.4.9-.4h.6c.2 0 .5-.1.8.6l1.1 2.5c.1.2.1.4 0 .6-.6 1.3-1.3 1.2-.9 1.9a9.4 9.4 0 0 0 4.7 4.1c.4.2.6.2.8-.1l1-1.3c.3-.4.5-.3.8-.2l2.3 1.1c.4.2.6.3.7.4.1.2.1.9-.2 1.6z"/></svg>'
+def topo(n, logo='../../../img/logo.svg'): return f'<div class="topo"><div class="marca"><img src="{logo}" alt="">Amanda Rocha</div><span class="pag">{n:02d} / 05</span></div>'
+def rod(cls, t='Arraste'): return f'<div class="rodape"><span>@amandarochaat</span><span>{t}{ic(SET, "#F5C59D" if cls=="escura" else "#0B5F59", 2)}</span></div>'
+
+T = []
+T.append(f'''<section class="t escura capa" id="t1"><div class="foto"></div>{topo(1)}
+<span class="bf">BLACK FRIDAY 🖤</span>
+<h1>2 limpezas de pele por</h1>
+<div class="preco"><span class="rs">R$</span><span class="v">{e(PRECO)}</span></div>
+<div class="escassez"><span class="chip forte">{e(txt_pac)}</span><span class="chip">Só até {e(PRAZO)}</span></div>
+{rod("escura")}</section>''')
+T.append(f'''<section class="t clara inc" id="t2">{topo(2)}
+<h2>Sabe <em>aquele</em> cravinho que insiste?</h2>
+<p class="lead">E a pele que chega pesada no fim do dia? Acontece com muita gente. 😉</p>
+<div class="balao"><div><i>{ic(GOTA, "#0B5F59")}</i>Cravinho que volta sempre</div><div><i>{ic(SOL, "#0B5F59")}</i>Pele pesada e sem brilho</div></div>
+<p class="leve">Dá pra cuidar disso com calma →</p>
+{rod("clara")}</section>''')
+T.append(f'''<section class="t clara res" id="t3"><div class="foto"></div>{topo(3)}
+<h2>Pele <em>leve</em> e com viço</h2>
+<p class="lead">A limpeza tira o que pesa: impurezas, cravinhos e células mortas. Você sai com a pele limpinha e um momento só seu.</p>
+<div class="lista"><span>Pele mais limpa</span><span>Sensação de leveza</span><span>Mais viço</span></div>
+{rod("clara")}</section>''')
+T.append(f'''<section class="t escura conf" id="t4">{topo(4)}
+<div class="selo"><img src="../../../img/logo.svg" alt=""></div>
+<h2>Quem cuida de <em>você</em></h2>
+<div class="itens">
+<div>{ic(ESC)}<span><b>Amanda Rocha</b>, enfermeira · COREN-SP 617675</span></div>
+<div>{ic(PES)}<span>Atendimento <b>só para mulheres</b></span></div>
+<div>{ic(REL)}<span>Sem pressa, com técnica e biossegurança</span></div>
+<div>{ic(PIN)}<span>No <b>Studio La Rocha</b>, Vila Nova Mauá</span></div>
+</div>
+<div class="frase">Cuidado com afeto e individualidade</div>
+{rod("escura")}</section>''')
+itens = [(CAL, txt_sab)] + ([(REL, f'2ª sessão até {VALIDADE_2A}')] if VALIDADE_2A else []) + [(OK, txt_pac.replace(' 🖤','')), (CARTAO, 'Pagamento no salão, no dia')]
+lis = ''.join(f'<li>{ic(p)}{e(t)}</li>' for p,t in itens)
+T.append(f'''<section class="t escura of" id="t5">{topo(5)}
+<div class="rot">Black Friday · só até {e(PRAZO)}</div>
+<h2>Bora cuidar da <em>pele</em>?</h2>
+<div class="caixa"><div class="l1"><span class="rs">R$</span><span class="v">{e(PRECO)}</span><small>2 sessões · R$ {cada} cada</small></div><ul>{lis}</ul></div>
+<div class="zap">{WA}Me chama no WhatsApp</div>
+<div class="miudo">Toque em “Enviar mensagem” 👇</div>
+</section>''')
+open('carrossel.html','w').write(f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Black Friday · Amanda Rocha</title><style>{CSS}</style></head><body>' + '\n'.join(T) + '</body></html>')
+print('ok', txt_pac, '|', txt_sab, '|', VALIDADE_2A)
