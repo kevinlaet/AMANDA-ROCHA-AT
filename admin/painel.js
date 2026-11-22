@@ -351,7 +351,7 @@
       if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')}
       if(r.status==='confirmado'&&passou(r)&&('faltou' in r))h+=r.faltou?'<button class="btn ghost" data-a="veio" type="button"'+dis+'>Ela veio, sim (desfazer)</button>':'<button class="btn ghost" data-a="perg-faltou" type="button">Não veio…</button>';
       if(r.status==='confirmado'&&!passou(r)){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
-      if(r.status!=='livre'&&retornos){var rt=retornoDe(r.id);h+=rt?'<div class="ret-info">↻ Retorno '+(rt.data<hojeSP()?'atrasado, era ':'')+dia(rt.data)+(rt.obs?' · '+esc(rt.obs):'')+' <span class="st'+(rt.status==='agendou'?'':rt.status==='sem_resposta'?' bad':' warn')+'">'+esc(ROT_RET[rt.status])+'</span></div><button class="btn ghost" data-a="perg-retorno" type="button">Mudar retorno</button>':'<button class="btn ghost ret-bt" data-a="perg-retorno" type="button">↻ Marcar retorno</button>'}
+      if(r.status!=='livre'&&retornos){var rt=retornoDe(r.id);h+=rt?'<div class="ret-info">'+IC_RET.volta+'<div><b>Retorno '+(rt.data<hojeSP()?'atrasado, era ':'')+dia(rt.data)+'</b>'+(rt.obs?'<span>'+esc(rt.obs)+'</span>':'')+'</div><span class="st'+(rt.status==='agendou'?'':rt.status==='sem_resposta'?' bad':' warn')+'">'+esc(ROT_RET[rt.status])+'</span></div><button class="btn ghost" data-a="perg-retorno" type="button">Mudar retorno</button>':'<button class="btn ret-bt" data-a="perg-retorno" type="button">'+IC_RET.volta+'Marcar retorno</button>'}
       if(r.status!=='livre')h+=(bancoVelho?'<button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button>':'<div class="row"><button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button><button class="btn ghost" data-a="perg-remarcar" type="button">Remarcar</button></div>')+
         (r.status==='pedido'?'<button class="btn bad" data-a="perg-recusar" type="button">Recusar…</button>':'<button class="btn bad" data-a="perg-cancelar" type="button">Cancelar e liberar…</button>')+
         '<button class="btn bad" data-a="perg-excluir" type="button">Cancelar e apagar este horário…</button>';
@@ -379,6 +379,18 @@
     var t='Oi, '+primeiro(x.nome)+'! Tudo bem? Aqui é a '+primeiro(nomeProf(x.profissional||minhaProf()))+' 💛 '+(x.data<h?'Já passou um pouquinho da hora da sua ':'Já tá chegando a hora da sua ')+oq+', como combinamos. Quer que eu reserve um horário pra você '+quando+'?';
     return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t);
   }
+  var IC_RET={volta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>',
+    zap:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 4.5a11.5 11.5 0 0 0-9.9 17.3L4.5 27.5l5.9-1.5A11.5 11.5 0 1 0 16 4.5zm6.7 16.1c-.3.8-1.6 1.6-2.3 1.7-1.1.2-1.9.1-4.2-.8-3.5-1.5-5.7-5-5.9-5.3-.2-.2-1.4-1.8-1.4-3.5s.9-2.5 1.2-2.9c.3-.3.7-.4.9-.4h.6c.2 0 .5-.1.8.6l1.1 2.5c.1.2.1.4 0 .6-.6 1.3-1.3 1.2-.9 1.9a9.4 9.4 0 0 0 4.7 4.1c.4.2.6.2.8-.1l1-1.3c.3-.4.5-.3.8-.2l2.3 1.1c.4.2.6.3.7.4.1.2.1.9-.2 1.6z"/></svg>',
+    ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    nao:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.4A8.5 8.5 0 1 1 21 12z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>',
+    relogio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'};
+  function pilulaRet(x,h){var atr=x.data<h,da=atr?diasEntre(x.data,h):0;
+    return atr?'<span class="ret-dt atras">Atrasado · '+da+(da>1?' dias':' dia')+'</span>':x.data===h?'<span class="ret-dt hoje">Hoje</span>':
+      '<span class="ret-dt">'+(x.data===somaDias(h,1)?'Amanhã':semana(x.data).slice(0,3))+', '+curta(x.data)+'</span>'}
+  function opcoesAdiar(x,h){
+    if((x.profissional||minhaProf())==='amanda'){var w=utc(h).getUTCDay(),s1=somaDias(h,((6-w+7)%7)||7);return [0,7,14].map(function(k){var d=somaDias(s1,k);return {d:d,t:'sáb, '+curta(d)}})}
+    return [7,15,30].map(function(k){return {d:somaDias(h,k),t:'+'+k+' dias'}});
+  }
   function desenharRetornos(){
     var bl=$('blocoRet');if(!bl)return;
     if(!retornos){bl.hidden=true;badgeInicio();return}
@@ -386,17 +398,20 @@
     var h=hojeSP(),ate=somaDias(h,7),l=retornos.filter(function(x){return (x.status==='pendente'||x.status==='enviada')&&x.data<=ate});
     var u=urgentes(),n=$('nRet');n.hidden=!u;n.textContent=u;badgeInicio();
     $('retornos').innerHTML=l.length?l.map(function(x){
-      var atr=x.data<h,da=atr?diasEntre(x.data,h):0,z=zapRetorno(x),env=x.status==='enviada';
-      var quando=atr?'Atrasado: era '+dia(x.data)+' ('+da+(da>1?' dias':' dia')+')':x.data===h?'Retorno hoje':'Retorno '+dia(x.data);
-      return '<div class="card ret'+(atr?' atras':'')+'"><div class="pl"><b>'+esc(x.nome)+'</b>'+tagProf(x)+'<span>'+esc(x.servico||'Combinado por fora')+'</span><span class="quando">'+quando+'</span>'+
-        (x.obs?'<span class="obs">“'+esc(x.obs)+'”</span>':'')+(env?'<span class="lemb ok">✓ Mensagem enviada '+idade(x.enviada_em)+'</span>':'')+'</div>'+
-        (z?'<a class="btn '+(env?'zap-leve':'zap')+'" target="_blank" rel="noopener" data-ret-zap="'+esc(x.id)+'" href="'+esc(z)+'">'+(env?'Chamar de novo':'Chamar no WhatsApp')+'</a>':'<p class="dica">Sem WhatsApp no cadastro dela.</p>')+
-        '<div class="row"><button class="btn ok" type="button" data-ret="agendou" data-id="'+esc(x.id)+'">Agendou</button><button class="btn ghost" type="button" data-ret="sem_resposta" data-id="'+esc(x.id)+'">Não respondeu</button></div>'+
-        (retAdiar===x.id?'<div class="adiar"><span class="label" style="margin:0">Adiar para quando?</span><div class="chips">'+[7,15,30].map(function(k){return '<button class="chip" type="button" data-ret="mais" data-n="'+k+'" data-id="'+esc(x.id)+'">+'+k+' dias</button>'}).join('')+'</div>'+
-          '<input type="date" id="adData" min="'+h+'" max="'+somaDias(h,730)+'" aria-label="Outra data"><div class="row"><button class="btn main" type="button" data-ret="adiar-data" data-id="'+esc(x.id)+'">Salvar data</button><button class="btn ghost" type="button" data-ret="fechar-adiar">Voltar</button></div>'+
-          '<button class="btn bad" type="button" data-ret="apagar" data-id="'+esc(x.id)+'">Remover este retorno</button></div>':
-          '<button class="btn ghost" type="button" data-ret="adiar" data-id="'+esc(x.id)+'">Adiar</button>')+'</div>'}).join(''):
-      '<p class="vazio">Nenhum retorno nos próximos 7 dias.</p>';
+      var atr=x.data<h,z=zapRetorno(x),env=x.status==='enviada',id=esc(x.id),ini=esc((String(x.nome||'?').trim().charAt(0)||'?').toUpperCase());
+      return '<div class="ret'+(atr?' atras':'')+'">'+
+        '<div class="ret-top"><span class="ret-av" aria-hidden="true">'+ini+'</span><div class="ret-q"><b>'+esc(x.nome)+'</b>'+tagProf(x)+'<span>'+esc(x.servico||'Combinado por fora')+'</span>'+pilulaRet(x,h)+'</div></div>'+
+        (x.obs?'<p class="ret-obs">'+IC_RET.volta+'<span>'+esc(x.obs)+'</span></p>':'')+
+        (env?'<p class="ret-env">'+IC_RET.ok+'Mensagem enviada '+idade(x.enviada_em)+'</p>':'')+
+        (z?'<a class="btn '+(env?'zap-leve':'zap')+' ret-zap" target="_blank" rel="noopener" data-ret-zap="'+id+'" href="'+esc(z)+'">'+IC_RET.zap+(env?'Chamar de novo':'Chamar no WhatsApp')+'</a>':'<p class="dica">Sem WhatsApp no cadastro dela.</p>')+
+        '<div class="ret-acoes"><button type="button" class="sim" data-ret="agendou" data-id="'+id+'">'+IC_RET.ok+'Agendou</button>'+
+          '<button type="button" data-ret="sem_resposta" data-id="'+id+'">'+IC_RET.nao+'Não respondeu</button>'+
+          '<button type="button" data-ret="'+(retAdiar===x.id?'fechar-adiar':'adiar')+'" data-id="'+id+'" aria-expanded="'+(retAdiar===x.id)+'">'+IC_RET.relogio+'Adiar</button></div>'+
+        (retAdiar===x.id?'<div class="adiar"><span class="adiar-t">Lembrar de novo em…</span><div class="chips">'+opcoesAdiar(x,h).map(function(o){return '<button class="chip" type="button" data-ret="para" data-d="'+o.d+'" data-id="'+id+'">'+o.t+'</button>'}).join('')+'</div>'+
+          '<label for="adData" style="margin:4px 0 0">ou escolha a data</label><div class="adiar-d"><input type="date" id="adData" min="'+h+'" max="'+somaDias(h,730)+'"><button class="btn main" type="button" data-ret="adiar-data" data-id="'+id+'">Salvar</button></div>'+
+          '<button class="ret-rem" type="button" data-ret="apagar" data-id="'+id+'">Remover este retorno</button></div>':'')+
+        '</div>'}).join(''):
+      '<div class="ret-vazio">'+IC_RET.volta+'<span>Nenhum retorno nos próximos 7 dias.<br><small>Marque o retorno na ficha de cada atendimento.</small></span></div>';
   }
   function marcarRet(id,st,data,msg){
     if(retOcup)return;retOcup=true;
@@ -414,7 +429,7 @@
     if(a==='fechar-adiar'){retAdiar=null;desenharRetornos();return}
     if(a==='agendou')marcarRet(id,'agendou',null,'Anotado: ela agendou. 💛');
     else if(a==='sem_resposta')marcarRet(id,'sem_resposta',null,'Anotado: não respondeu. O retorno sai da lista.');
-    else if(a==='mais'){var d=somaDias(h,+b.getAttribute('data-n'));marcarRet(id,null,d,'Retorno adiado para '+dia(d)+'.')}
+    else if(a==='para'){var d=b.getAttribute('data-d');marcarRet(id,null,d,'Retorno adiado para '+dia(d)+'.')}
     else if(a==='adiar-data'){var v=($('adData')||{}).value;if(!v||v<h){toast('Escolha uma data a partir de hoje.',true);return}marcarRet(id,null,v,'Retorno adiado para '+dia(v)+'.')}
     else if(a==='apagar'){if(retOcup)return;retOcup=true;api('POST','rpc/apagar_retorno',{p_id:id}).then(function(){retOcup=false;retAdiar=null;toast('Retorno removido.');return carregarRetornos()},function(er){retOcup=false;falha(er)})}
   });
@@ -430,7 +445,7 @@
   // a Amanda atende aos sábados: se a data cair em outro dia, oferece o sábado mais perto
   function sabadoPerto(d){var w=utc(d).getUTCDay(),ant=somaDias(d,-((w+1)%7)),dep=somaDias(d,(6-w+7)%7);return ant>=hojeSP()&&(w+1)%7<=(6-w+7)%7?ant:dep}
   function prevRet(d){if(!d)return '';var r=linha(aberto),sab=utc(d).getUTCDay()===6,ama=r&&profDe(r)==='amanda';
-    return 'Retorno em <b>'+dia(d)+'</b>'+(!sab&&ama?' · não é sábado <button class="chip" type="button" data-rt-sab="'+sabadoPerto(d)+'" style="min-height:36px;margin-left:6px">Usar '+dia(sabadoPerto(d))+'</button>':'')}
+    return 'Retorno em <b>'+dia(d)+'</b>'+(!sab&&ama?'<span class="sab-sug">Não é sábado. <button type="button" data-rt-sab="'+sabadoPerto(d)+'">Usar '+dia(sabadoPerto(d))+'</button></span>':'')}
   document.addEventListener('click',function(e){
     var c=e.target.closest('[data-rt-dias]');
     if(c){var r=linha(aberto);if(!r)return;var n=+c.getAttribute('data-rt-dias'),base=r.data<hojeSP()?hojeSP():r.data,d=somaDias(base,n);

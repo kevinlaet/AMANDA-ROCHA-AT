@@ -469,7 +469,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await P2.locator('#blocoRet').scrollIntoViewIfNeeded();
     await foto(P2, 'painel-retornos-lista', false);
     const carla = P2.locator('#retornos .ret', { hasText: 'Carla' });
-    ok(/Retorno hoje/.test(await carla.innerText()) && /manutenção da limpeza/.test(await carla.innerText()), 'retorno: a linha mostra nome, procedimento, data e orientação');
+    ok(/Hoje/.test(await carla.locator('.ret-dt').innerText()) && /Auriculoterapia/.test(await carla.innerText()) && /manutenção da limpeza/.test(await carla.locator('.ret-obs').innerText()), 'retorno: a linha mostra nome, procedimento, data e orientação');
     const hz = decodeURIComponent(await carla.locator('a[data-ret-zap]').getAttribute('href'));
     ok(/wa\.me\/5511977771111/.test(hz) && /Oi, Carla! Tudo bem\? Aqui é a Amanda 💛 Já tá chegando a hora da sua manutenção da limpeza, como combinamos\. Quer que eu reserve um horário pra você nesse sábado\?/.test(hz), 'retorno: o WhatsApp abre com a mensagem pronta, o nome e a orientação');
     ok(/Já passou um pouquinho da hora da sua próxima sessão de auriculo/.test(decodeURIComponent(await atras.locator('a[data-ret-zap]').getAttribute('href'))), 'retorno: para o atrasado, a mensagem fala que já passou um pouquinho');
@@ -479,9 +479,14 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await P2.locator('#retornos .ret', { hasText: 'Carla' }).locator('[data-ret=agendou]').click();
     ok(await espera(async () => (await q(`select status from retornos where nome = 'Carla Dias'`))[0].status === 'agendou' && (await P2.locator('#retornos .ret', { hasText: 'Carla' }).count()) === 0), 'retorno: "Agendou" anota e tira da lista');
     await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=adiar]').click();
-    await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=mais][data-n="7"]').click();
-    ok(await espera(async () => { const r = (await q(`select status, data::text d from retornos where nome = 'Beatriz Nunes'`))[0]; return r.status === 'pendente' && r.d === (await dia(7)); }), 'retorno: "Adiar +7 dias" muda a data no banco');
-    ok(await espera(async () => !(await P2.locator('#retornos .ret.atras').count()) && /Retorno/.test(await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).innerText())), 'retorno: adiado, deixa de aparecer como atrasado');
+    await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).scrollIntoViewIfNeeded();
+    await foto(P2, 'painel-retorno-adiar', false);
+    const sab1 = (await q(`select (d + ((6 - extract(dow from d)::int + 7) % 7 + case when extract(dow from d)::int = 6 then 7 else 0 end))::text s from (select (public.agora_sp())::date d) t`))[0].s;
+    const chipSab = P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=para]').first();
+    ok((await chipSab.getAttribute('data-d')) === sab1 && /^sáb, /.test(await chipSab.innerText()), 'retorno: "Adiar" oferece os próximos sábados (a Amanda atende aos sábados)');
+    await chipSab.click();
+    ok(await espera(async () => { const r = (await q(`select status, data::text d from retornos where nome = 'Beatriz Nunes'`))[0]; return r.status === 'pendente' && r.d === sab1; }), 'retorno: adiar para o próximo sábado muda a data no banco');
+    ok(await espera(async () => !(await P2.locator('#retornos .ret.atras').count()) && /\d\d\/\d\d/.test(await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('.ret-dt').innerText())), 'retorno: adiado, deixa de aparecer como atrasado');
     await foto(P2, 'painel-retornos', false);
     await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=sem_resposta]').click();
     ok(await espera(async () => (await q(`select status from retornos where nome = 'Beatriz Nunes'`))[0].status === 'sem_resposta' && (await P2.locator('#retornos .ret').count()) === 0), 'retorno: "Não respondeu" anota e tira da lista');

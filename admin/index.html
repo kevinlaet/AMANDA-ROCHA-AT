@@ -111,15 +111,43 @@ input:focus,select:focus{border-color:var(--teal)}
 .prox .pl .quando{color:var(--ink);font-weight:700}
 .lemb{font-weight:700;font-size:13px!important;color:var(--warn)!important}
 .lemb.ok{color:var(--ok)!important}
-.ret{display:grid;gap:10px;margin-bottom:10px;border-left:6px solid var(--teal)}
-.ret.atras{border-left-color:var(--bad);background:#FFF8F7}
-.ret .pl{display:grid;gap:2px}.ret .pl b{font-size:17px}.ret .pl span{font-size:14px;color:var(--muted)}
-.ret .pl .quando{color:var(--ink);font-weight:700}.ret.atras .pl .quando{color:var(--bad)}
-.ret .pl .obs{font-style:italic;color:var(--ink)}
-.ret .row{margin-top:0}
-.adiar{display:grid;gap:10px;padding:12px;border-radius:14px;background:var(--sand)}
-.ret-info{margin:10px 0 4px;padding:10px 12px;border-radius:12px;background:#E9F4F1;color:var(--teal-d);font-weight:700;font-size:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* retornos: cartões claros, com a inicial da cliente em pêssego, data em pílula e ações em uma linha */
+.ret-h svg{width:22px;height:22px}
+.ret{display:grid;gap:12px;margin-bottom:12px;padding:16px;border-radius:20px;background:#fff;border:1px solid var(--line);box-shadow:0 6px 18px rgba(11,95,89,.06)}
+.ret.atras{background:linear-gradient(180deg,#FFF5F2,#fff 70%);border-color:#F2CFC6}
+.ret-top{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.ret-av{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,var(--peach-l),var(--peach));color:var(--teal-d);font-family:Cormorant,Georgia,serif;font-weight:600;font-size:26px;line-height:1}
+.ret-q{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.ret-q b{font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.ret-q>span:not(.ret-dt):not(.tag-prof){font-size:14px;color:var(--muted)}
+.ret-dt{margin-top:4px;font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:5px 11px;border-radius:99px;background:#E9F4F1;color:var(--teal-d);white-space:nowrap}
+.ret-dt.hoje{background:var(--peach);color:var(--teal-d)}
+.ret-dt.atras{background:var(--bad-bg);color:var(--bad)}
+.ret-obs{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.4;color:var(--ink);background:var(--cream);border:1px dashed var(--peach);border-radius:14px;padding:10px 12px}
+.ret-obs svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--teal)}
+.ret-env{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--ok)}
+.ret-env svg{width:16px;height:16px}
+.ret-zap svg{width:24px;height:24px}
+.ret-acoes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ret-acoes button{min-height:56px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-weight:700;font-size:13px;line-height:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 4px;text-align:center}
+.ret-acoes svg{width:20px;height:20px;color:var(--muted)}
+.ret-acoes .sim{border-color:#BFE6CD;color:var(--ok)}.ret-acoes .sim svg{color:var(--ok)}
+.ret-acoes [aria-expanded=true]{background:var(--sand);border-color:var(--peach)}
+.adiar{display:grid;gap:10px;padding:14px;border-radius:16px;background:var(--sand)}
+.adiar-t{font-weight:700;font-size:14px;color:var(--teal-d)}
+.adiar .chip{flex:1;min-width:0;white-space:nowrap;font-size:14px;padding:8px 4px}
+.adiar-d{display:grid;grid-template-columns:1fr auto;gap:8px}.adiar-d .btn{width:auto;min-height:52px}
+.ret-rem{background:none;border:0;color:var(--bad);font-weight:700;font-size:14px;min-height:40px;text-decoration:underline;text-underline-offset:3px}
+.ret-vazio{display:flex;gap:12px;align-items:center;padding:16px;border-radius:18px;background:#fff;border:1px dashed var(--line);color:var(--muted);font-size:15px}
+.ret-vazio svg{flex:none;width:26px;height:26px;color:var(--peach)}
+.ret-vazio small{font-size:13px}
+.ret-bt{background:var(--peach-l);color:var(--teal-d);border-color:var(--peach)}
+.ret-bt svg,.ret-info>svg{width:20px;height:20px;flex:none}
+.ret-info{margin:12px 0 6px;padding:12px 14px;border-radius:14px;background:var(--peach-l);color:var(--teal-d);display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:14px}
+.ret-info b{display:block;font-size:15px}.ret-info span:not(.st){display:block;color:var(--ink)}
 .ret-form{display:grid}
+.sab-sug{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:6px;color:var(--warn);font-weight:600}
+.sab-sug button{min-height:40px;padding:6px 14px;border-radius:99px;border:1.5px solid var(--peach);background:var(--peach-l);color:var(--teal-d);font-weight:700}
 /* dia da agenda com botão de opções */
 .dia h3{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dia-op{background:none;border:1.5px solid var(--line);border-radius:10px;padding:6px 12px;min-height:38px;font-weight:700;font-size:13px;color:var(--teal)}
@@ -359,8 +387,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     <div id="proximos"></div>
 
     <div id="blocoRet" hidden>
-    <h2>Retornos próximos <span class="badge" id="nRet" hidden></span></h2>
-    <p class="dica" style="margin:-6px 0 10px">Clientes que combinaram de voltar nos próximos 7 dias. Os atrasados aparecem primeiro, em vermelho.</p>
+    <h2 class="ret-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>Retornos próximos <span class="badge" id="nRet" hidden></span></h2>
+    <p class="dica" style="margin:-6px 0 12px">Quem combinou de voltar nos próximos 7 dias. Os atrasados vêm primeiro.</p>
     <div id="retornos"></div>
     </div>
 
