@@ -2144,6 +2144,171 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------
+-- Retornos: a profissional combina com a cliente quando ela deve voltar
+-- (ex.: "manutenção da limpeza" em 30 dias). O painel mostra quem está
+-- chegando na data e abre o WhatsApp com a mensagem pronta; nada é
+-- enviado sozinho. Guarda uma cópia do nome, telefone e serviço do
+-- atendimento, para o retorno continuar valendo se o horário mudar.
+-- Tabela nova: não altera nenhum dado que já existe.
+-- ---------------------------------------------------------------------
+create table if not exists public.retornos (
+  id uuid primary key default gen_random_uuid(),
+  horario_id uuid unique references public.horarios (id) on delete set null,
+  profissional text not null references public.profissionais (id),
+  nome text not null check (length(btrim(nome)) between 1 and 60),
+  telefone text check (telefone ~ '^[0-9]{10,11}$'),
+  servico text check (length(servico) <= 40),
+  data date not null,
+  obs text check (length(obs) <= 80),
+  status text not null default 'pendente' check (status in ('pendente', 'enviada', 'agendou', 'sem_resposta')),
+  enviada_em timestamptz,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+alter table public.retornos enable row level security;
+-- só pelas funções abaixo (que conferem quem pode mexer em cada profissional)
+revoke all on public.retornos from anon, authenticated;
+drop policy if exists "retornos_profissional" on public.retornos;
+create policy "retornos_profissional" on public.retornos
+  for all to authenticated
+  using (public.posso(profissional))
+  with check (public.posso(profissional));
+
+-- Quando o horário volta a ficar livre (cancelado, recusado ou remarcado), o retorno
+-- continua valendo, mas se solta do horário: assim a próxima cliente desse horário
+-- nunca herda o retorno de outra pessoa.
+create or replace function public.solta_retorno()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.retornos set horario_id = null where horario_id = new.id;
+  return null;
+end;
+$$;
+drop trigger if exists solta_retorno on public.horarios;
+create trigger solta_retorno after update of status on public.horarios
+  for each row when (new.status = 'livre' and old.status <> 'livre')
+  execute function public.solta_retorno();
+
+-- Marca (ou muda) o retorno de um atendimento. Resposta: {r: 'ok'|'sem_acesso'|'livre'|'data'|'dados', id}
+create or replace function public.salvar_retorno(p_horario uuid, p_data date, p_obs text default null)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  h public.horarios;
+  v_hoje date := (public.agora_sp())::date;
+  v_obs text := nullif(left(btrim(regexp_replace(coalesce(p_obs, ''), '[[:cntrl:]]', ' ', 'g')), 80), '');
+  v_id uuid;
+begin
+  select * into h from public.horarios where id = p_horario;
+  if not found or not public.posso(h.profissional) then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  if h.status = 'livre' or h.nome is null then
+    return json_build_object('r', 'livre');
+  end if;
+  if p_data is null or p_data < v_hoje or p_data > v_hoje + 730 then
+    return json_build_object('r', 'data');
+  end if;
+  if v_obs ~* '(https?:|www\.)' then
+    return json_build_object('r', 'dados');
+  end if;
+  insert into public.retornos (horario_id, profissional, nome, telefone, servico, data, obs)
+  values (h.id, h.profissional, left(h.nome, 60), h.telefone,
+          case when h.servico in ('Combinado por fora', 'Manual') then null else h.servico end, p_data, v_obs)
+  on conflict (horario_id) do update
+     set data = excluded.data, obs = excluded.obs, nome = excluded.nome, telefone = excluded.telefone,
+         servico = excluded.servico, status = 'pendente', enviada_em = null, atualizado_em = now()
+  returning id into v_id;
+  return json_build_object('r', 'ok', 'id', v_id);
+end;
+$$;
+
+-- Muda a situação do retorno (mensagem enviada, agendou, não respondeu) ou adia para outra data.
+create or replace function public.marcar_retorno(p_id uuid, p_status text default null, p_data date default null)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  t public.retornos;
+  v_hoje date := (public.agora_sp())::date;
+begin
+  select * into t from public.retornos where id = p_id;
+  if not found or not public.posso(t.profissional) then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  if p_data is not null then
+    if p_data < v_hoje or p_data > v_hoje + 730 then
+      return json_build_object('r', 'data');
+    end if;
+    update public.retornos set data = p_data, status = 'pendente', enviada_em = null, atualizado_em = now() where id = p_id;
+    return json_build_object('r', 'ok');
+  end if;
+  if p_status is null or p_status not in ('pendente', 'enviada', 'agendou', 'sem_resposta') then
+    return json_build_object('r', 'dados');
+  end if;
+  update public.retornos
+     set status = p_status,
+         enviada_em = case when p_status = 'enviada' then now() when p_status = 'pendente' then null else enviada_em end,
+         atualizado_em = now()
+   where id = p_id;
+  return json_build_object('r', 'ok');
+end;
+$$;
+
+create or replace function public.apagar_retorno(p_id uuid)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_prof text;
+begin
+  select profissional into v_prof from public.retornos where id = p_id;
+  if not found or not public.posso(v_prof) then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  delete from public.retornos where id = p_id;
+  return json_build_object('r', 'ok');
+end;
+$$;
+
+-- Retornos em aberto (e os resolvidos nos últimos 60 dias), do mais antigo para o mais novo.
+-- p_prof nulo: a sócia vê todos; a parceira, só os dela.
+create or replace function public.retornos_lista(p_prof text default null)
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_hoje date := (public.agora_sp())::date;
+begin
+  if not public.sou_admin() and public.minha_profissional() is null then
+    return null;
+  end if;
+  return (
+    select coalesce(json_agg(t order by t.data, t.nome), '[]'::json)
+      from (select r.id, r.horario_id, r.profissional, r.nome, r.telefone, r.servico, r.data, r.obs, r.status, r.enviada_em
+              from public.retornos r
+             where public.posso(r.profissional)
+               and (p_prof is null or r.profissional = p_prof)
+               and (r.status in ('pendente', 'enviada') or r.atualizado_em > now() - interval '60 days' or r.data >= v_hoje)) t
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- Permissões das funções
 -- (o Supabase dá acesso automático a funções novas; aqui tudo é fechado e
 -- depois liberado só para quem precisa)
@@ -2215,3 +2380,12 @@ grant execute on function public.beneficios_ok(text[]) to authenticated;
 grant execute on function public.salvar_cliente(text, text, text) to authenticated;
 grant execute on function public.meus_numeros(text) to authenticated;
 grant execute on function public.definir_meta(numeric, text) to authenticated;
+revoke all on function public.solta_retorno() from public, anon, authenticated;
+revoke all on function public.salvar_retorno(uuid, date, text) from public, anon, authenticated;
+revoke all on function public.marcar_retorno(uuid, text, date) from public, anon, authenticated;
+revoke all on function public.apagar_retorno(uuid) from public, anon, authenticated;
+revoke all on function public.retornos_lista(text) from public, anon, authenticated;
+grant execute on function public.salvar_retorno(uuid, date, text) to authenticated;
+grant execute on function public.marcar_retorno(uuid, text, date) to authenticated;
+grant execute on function public.apagar_retorno(uuid) to authenticated;
+grant execute on function public.retornos_lista(text) to authenticated;

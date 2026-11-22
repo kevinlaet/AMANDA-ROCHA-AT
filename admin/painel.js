@@ -9,6 +9,7 @@
   var rows=[],sess=null,aberto=null,pergunta=null,ocupado=false,relogio=null,ultimo=null;
   var motivoEstranho='',servs=null,bancoVelho=false,destino=null,guard=null,semGuardiao=false,abaAtual='inicio';
   var hist={itens:[],fim:false,busca:'',ok:false,seq:0};
+  var retornos=null,retAdiar=null,retOcup=false;
   // Várias profissionais: o mesmo painel serve a Amanda (site dela) e o Studio La Rocha (window.PAINEL, em marca.js)
   var P=window.PAINEL||{};
   var eu=null,profs=[],recursos=null,visao='minha';
@@ -214,7 +215,7 @@
       .then(function(j){atual();rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
         return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){atual();servs=sv||[];bancoVelho=false},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
       .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){atual();guard=g;semGuardiao=false;motivoEstranho=acessoEstranho()||alertaNovo();if(motivoEstranho)throw 'estranho'},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
-      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes();carregarNumeros()})
+      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes();carregarNumeros();carregarRetornos()})
       .catch(function(e){
         if(e==='estranho'){encerrar(motivoEstranho+' Desconectei todos os aparelhos por segurança. Se foi você, é só entrar de novo. Se não foi, entre e troque sua senha em Mais › Minha conta.','global');return}
         if(e==='velho'||minha!==geracao)return;
@@ -230,7 +231,7 @@
     var x=ultimo||agoraSP();
     $('atualizado').textContent='Atualizado às '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())+' · atualiza sozinho';
     var ped=rows.filter(function(r){return r.status==='pedido'});
-    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;$('nPedNav').hidden=!ped.length;$('nPedNav').textContent=ped.length;document.title=(ped.length?'('+ped.length+') ':'')+(P.titulo||'Agenda da Amanda');
+    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;nPedidos=ped.length;badgeInicio();document.title=(ped.length?'('+ped.length+') ':'')+(P.titulo||'Agenda da Amanda');
     $('pedidos').innerHTML=ped.length?ped.map(function(r){
       var min=r.pedido_em?(Date.now()-new Date(r.pedido_em).getTime())/60000:0,z=zapUrl(r,'falar');
       return '<div class="card ped"><div class="nome">'+esc(r.nome)+tagProf(r)+'</div>'+
@@ -337,6 +338,7 @@
     else if(pergunta==='faltou')h+='<div class="pergunta">Marcar que '+nm+' não veio? Esse atendimento sai da sua conta e fica anotado na ficha dela.</div><button class="btn bad-solid" data-a="faltou" type="button"'+dis+'>Sim, não veio</button>'+V;
     else if(pergunta==='ocupar')h+=campos(null,profDe(r))+'<button class="btn main" data-a="ocupar" type="button"'+dis+'>Marcar como ocupado</button>'+V;
     else if(pergunta==='editar')h+=campos(r,profDe(r))+'<button class="btn main" data-a="editar" type="button"'+dis+'>Salvar alterações</button>'+V;
+    else if(pergunta==='retorno')h+=formRetorno(r)+V;
     else if(pergunta==='mover')h+='<label for="fData">Dia</label><input type="date" id="fData" value="'+r.data+'" min="'+hojeSP()+'"><label for="fHora">Horário</label><input type="time" id="fHora" value="'+r.hora+'" step="900"><button class="btn main" data-a="mover" type="button"'+dis+'>Salvar novo dia e horário</button>'+V;
     else if(pergunta==='remarcar'){
       var op=livresPara(r),dst=destino&&linha(destino);
@@ -349,6 +351,7 @@
       if(r.status==='pedido'){var z=zapUrl(r,'falar');h+='<button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button"'+dis+'>Confirmar</button>'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar no WhatsApp</a>':'')}
       if(r.status==='confirmado'&&passou(r)&&('faltou' in r))h+=r.faltou?'<button class="btn ghost" data-a="veio" type="button"'+dis+'>Ela veio, sim (desfazer)</button>':'<button class="btn ghost" data-a="perg-faltou" type="button">Não veio…</button>';
       if(r.status==='confirmado'&&!passou(r)){var zl=zapUrl(r,'lembrar'),zc=zapUrl(r,'confirmar');h+=(zl?'<a class="btn zap" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(zl)+'">Mandar lembrete</a><a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(zc)+'">Mandar confirmação</a>':'')}
+      if(r.status!=='livre'&&retornos){var rt=retornoDe(r.id);h+=rt?'<div class="ret-info">↻ Retorno '+(rt.data<hojeSP()?'atrasado, era ':'')+dia(rt.data)+(rt.obs?' · '+esc(rt.obs):'')+' <span class="st'+(rt.status==='agendou'?'':rt.status==='sem_resposta'?' bad':' warn')+'">'+esc(ROT_RET[rt.status])+'</span></div><button class="btn ghost" data-a="perg-retorno" type="button">Mudar retorno</button>':'<button class="btn ghost ret-bt" data-a="perg-retorno" type="button">↻ Marcar retorno</button>'}
       if(r.status!=='livre')h+=(bancoVelho?'<button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button>':'<div class="row"><button class="btn ghost" data-a="perg-editar" type="button">Editar dados</button><button class="btn ghost" data-a="perg-remarcar" type="button">Remarcar</button></div>')+
         (r.status==='pedido'?'<button class="btn bad" data-a="perg-recusar" type="button">Recusar…</button>':'<button class="btn bad" data-a="perg-cancelar" type="button">Cancelar e liberar…</button>')+
         '<button class="btn bad" data-a="perg-excluir" type="button">Cancelar e apagar este horário…</button>';
@@ -358,6 +361,96 @@
     s.innerHTML=h;s.hidden=false;$('veu').hidden=false;
     var f=s.querySelector('input');if(f&&pergunta)f.focus();
   }
+
+
+  // ---------- retornos (a profissional combina quando a cliente volta) ----------
+  var ROT_RET={pendente:'pendente',enviada:'mensagem enviada',agendou:'agendou',sem_resposta:'não respondeu'},DIAS_RET=[15,21,30,45,60],nPedidos=0;
+  function retornoDe(hid){return (retornos||[]).filter(function(x){return x.horario_id===hid})[0]||null}
+  function urgentes(){var h=hojeSP();return (retornos||[]).filter(function(x){return x.status==='pendente'&&x.data<=h}).length}
+  function badgeInicio(){var t=nPedidos+urgentes(),b=$('nPedNav');b.hidden=!t;b.textContent=t}
+  function carregarRetornos(){
+    return api('POST','rpc/retornos_lista',comProf()).then(function(j){retornos=j||[];desenharRetornos();if(aberto&&!pergunta)desenharSheet()},
+      function(e){if(e==='sessao')return;if(e==='ausente'){retornos=null;desenharRetornos()}});
+  }
+  function diasEntre(a,b){return Math.round((utc(b)-utc(a))/864e5)}
+  function zapRetorno(x){
+    if(!x.telefone)return '';
+    var h=hojeSP(),oq=x.obs||(x.servico?x.servico.toLowerCase():'próxima sessão'),quando=(x.profissional||minhaProf())==='amanda'?'nesse sábado':'nos próximos dias';
+    var t='Oi, '+primeiro(x.nome)+'! Tudo bem? Aqui é a '+primeiro(nomeProf(x.profissional||minhaProf()))+' 💛 '+(x.data<h?'Já passou um pouquinho da hora da sua ':'Já tá chegando a hora da sua ')+oq+', como combinamos. Quer que eu reserve um horário pra você '+quando+'?';
+    return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t);
+  }
+  function desenharRetornos(){
+    var bl=$('blocoRet');if(!bl)return;
+    if(!retornos){bl.hidden=true;badgeInicio();return}
+    bl.hidden=false;
+    var h=hojeSP(),ate=somaDias(h,7),l=retornos.filter(function(x){return (x.status==='pendente'||x.status==='enviada')&&x.data<=ate});
+    var u=urgentes(),n=$('nRet');n.hidden=!u;n.textContent=u;badgeInicio();
+    $('retornos').innerHTML=l.length?l.map(function(x){
+      var atr=x.data<h,da=atr?diasEntre(x.data,h):0,z=zapRetorno(x),env=x.status==='enviada';
+      var quando=atr?'Atrasado: era '+dia(x.data)+' ('+da+(da>1?' dias':' dia')+')':x.data===h?'Retorno hoje':'Retorno '+dia(x.data);
+      return '<div class="card ret'+(atr?' atras':'')+'"><div class="pl"><b>'+esc(x.nome)+'</b>'+tagProf(x)+'<span>'+esc(x.servico||'Combinado por fora')+'</span><span class="quando">'+quando+'</span>'+
+        (x.obs?'<span class="obs">“'+esc(x.obs)+'”</span>':'')+(env?'<span class="lemb ok">✓ Mensagem enviada '+idade(x.enviada_em)+'</span>':'')+'</div>'+
+        (z?'<a class="btn '+(env?'zap-leve':'zap')+'" target="_blank" rel="noopener" data-ret-zap="'+esc(x.id)+'" href="'+esc(z)+'">'+(env?'Chamar de novo':'Chamar no WhatsApp')+'</a>':'<p class="dica">Sem WhatsApp no cadastro dela.</p>')+
+        '<div class="row"><button class="btn ok" type="button" data-ret="agendou" data-id="'+esc(x.id)+'">Agendou</button><button class="btn ghost" type="button" data-ret="sem_resposta" data-id="'+esc(x.id)+'">Não respondeu</button></div>'+
+        (retAdiar===x.id?'<div class="adiar"><span class="label" style="margin:0">Adiar para quando?</span><div class="chips">'+[7,15,30].map(function(k){return '<button class="chip" type="button" data-ret="mais" data-n="'+k+'" data-id="'+esc(x.id)+'">+'+k+' dias</button>'}).join('')+'</div>'+
+          '<input type="date" id="adData" min="'+h+'" max="'+somaDias(h,730)+'" aria-label="Outra data"><div class="row"><button class="btn main" type="button" data-ret="adiar-data" data-id="'+esc(x.id)+'">Salvar data</button><button class="btn ghost" type="button" data-ret="fechar-adiar">Voltar</button></div>'+
+          '<button class="btn bad" type="button" data-ret="apagar" data-id="'+esc(x.id)+'">Remover este retorno</button></div>':
+          '<button class="btn ghost" type="button" data-ret="adiar" data-id="'+esc(x.id)+'">Adiar</button>')+'</div>'}).join(''):
+      '<p class="vazio">Nenhum retorno nos próximos 7 dias.</p>';
+  }
+  function marcarRet(id,st,data,msg){
+    if(retOcup)return;retOcup=true;
+    return api('POST','rpc/marcar_retorno',{p_id:id,p_status:st||null,p_data:data||null}).then(function(j){
+      retOcup=false;
+      if(!j||j.r!=='ok'){toast(j&&j.r==='data'?'Escolha uma data a partir de hoje.':'Não deu certo. Nada foi alterado. Tente de novo.',true);return}
+      if(msg)toast(msg);retAdiar=null;return carregarRetornos();
+    },function(e){retOcup=false;falha(e)});
+  }
+  document.addEventListener('click',function(e){
+    var z=e.target.closest('[data-ret-zap]');if(z){marcarRet(z.getAttribute('data-ret-zap'),'enviada');return}
+    var b=e.target.closest('[data-ret]');if(!b)return;
+    var a=b.getAttribute('data-ret'),id=b.getAttribute('data-id'),h=hojeSP();
+    if(a==='adiar'){retAdiar=id;desenharRetornos();return}
+    if(a==='fechar-adiar'){retAdiar=null;desenharRetornos();return}
+    if(a==='agendou')marcarRet(id,'agendou',null,'Anotado: ela agendou. 💛');
+    else if(a==='sem_resposta')marcarRet(id,'sem_resposta',null,'Anotado: não respondeu. O retorno sai da lista.');
+    else if(a==='mais'){var d=somaDias(h,+b.getAttribute('data-n'));marcarRet(id,null,d,'Retorno adiado para '+dia(d)+'.')}
+    else if(a==='adiar-data'){var v=($('adData')||{}).value;if(!v||v<h){toast('Escolha uma data a partir de hoje.',true);return}marcarRet(id,null,v,'Retorno adiado para '+dia(v)+'.')}
+    else if(a==='apagar'){if(retOcup)return;retOcup=true;api('POST','rpc/apagar_retorno',{p_id:id}).then(function(){retOcup=false;retAdiar=null;toast('Retorno removido.');return carregarRetornos()},function(er){retOcup=false;falha(er)})}
+  });
+  // formulário da ficha do horário
+  function formRetorno(r){
+    var rt=retornoDe(r.id),h=hojeSP();
+    return '<div class="ret-form"><span class="label" style="margin-top:4px">Quando ela deve voltar?</span><div class="chips" id="rtDias">'+DIAS_RET.map(function(n){return '<button class="chip" type="button" data-rt-dias="'+n+'" aria-pressed="false">'+n+' dias</button>'}).join('')+'</div>'+
+      '<label for="rtData">ou escolha a data</label><input type="date" id="rtData" min="'+h+'" max="'+somaDias(h,730)+'" value="'+(rt?esc(rt.data):'')+'"><p class="dica" id="rtPrev">'+(rt?prevRet(rt.data):'Escolha quantos dias ou uma data.')+'</p>'+
+      '<label for="rtObs">O que é o retorno? <span style="font-weight:500;color:var(--muted)">(vai na mensagem)</span></label><input type="text" id="rtObs" maxlength="80" placeholder="Ex.: manutenção da limpeza" value="'+(rt&&rt.obs?esc(rt.obs):'')+'">'+
+      '<p class="dica">A mensagem fica assim: “Já tá chegando a hora da sua <i>manutenção da limpeza</i>, como combinamos.”</p></div>'+
+      '<button class="btn main" type="button" data-rt="salvar">Salvar retorno</button>'+(rt?'<button class="btn bad" type="button" data-rt="apagar">Remover retorno</button>':'');
+  }
+  // a Amanda atende aos sábados: se a data cair em outro dia, oferece o sábado mais perto
+  function sabadoPerto(d){var w=utc(d).getUTCDay(),ant=somaDias(d,-((w+1)%7)),dep=somaDias(d,(6-w+7)%7);return ant>=hojeSP()&&(w+1)%7<=(6-w+7)%7?ant:dep}
+  function prevRet(d){if(!d)return '';var r=linha(aberto),sab=utc(d).getUTCDay()===6,ama=r&&profDe(r)==='amanda';
+    return 'Retorno em <b>'+dia(d)+'</b>'+(!sab&&ama?' · não é sábado <button class="chip" type="button" data-rt-sab="'+sabadoPerto(d)+'" style="min-height:36px;margin-left:6px">Usar '+dia(sabadoPerto(d))+'</button>':'')}
+  document.addEventListener('click',function(e){
+    var c=e.target.closest('[data-rt-dias]');
+    if(c){var r=linha(aberto);if(!r)return;var n=+c.getAttribute('data-rt-dias'),base=r.data<hojeSP()?hojeSP():r.data,d=somaDias(base,n);
+      $('rtData').value=d;$('rtPrev').innerHTML=prevRet(d);[].forEach.call(document.querySelectorAll('[data-rt-dias]'),function(x){x.setAttribute('aria-pressed',x===c)});return}
+    var sb=e.target.closest('[data-rt-sab]');if(sb){var ds=sb.getAttribute('data-rt-sab');$('rtData').value=ds;$('rtPrev').innerHTML=prevRet(ds);[].forEach.call(document.querySelectorAll('[data-rt-dias]'),function(x){x.setAttribute('aria-pressed','false')});return}
+    var b=e.target.closest('[data-rt]');if(!b)return;
+    var r2=linha(aberto);if(!r2||retOcup)return;
+    if(b.getAttribute('data-rt')==='apagar'){var rt=retornoDe(r2.id);if(!rt)return;retOcup=true;
+      api('POST','rpc/apagar_retorno',{p_id:rt.id}).then(function(){retOcup=false;toast('Retorno removido.');pergunta=null;return carregarRetornos()},function(er){retOcup=false;falha(er)});return}
+    var d=($('rtData')||{}).value,o=(($('rtObs')||{}).value||'').trim();
+    if(!d){toast('Escolha quantos dias ou uma data para o retorno.',true);return}
+    if(d<hojeSP()){toast('Escolha uma data a partir de hoje.',true);return}
+    retOcup=true;
+    api('POST','rpc/salvar_retorno',{p_horario:r2.id,p_data:d,p_obs:o||null}).then(function(j){
+      retOcup=false;
+      if(!j||j.r!=='ok'){toast(j&&j.r==='data'?'Escolha uma data a partir de hoje.':j&&j.r==='dados'?'Tire o link da orientação e tente de novo.':'Não deu certo. Nada foi alterado. Tente de novo.',true);return}
+      toast('Retorno marcado para '+dia(d)+'.');pergunta=null;return carregarRetornos().then(function(){desenharSheet()});
+    },function(er){retOcup=false;falha(er)});
+  });
+  document.addEventListener('input',function(e){if(e.target&&e.target.id==='rtData'){$('rtPrev').innerHTML=prevRet(e.target.value);[].forEach.call(document.querySelectorAll('[data-rt-dias]'),function(x){x.setAttribute('aria-pressed','false')})}});
 
   // ---------- ações (só valem se o horário ainda estiver como ela viu) ----------
   var MUDOU='Esse horário mudou enquanto você olhava (talvez uma cliente tenha pedido agora). Atualizei a tela: confira e tente de novo.';

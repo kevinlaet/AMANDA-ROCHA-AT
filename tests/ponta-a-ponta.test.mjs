@@ -438,6 +438,56 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(await espera(async () => /Lembrete enviado/.test(await P2.locator('#proximos .prox', { hasText: 'Carla' }).innerText())), 'lembrete: o painel mostra "Lembrete enviado"');
   await foto(P2, 'painel-lembretes', false);
 
+  // retornos: marcar na ficha do atendimento, aparecer no Início na data e chamar no WhatsApp
+  {
+    const HOJE = await dia(0);
+    await aba(P2, 'agenda');
+    await P2.click(`[data-abrir="${idC}"]`);
+    ok(await P2.locator('#sheet [data-a=perg-retorno]').isVisible(), 'retorno: a ficha do atendimento tem "Marcar retorno"');
+    await P2.click('#sheet [data-a=perg-retorno]');
+    await P2.click('#sheet [data-rt-dias="30"]');
+    const d30 = (await q(`select ($1::date + 30)::text d`, [AMANHA]))[0].d;
+    ok((await P2.inputValue('#rtData')) === d30 && /Retorno em/.test(await P2.locator('#rtPrev').innerText()), 'retorno: "30 dias" conta a partir do dia do atendimento e mostra a data');
+    const sab = P2.locator('#sheet [data-rt-sab]');
+    if (await sab.count()) { await sab.click(); ok(new Date((await P2.inputValue('#rtData')) + 'T12:00:00Z').getUTCDay() === 6, 'retorno: se a data não cai num sábado, um toque troca para o sábado mais perto'); await P2.click('#sheet [data-rt-dias="30"]'); }
+    await P2.fill('#rtObs', 'manutenção da limpeza');
+    await foto(P2, 'painel-retorno-ficha', false);
+    await P2.click('#sheet [data-rt=salvar]');
+    ok(await espera(async () => (await q(`select count(*)::int n from retornos where nome = 'Carla Dias' and data = $1 and obs = 'manutenção da limpeza' and status = 'pendente'`, [d30]))[0].n === 1), 'retorno: fica salvo no banco com a data, a orientação e "pendente"');
+    ok(await espera(async () => /Retorno/.test(await P2.locator('#sheet .ret-info').innerText().catch(() => ''))), 'retorno: a ficha mostra o retorno marcado');
+    await P2.click('#sheet [data-a=fechar]');
+    // chega o dia: aparece no Início
+    await db.exec(`update retornos set data = '${HOJE}' where nome = 'Carla Dias'`);
+    await db.exec(`insert into retornos (profissional, nome, telefone, servico, data, obs) values ('amanda', 'Beatriz Nunes', '11944443333', 'Auriculoterapia', '${await dia(-3)}', 'próxima sessão de auriculo')`);
+    await aba(P2, 'inicio');
+    await P2.click('#bAtualizar');
+    ok(await espera(async () => (await P2.locator('#retornos .ret').count()) === 2), 'retorno: o Início mostra os retornos (de hoje e atrasados)');
+    const atras = P2.locator('#retornos .ret.atras');
+    ok((await atras.count()) === 1 && /Beatriz/.test(await atras.innerText()) && /Atrasado/.test(await atras.innerText()), 'retorno: o atrasado aparece primeiro e destacado');
+    ok((await P2.locator('#retornos .ret').first().innerText()).includes('Beatriz'), 'retorno: atrasados vêm antes');
+    ok((await P2.locator('#nRet').innerText()) === '2' && +(await P2.locator('#nPedNav').innerText()) >= 2, 'retorno: o número aparece no título e no botão Início');
+    await P2.locator('#blocoRet').scrollIntoViewIfNeeded();
+    await foto(P2, 'painel-retornos-lista', false);
+    const carla = P2.locator('#retornos .ret', { hasText: 'Carla' });
+    ok(/Retorno hoje/.test(await carla.innerText()) && /manutenção da limpeza/.test(await carla.innerText()), 'retorno: a linha mostra nome, procedimento, data e orientação');
+    const hz = decodeURIComponent(await carla.locator('a[data-ret-zap]').getAttribute('href'));
+    ok(/wa\.me\/5511977771111/.test(hz) && /Oi, Carla! Tudo bem\? Aqui é a Amanda 💛 Já tá chegando a hora da sua manutenção da limpeza, como combinamos\. Quer que eu reserve um horário pra você nesse sábado\?/.test(hz), 'retorno: o WhatsApp abre com a mensagem pronta, o nome e a orientação');
+    ok(/Já passou um pouquinho da hora da sua próxima sessão de auriculo/.test(decodeURIComponent(await atras.locator('a[data-ret-zap]').getAttribute('href'))), 'retorno: para o atrasado, a mensagem fala que já passou um pouquinho');
+    await carla.locator('a[data-ret-zap]').click();
+    ok(await espera(async () => (await q(`select status from retornos where nome = 'Carla Dias'`))[0].status === 'enviada'), 'retorno: depois do clique, fica "mensagem enviada" no banco');
+    ok(await espera(async () => /Mensagem enviada/.test(await P2.locator('#retornos .ret', { hasText: 'Carla' }).innerText())), 'retorno: e o painel mostra "Mensagem enviada"');
+    await P2.locator('#retornos .ret', { hasText: 'Carla' }).locator('[data-ret=agendou]').click();
+    ok(await espera(async () => (await q(`select status from retornos where nome = 'Carla Dias'`))[0].status === 'agendou' && (await P2.locator('#retornos .ret', { hasText: 'Carla' }).count()) === 0), 'retorno: "Agendou" anota e tira da lista');
+    await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=adiar]').click();
+    await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=mais][data-n="7"]').click();
+    ok(await espera(async () => { const r = (await q(`select status, data::text d from retornos where nome = 'Beatriz Nunes'`))[0]; return r.status === 'pendente' && r.d === (await dia(7)); }), 'retorno: "Adiar +7 dias" muda a data no banco');
+    ok(await espera(async () => !(await P2.locator('#retornos .ret.atras').count()) && /Retorno/.test(await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).innerText())), 'retorno: adiado, deixa de aparecer como atrasado');
+    await foto(P2, 'painel-retornos', false);
+    await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=sem_resposta]').click();
+    ok(await espera(async () => (await q(`select status from retornos where nome = 'Beatriz Nunes'`))[0].status === 'sem_resposta' && (await P2.locator('#retornos .ret').count()) === 0), 'retorno: "Não respondeu" anota e tira da lista');
+    ok(/Nenhum retorno/.test(await P2.locator('#retornos').innerText()), 'retorno: sem retornos, avisa com calma');
+  }
+
   // editar dados
   await aba(P2, 'agenda');
   await P2.click(`[data-abrir="${await idDe(D20, '10:00')}"]`);
@@ -953,7 +1003,8 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   SENHAS[EMAIL_ADMIN] = 'certa';
 
   // sessão de 24 horas: fica aberta o dia todo e pede a senha uma vez por dia
-  await M.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 13 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+  // espera o painel terminar de gravar a sessão (linha de base dos alertas) antes de mexer no relógio dela
+  await M.waitForFunction(() => { try { const s = JSON.parse(localStorage.getItem('amanda-sess') || 'null'); return !!(s && s.base != null); } catch (e) { return false; } }); await M.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 13 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
   await M.reload();
   await M.waitForSelector('#vApp:not([hidden])');
   ok(await M.locator('#vLogin').isHidden(), '13 horas depois continua conectada, sem pedir a senha');
@@ -973,7 +1024,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await L.waitForSelector('#vApp:not([hidden])');
     const guardado = await L.evaluate(() => Object.keys(localStorage).map((k) => k + '=' + localStorage.getItem(k)).join('\n'));
     ok(!/certa/.test(guardado.replace(/amanda-sess=.*/g, '')) && !/"password"|"senha"/.test(guardado), 'a senha nunca fica guardada no aparelho');
-    await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 25 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
+    await L.waitForFunction(() => { try { const s = JSON.parse(localStorage.getItem('amanda-sess') || 'null'); return !!(s && s.base != null); } catch (e) { return false; } }); await L.evaluate(() => { const s = JSON.parse(localStorage.getItem('amanda-sess')); s.inicio = Date.now() - 25 * 3600 * 1000; localStorage.setItem('amanda-sess', JSON.stringify(s)); });
     await L.reload();
     await L.waitForSelector('#vLogin:not([hidden])');
     ok((await L.inputValue('#email')) === EMAIL_ADMIN && (await L.inputValue('#senha')) === '', 'no login seguinte: e-mail já preenchido e senha vazia (vem do Chaveiro do celular)');

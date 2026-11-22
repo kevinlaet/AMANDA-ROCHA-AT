@@ -621,10 +621,54 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
     ok((await comoQ(BIA, `select public.clientes_resumo() j`))[0].j.find((c) => c.telefone === '11930000098').obs === 'alergia a lavanda', 'contatos: e a anotação aparece na lista dela');
   }
 
+  // retornos: a profissional combina quando a cliente volta; cada uma só mexe nos seus
+  {
+    const hoje = (await nq(`select (public.agora_sp())::date::text d`))[0].d;
+    const mais = async (n) => (await nq(`select ((public.agora_sp())::date + $1::int)::text d`, [n]))[0].d;
+    await comoQ(EMAIL_ADMIN, `insert into horarios (data, hora) values ($1, '06:00')`, [dia]);
+    await comoQ(BIA, `insert into horarios (data, hora, profissional) values ($1, '21:10', 'bia')`, [dia]);
+    const a18 = await id('amanda', '06:00'), b18 = await id('bia', '21:10');
+    await comoQ(EMAIL_ADMIN, `update horarios set status = 'confirmado', nome = 'Maria Retorno', telefone = '11955550001', servico = 'Limpeza de pele' where id = $1`, [a18]);
+    await comoQ(BIA, `update horarios set status = 'confirmado', nome = 'Rita Retorno', telefone = '11955550002', servico = 'Massagem' where id = $1`, [b18]);
+    const salva = (email, h, d, o) => comoQ(email, `select public.salvar_retorno($1, $2::date, $3) j`, [h, d, o]).then((r) => r[0].j);
+    const r1 = await salva(EMAIL_ADMIN, a18, await mais(30), 'manutenção da limpeza');
+    ok(r1.r === 'ok', 'retornos: a Amanda marca o retorno de um atendimento (30 dias)');
+    const g = (await nq(`select nome, telefone, servico, status, obs, profissional from retornos where id = $1`, [r1.id]))[0];
+    ok(g.nome === 'Maria Retorno' && g.telefone === '11955550001' && g.servico === 'Limpeza de pele' && g.status === 'pendente' && g.obs === 'manutenção da limpeza' && g.profissional === 'amanda', 'retornos: guarda nome, WhatsApp, serviço, orientação e começa pendente');
+    ok((await salva(EMAIL_ADMIN, a18, await mais(-1), null)).r === 'data' && (await salva(EMAIL_ADMIN, a18, await mais(800), null)).r === 'data', 'retornos: data no passado ou longe demais é recusada');
+    ok((await salva(EMAIL_ADMIN, a18, await mais(15), 'veja www.golpe.com')).r === 'dados', 'retornos: link na orientação é recusado');
+    await comoQ(EMAIL_ADMIN, `insert into horarios (data, hora) values ($1, '05:00')`, [dia]);
+    ok((await salva(EMAIL_ADMIN, await id('amanda', '05:00'), await mais(15), null)).r === 'livre', 'retornos: horário livre não recebe retorno');
+    ok((await salva(BIA, a18, await mais(10), null)).r === 'sem_acesso', 'retornos: a parceira não marca retorno em atendimento da Amanda');
+    const r2 = await salva(BIA, b18, await mais(21), 'próxima massagem');
+    ok(r2.r === 'ok', 'retornos: a parceira marca retorno nas próprias clientes');
+    const r1b = await salva(EMAIL_ADMIN, a18, await mais(45), 'manutenção da limpeza');
+    ok(r1b.id === r1.id && (await nq(`select count(*)::int n from retornos where profissional = 'amanda'`))[0].n === 1, 'retornos: marcar de novo muda a data, sem duplicar');
+    const lista = (email, prof) => comoQ(email, `select public.retornos_lista($1) j`, [prof ?? null]).then((r) => r[0].j);
+    ok((await lista(BIA)).map((x) => x.nome).join() === 'Rita Retorno', 'retornos: a parceira só vê os retornos dela');
+    ok((await lista(SANDRA)).length === 2 && (await lista(EMAIL_ADMIN, 'amanda')).map((x) => x.nome).join() === 'Maria Retorno', 'retornos: a sócia vê todos, ou só os de uma profissional');
+    ok(!!(await tentaQ(BIA, `select * from retornos`)).erro && !!(await tentaQ(null, `select * from retornos`)).erro && (await tentaQ(null, `select public.retornos_lista() j`)).erro, 'retornos: a tabela não abre direto (nem para quem está logada, nem para o site)');
+    const marca = (email, rid, st, d) => comoQ(email, `select public.marcar_retorno($1, $2, $3::date) j`, [rid, st ?? null, d ?? null]).then((r) => r[0].j);
+    ok((await marca(BIA, r1.id, 'enviada')).r === 'sem_acesso', 'retornos: a parceira não mexe no retorno da Amanda');
+    ok((await marca(EMAIL_ADMIN, r1.id, 'enviada')).r === 'ok' && (await nq(`select status, enviada_em is not null e from retornos where id = $1`, [r1.id]))[0].e === true, 'retornos: depois do WhatsApp, fica "mensagem enviada" com a hora');
+    ok((await marca(EMAIL_ADMIN, r1.id, 'qualquer')).r === 'dados', 'retornos: situação desconhecida é recusada');
+    ok((await marca(EMAIL_ADMIN, r1.id, null, await mais(52))).r === 'ok' && (await nq(`select status, data::text d from retornos where id = $1`, [r1.id]))[0].status === 'pendente', 'retornos: adiar muda a data e volta a ficar pendente');
+    ok((await marca(EMAIL_ADMIN, r1.id, 'agendou')).r === 'ok' && (await marca(BIA, r2.id, 'sem_resposta')).r === 'ok', 'retornos: marca "agendou" e "não respondeu"');
+    // o horário volta a ficar livre: o retorno continua, mas solto; a próxima cliente não herda
+    await comoQ(BIA, `update horarios set status = 'livre', nome = null, telefone = null, servico = null, pedido_em = null where id = $1`, [b18]);
+    ok((await nq(`select horario_id from retornos where id = $1`, [r2.id]))[0].horario_id === null, 'retornos: cancelar o horário não apaga o retorno, só o solta do horário');
+    await comoQ(BIA, `update horarios set status = 'confirmado', nome = 'Outra Cliente', telefone = '11955550003', servico = 'Massagem' where id = $1`, [b18]);
+    const r3 = await salva(BIA, b18, await mais(30), null);
+    ok(r3.r === 'ok' && r3.id !== r2.id && (await nq(`select nome from retornos where id = $1`, [r2.id]))[0].nome === 'Rita Retorno', 'retornos: a nova cliente do horário ganha um retorno novo, sem mexer no da anterior');
+    ok((await comoQ(BIA, `select public.apagar_retorno($1) j`, [r3.id]))[0].j.r === 'ok' && (await nq(`select count(*)::int n from retornos where id = $1`, [r3.id]))[0].n === 0, 'retornos: dá para apagar um retorno');
+    ok(hoje.length === 10, 'retornos: relógio de Brasília disponível');
+  }
+
   // a atualização roda de novo sem estragar nada
   const rr = await tenta(sal.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8')));
   ok(!rr.erro && (await nq(`select count(*)::int n from profissionais`))[0].n === 3 && (await nq(`select recurso from servicos where id = 'limpeza'`))[0].recurso === 'maca', 'rodar a atualização de novo mantém as profissionais e os recursos' + (rr.erro ? ': ' + rr.erro : ''));
   ok((await comoQ(BIA, `select profissional from horarios`)).every((r) => r.profissional === 'bia'), 'e as regras de acesso continuam valendo');
+  ok((await nq(`select count(*)::int n from retornos`))[0].n === 2, 'rodar a atualização de novo mantém os retornos');
 }
 
 fim('banco');

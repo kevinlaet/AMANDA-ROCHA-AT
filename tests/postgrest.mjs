@@ -109,6 +109,10 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/definir_protecao') return json(route, (await db.query('select public.definir_protecao($1) j', [!!(req.postDataJSON() || {}).p_pausar])).rows[0].j);
         if (caminho === '/rest/v1/rpc/meus_numeros') return json(route, (await db.query('select public.meus_numeros($1) j', [corpo().p_prof ?? null])).rows[0].j);
         if (caminho === '/rest/v1/rpc/definir_meta') { const b = corpo(); return json(route, (await db.query('select public.definir_meta($1, $2) j', [b.p_valor ?? null, b.p_prof ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/retornos_lista') return json(route, (await db.query('select public.retornos_lista($1) j', [corpo().p_prof ?? null])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/salvar_retorno') { const b = corpo(); return json(route, (await db.query('select public.salvar_retorno($1, $2::date, $3) j', [b.p_horario, b.p_data, b.p_obs ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/marcar_retorno') { const b = corpo(); return json(route, (await db.query('select public.marcar_retorno($1, $2, $3::date) j', [b.p_id, b.p_status ?? null, b.p_data ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/apagar_retorno') return json(route, (await db.query('select public.apagar_retorno($1) j', [corpo().p_id])).rows[0].j);
         if (caminho === '/rest/v1/rpc/cadastrar_contato') { const b = corpo(); return json(route, (await db.query('select public.cadastrar_contato($1, $2, $3) j', [b.p_nome, b.p_telefone, b.p_prof ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/contatos') {
           const params = [], pid = url.searchParams.get('id') || '';

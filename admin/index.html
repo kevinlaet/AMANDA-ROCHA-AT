@@ -111,6 +111,15 @@ input:focus,select:focus{border-color:var(--teal)}
 .prox .pl .quando{color:var(--ink);font-weight:700}
 .lemb{font-weight:700;font-size:13px!important;color:var(--warn)!important}
 .lemb.ok{color:var(--ok)!important}
+.ret{display:grid;gap:10px;margin-bottom:10px;border-left:6px solid var(--teal)}
+.ret.atras{border-left-color:var(--bad);background:#FFF8F7}
+.ret .pl{display:grid;gap:2px}.ret .pl b{font-size:17px}.ret .pl span{font-size:14px;color:var(--muted)}
+.ret .pl .quando{color:var(--ink);font-weight:700}.ret.atras .pl .quando{color:var(--bad)}
+.ret .pl .obs{font-style:italic;color:var(--ink)}
+.ret .row{margin-top:0}
+.adiar{display:grid;gap:10px;padding:12px;border-radius:14px;background:var(--sand)}
+.ret-info{margin:10px 0 4px;padding:10px 12px;border-radius:12px;background:#E9F4F1;color:var(--teal-d);font-weight:700;font-size:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ret-form{display:grid}
 /* dia da agenda com botão de opções */
 .dia h3{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dia-op{background:none;border:1.5px solid var(--line);border-radius:10px;padding:6px 12px;min-height:38px;font-weight:700;font-size:13px;color:var(--teal)}
@@ -277,8 +286,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .num-kpi.tres b{font-size:18px}
 .num-kpi span{font-size:13px;color:var(--muted)}
 .num-serv{list-style:none;margin-top:12px;display:grid;gap:6px}
-.num-serv li{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;border-top:1px solid var(--line);padding-top:6px}
-.num-serv li span:last-child{color:var(--muted);text-align:right}
+.num-serv li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-size:14.5px;border-top:1px solid var(--line);padding-top:6px}
+.num-serv li span:last-child{color:var(--muted);text-align:right;white-space:nowrap;margin-left:auto}
 .num-meses{list-style:none;display:grid;gap:10px}
 .num-meses li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;font-size:14px}
 .num-meses .nm{font-weight:700;color:var(--muted)}
@@ -340,7 +349,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
       <div class="row"><button class="btn main" type="button" data-ir="agenda" data-abrir-form data-guia-ok>Abrir meus horários</button><button class="btn ghost" type="button" data-guia-ok>Já entendi</button></div>
     </div>
     <div class="aba-topo"><h2 class="aba-t">Início</h2><p>O que precisa de você agora.</p></div>
-    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Quando uma cliente pede um horário pelo site, ele aparece em <b>Pedidos</b>. Toque em <b>Confirmar</b>.</li><li>Logo depois, toque em <b>Avisar no WhatsApp</b>: a mensagem já vai pronta.</li><li>Um dia antes do atendimento, toque em <b>Mandar lembrete</b>.</li></ol></details>
+    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Quando uma cliente pede um horário pelo site, ele aparece em <b>Pedidos</b>. Toque em <b>Confirmar</b>.</li><li>Logo depois, toque em <b>Avisar no WhatsApp</b>: a mensagem já vai pronta.</li><li>Um dia antes do atendimento, toque em <b>Mandar lembrete</b>.</li><li>Depois do atendimento, abra o horário e toque em <b>Marcar retorno</b>. Quando chegar a data, ela aparece em <b>Retornos próximos</b> com a mensagem pronta.</li></ol></details>
     <div class="card num" id="numeros" hidden></div>
     <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
     <div id="pedidos"><p class="vazio">Carregando…</p></div>
@@ -348,6 +357,13 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     <h2>Próximos atendimentos</h2>
     <p class="dica" style="margin:-6px 0 10px">Confirmados nos próximos 7 dias. Um dia antes, toque em “Mandar lembrete”.</p>
     <div id="proximos"></div>
+
+    <div id="blocoRet" hidden>
+    <h2>Retornos próximos <span class="badge" id="nRet" hidden></span></h2>
+    <p class="dica" style="margin:-6px 0 10px">Clientes que combinaram de voltar nos próximos 7 dias. Os atrasados aparecem primeiro, em vermelho.</p>
+    <div id="retornos"></div>
+    </div>
+
 
     <div class="atalhos"><button class="btn ghost" type="button" data-ir="agenda" data-abrir-form>Abrir novos horários</button><button class="btn ghost" type="button" data-ir="enviar">Enviar horários para uma cliente</button><button class="btn ghost" type="button" data-acao="story" data-quando="hoje">Story: horários livres de hoje</button><a class="btn ghost ver-site" data-como-cliente href="../?o=painel#agendar" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Visualizar agenda como cliente</a></div>
     </section>
