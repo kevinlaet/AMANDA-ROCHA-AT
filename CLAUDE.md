@@ -43,13 +43,13 @@ Leia este arquivo inteiro antes de mexer em qualquer coisa. Ele guarda o context
 - **Guardião externo:** `.github/workflows/guardiao.yml` + `guardiao/vigia.mjs` (roda algumas vezes por dia, abre issue se algo estiver errado). Dispare à mão (`workflow_dispatch`) para checar o site no ar.
 - **Origem das visitas:** `?o=instagram|facebook|google|whatsapp…` vira `utm_source`; QR dos impressos usam `cartao`, `cartaz`, `espelho`, `sandra`.
 
-## 4b. Retornos (22/11/2026, na branch `claude/new-session-gjqujs`, aguardando o "pode" do Kevin)
+## 4b. Retornos (no ar em 22/11/2026)
 
 - **O que é:** na ficha de um atendimento (pedido ou confirmado), "↻ Marcar retorno": 15/21/30/45/60 dias (contados do dia do atendimento) ou uma data, mais a orientação curta ("manutenção da limpeza"). Se a data não cair num sábado, um botão oferece o sábado mais perto (só para a Amanda).
 - **Início › Retornos próximos:** quem tem retorno nos próximos 7 dias; atrasados primeiro, em vermelho. Cada linha: nome, procedimento, data, orientação, "Chamar no WhatsApp" (mensagem pronta: "Oi, [Nome]! Tudo bem? Aqui é a Amanda 💛 Já tá chegando a hora da sua [orientação], como combinamos. Quer que eu reserve um horário pra você nesse sábado?"; atrasado: "Já passou um pouquinho…"), "Agendou", "Não respondeu", "Adiar" (para a Amanda: os próximos 3 sábados; outras: +7/+15/+30; ou data; e remover). Visual (22/11): cartões claros com a inicial em pêssego, data em pílula (Hoje / Atrasado · N dias / sáb, 28/11), orientação em caixa tracejada, WhatsApp verde e 3 botões lado a lado. O clique no WhatsApp marca "mensagem enviada". Número no botão Início = pedidos + retornos de hoje/atrasados.
 - **Nada é enviado sozinho:** a Amanda sempre toca e envia.
 - **Banco:** tabela nova `retornos` (cópia de nome, telefone e serviço; `horario_id` único, solto quando o horário volta a ficar livre por gatilho `solta_retorno`, para outra cliente nunca herdar), RLS ligada e tabela fechada; só pelas funções `salvar_retorno`, `marcar_retorno`, `apagar_retorno`, `retornos_lista` (conferem `posso(profissional)`: parceira só mexe nos dela). Não altera nada que já existia.
-- **Para ir ao ar:** rodar `supabase/atualizacao.sql` no Supabase e empurrar para `site-v1` e `main`; depois `node ferramentas/painel.mjs ../AMANDA-ROCHA-AT` no repo `studiolarocha` (o painel do salão ganha o mesmo recurso).
+- **Publicado** em `site-v1`/`main` com o "pode" do Kevin (22/11), junto com o login de 24 h (desconecta na hora se algo estranho), cadastro de clientes travado e story de horários livres. Painel do salão sincronizado (`studiolarocha`, `ferramentas/painel.mjs`). **Falta o Kevin rodar `supabase/atualizacao.sql` no Supabase**: até lá o bloco de retornos fica escondido e o resto funciona.
 
 ## 5. Como trabalhar (checklist antes de entregar)
 
@@ -71,11 +71,11 @@ Leia este arquivo inteiro antes de mexer em qualquer coisa. Ele guarda o context
 - Nunca afirmar que o domínio está "no nome da Amanda": o titular é o Kevin.
 - Imagens por IA (modelo `gpt-image-2`, qualidade `medium`; `high` falha) servem de ponto de partida e são vetorizadas depois para os logos.
 
-## 7. Estado atual (3/11/2026)
+## 7. Estado atual (3/11/2026; atualizado em 22/11 com retornos e login de 24 h)
 
 Tudo no ar e testado: site, agenda com reserva, painel (Início, Agenda, Enviar, Mais › Clientes, Seus números, Serviços e preços, Histórico, Segurança, Ajuda, Conta; botão "Visualizar agenda como cliente"), notificações, guardiões, domínio com HTTPS, cookies, links curtos, folders, cartão de visita (Amanda aprovou o fidelidade; Kevin manda para a gráfica, 100 unidades), cartaz e recados da Sandra, guia da Amanda, dossiê e logos do Studio La Rocha, documento "Tarefas da estreia". Últimas entregas: correção do preço do cartão (`6cdcb46`), agenda com várias profissionais (juntada em `c6f6d4e`) e este arquivo.
 
-**Pendências do Kevin:** rodar `supabase/atualizacao.sql` de novo no Supabase (traz as várias profissionais) e depois cadastrar a Sandra em Mais › Profissionais + Authentication › Add user; criar o Google Analytics 4 e passar o ID `G-…` (`config.js`, `MEDICAO`); confirmar o telefone no cartão antes da gráfica; rodar no Supabase `update public.guardiao set painel_url='https://amandarochabemestar.com.br/admin/' where painel_url='https://kevinlaet.github.io/AMANDA-ROCHA-AT/admin/';` e `update public.servicos set preco_obs='valor de inauguração até 19/12' where id='limpeza';`; decidir se as notificações perdem o primeiro nome; informar a região do Supabase (aviso de privacidade); 2FA no GitHub/Supabase; Perfil da Empresa no Google e grupos do Facebook (ele mesmo faz); lembrete de renovar o domínio.
+**Pendências do Kevin:** rodar `supabase/atualizacao.sql` de novo no Supabase (traz as várias profissionais, contatos e **retornos**) e depois cadastrar a Sandra em Mais › Profissionais + Authentication › Add user; criar o Google Analytics 4 e passar o ID `G-…` (`config.js`, `MEDICAO`); confirmar o telefone no cartão antes da gráfica; rodar no Supabase `update public.guardiao set painel_url='https://amandarochabemestar.com.br/admin/' where painel_url='https://kevinlaet.github.io/AMANDA-ROCHA-AT/admin/';` e `update public.servicos set preco_obs='valor de inauguração até 19/12' where id='limpeza';`; decidir se as notificações perdem o primeiro nome; informar a região do Supabase (aviso de privacidade); 2FA no GitHub/Supabase; Perfil da Empresa no Google e grupos do Facebook (ele mesmo faz); lembrete de renovar o domínio.
 
 **Próximas entregas do Claude** (ordem sugerida): vídeo "Agende em 1 minuto"; capas dos destaques do Instagram; stories de contagem regressiva; 2 carrosséis; roteiros; cartão "Seu próximo horário"; folheto pós-limpeza (precisa do texto da Amanda); vale-presente de Natal; botão "Mandar carinho" no painel; seção "Primeira vez? Veja como é"; seção "Como chegar" (precisa de endereço e foto da Sandra); atualizar guia, `divulgacao-kevin` e dossiê com o domínio novo.
 
