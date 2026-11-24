@@ -94,7 +94,7 @@
   var VINTE_QUATRO_HORAS=24*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
   function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>VINTE_QUATRO_HORAS)}
-  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;olaFrase=null;retornos=null;irAba('inicio');mostrar(msg);return fim}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
   var MSG_24H='Por segurança, o painel pede a senha uma vez por dia. Entre de novo, por favor.';
   function msgExpirou(){return MSG_24H}
   var renovando=null;
@@ -213,7 +213,7 @@
       .then(function(j){atual();rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
         return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){atual();servs=sv||[];bancoVelho=false},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
       .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){atual();guard=g;semGuardiao=false;motivoEstranho=acessoEstranho()||alertaNovo();if(motivoEstranho)throw 'estranho'},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
-      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes();carregarNumeros();carregarRetornos();if(sugs===undefined)carregarSugestoes()})
+      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();var esp=[carregarNumeros(),carregarRetornos()];if(!semGuardiao)esp.push(carregarClientes());prepararOla(esp);if(SUG_LIGADAS&&sugs===undefined)carregarSugestoes()})
       .catch(function(e){
         if(e==='estranho'){encerrar(motivoEstranho+' Desconectei todos os aparelhos por segurança. Se foi você, é só entrar de novo. Se não foi, entre e troque sua senha em Mais › Minha conta.','global');return}
         if(e==='velho'||minha!==geracao)return;
@@ -282,26 +282,73 @@
 
 
   // ---------- Início: saudação, próximos 2 meses e convite para divulgar ----------
-  var OLA={manha:['Bom dia, {n}! ☀️ Bora brilhar hoje?','Bom dia, {n}! 🌿 Que seu dia seja leve','Bom dia, {n}! ☕ Café na mão e agenda em dia','Bom dia, {n}! 🌸 Hoje é dia de cuidar com carinho','Oi, {n}! 🌤️ Que bom começar o dia com você'],
-    tarde:['Boa tarde, {n}! 🌼 Tudo fluindo por aí?','Boa tarde, {n}! ✨ Seu cuidado faz diferença','Oi, {n}! 💚 Que bom te ver por aqui','Boa tarde, {n}! 🍃 Respira fundo, tá indo lindo','Boa tarde, {n}! 🌷 Bora ver como tá a agenda?'],
-    noite:['Boa noite, {n}! 🌙 Olha que lindo tá ficando','Boa noite, {n}! ✨ Mais um dia de cuidado com afeto','Boa noite, {n}! 💫 A agenda tá aqui, pode descansar','Oi, {n}! 🌙 Que bom te ver antes de descansar','Boa noite, {n}! 🤍 Orgulho do que você tá construindo']};
-  var olaFrase=null,MESES3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  function periodo(){var h=agoraSP().getUTCHours();return h>=5&&h<12?'manha':h>=12&&h<18?'tarde':'noite'}
-  // uma frase por acesso, sorteada da lista do horário, sem repetir a última que ela viu
-  function sortearOla(){var per=periodo(),l=OLA[per],ult=null;try{ult=localStorage.getItem('amanda-ola')}catch(e){}
-    var op=l.filter(function(x){return x!==ult});var f=op[Math.floor(Math.random()*op.length)];try{localStorage.setItem('amanda-ola',f)}catch(e){}return f}
+  // Saudação: primeiro os momentos especiais (o que está acontecendo de verdade), senão uma frase do horário.
+  // Cada frase tem a saudação (com o nome) e uma mensagem; humor só de vez em quando.
+  var OLA={manha:[['Bom dia, {n}! ☀️','Cada cliente sai das suas mãos se sentindo melhor. Que dia bonito pra isso.'],['Bom dia, {n}! 🌿','Quem cuida com afeto deixa marca. Hoje é dia de deixar a sua.'],['Bom dia, {n}! 🌱','Grandes histórias começam com dias como o de hoje.'],['Bom dia, {n}! ☕','Primeiro o café, depois a gente conquista o mundo.']],
+    tarde:[['Boa tarde, {n}! ✨','Seu cuidado faz diferença na vida de alguém hoje.'],['Boa tarde, {n}! 💚','Você transformou um sonho em agenda. Isso não é pouca coisa.'],['Boa tarde, {n}! 🌸','Cuidar de quem precisa é o seu jeito de mudar o mundo.'],['Boa tarde, {n}! 💡','Passo a passo, cliente a cliente, o seu nome vai crescendo.']],
+    noite:[['Boa noite, {n}! 🤍','Orgulho do que você tá construindo.'],['Boa noite, {n}! 🌙','Alguém foi dormir mais tranquila hoje graças ao seu cuidado.'],['Boa noite, {n}! ✨','Quem cuida também precisa de cuidado. Descansa, você merece.'],['Boa noite, {n}! 💫','O que você planta hoje, a sua agenda colhe amanhã.']]};
+  var ola=null,olaPronto=false,MESES3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  function periodo(h){return h>=5&&h<12?'manha':h>=12&&h<18?'tarde':'noite'}
+  // momentos: [prioridade (1 = sempre que acontecer), saudação, mensagem]
+  function momentos(){
+    var x=agoraSP(),hr=x.getUTCHours(),agora=hr*60+x.getUTCMinutes(),h=hojeSP(),w=utc(h).getUTCDay(),dm=h.slice(5),am=somaDias(h,1),M=[];
+    var conf=rows.filter(function(r){return r.status==='confirmado'}),hj=conf.filter(function(r){return r.data===h}),hjF=hj.filter(function(r){return !passou(r)}),hjP=hj.filter(passou);
+    var ped=rows.filter(function(r){return r.status==='pedido'&&!passou(r)});
+    if(hr<5)M.push([1,'Ué, {n}, acordada a essa hora? 🦉','Até as grandes precisam dormir.']);
+    if(dm==='03-08')M.push([1,'Feliz Dia da Mulher, {n}! 🌷','Você cuida de tantas… hoje o carinho é todo seu.']);
+    if(dm==='05-12')M.push([1,'Feliz Dia da Enfermagem, {n}! 🩺','Ciência e afeto no mesmo cuidado. Esse é o seu jeito.']);
+    var prox=hjF.map(function(r){return {r:r,m:minutos(r.hora)-agora}}).filter(function(o){return o.m>0&&o.m<=75})[0];
+    if(prox)M.push([1,(prox.m>=45?'Daqui a 1 hora':'Daqui a pouco')+' tem a '+primeiro(prox.r.nome)+', {n}. 💆‍♀️','Tudo pronto pra recebê-la?']);
+    if(numeros&&numeros.mes){var fat=+numeros.mes.faturamento,meta=numeros.meta!=null?+numeros.meta:null,ant=+numeros.anterior.faturamento,mc=marcoDoMes(numeros),mi=+String(numeros.hoje).slice(5,7)-1;
+      if(meta&&fat>=meta)M.push([1,'Meta batida, {n}! 🎉','Isso é fruto do seu esforço. Aproveita esse momento.']);
+      if(mc)M.push([1,mc+' atendimentos, {n}! 🎉','São '+mc+' histórias de cuidado com a sua assinatura.']);
+      if(ant>0&&fat>ant)M.push([2,cap(MESES[mi])+' já passou '+MESES[(mi+11)%12]+', {n}! 📈','Seu trabalho tá crescendo e todo mundo tá vendo.'])}
+    if(ped.length){var cl=clientes||[],volta=ped.filter(function(r){return r.telefone&&cl.some(function(c){return c.telefone===r.telefone&&+c.atendimentos>0})})[0];
+      if(volta)M.push([2,'A '+primeiro(volta.nome)+' voltou, {n}! 💚','Cliente que volta é o maior elogio que existe.']);
+      else if(clientes&&ped.some(function(r){return !r.telefone||!cl.some(function(c){return c.telefone===r.telefone})}))M.push([2,'Cliente nova chegando, {n}! 🌷','Alguém te descobriu e quis ser cuidada por você.']);
+      else M.push([2,'Oi, {n}! 🔔','Tem cliente querendo um horário com você. Sinal de que o seu trabalho tá sendo visto.'])}
+    if(w===6){
+      if(hr>=18&&hjP.length&&!hjF.length)M.push([2,'Mais um sábado lindo, {n}! 🌙',(minhaProf()==='amanda'?'Hoje '+vezes(hjP.length,'mulher foi cuidada','mulheres foram cuidadas')+' por você.':'Hoje você cuidou de '+vezes(hjP.length,'cliente','clientes')+'.')+' Agora é sua vez de descansar.']);
+      else if(hjF.length&&!rows.some(function(r){return r.data===h&&r.status==='livre'&&!passou(r)&&profDe(r)===minhaProf()})&&hj.length>=3)M.push([2,'Agenda cheia, {n}! 🙌','Tá ficando famosa, hein? Merecido.']);
+      else if(hjF.length>=2)M.push([2,'Hoje são '+hjF.length+' clientes confiando no seu cuidado, {n}. 🌸','Que sábado lindo te espera.']);
+      else if(hjF.length)M.push([2,'Sábado chegou, {n}! 💆‍♀️','Hoje tem gente contando as horas pra ser cuidada por você.'])}
+    if(urgentes())M.push([2,'Tem cliente pra chamar de volta hoje, {n}. ↻','Uma mensagem sua pode ser o empurrãozinho que ela precisava pra se cuidar.']);
+    if(w===5&&conf.some(function(r){return r.data===am}))M.push([3,'Sexta-feira, {n}! 🌷','Amanhã é dia de fazer o que você ama.']);
+    if(w===1)M.push([3,'Segunda-feira, {n}! 🌱','Semana nova, novas pessoas pra cuidar.']);
+    var fimSem=somaDias(h,6-w),livres=rows.filter(function(r){return r.status==='livre'&&!passou(r)&&r.data<=fimSem&&profDe(r)===minhaProf()&&cabeEm(r,menorDuracao(profDe(r)))}).length;
+    if(livres>=2)M.push([3,'Agenda com espaço essa semana, {n}. ✨','Ótima hora pra compartilhar seu link e encontrar clientes novas.']);
+    return M;
+  }
+  // escolhe uma vez por acesso: momento importante sempre; os outros momentos na maioria das vezes; senão, frase do horário; nunca repete a última
+  function escolherOla(){
+    var ult=null;try{ult=localStorage.getItem('amanda-ola')}catch(e){}
+    var M=momentos(),urg=M.filter(function(m){return m[0]===1}),out=M.filter(function(m){return m[0]>1&&m[1]+m[2]!==ult});
+    var per=OLA[periodo(agoraSP().getUTCHours())].filter(function(f){return f[0]+f[1]!==ult}),f;
+    if(urg.length)f=urg[0].slice(1);
+    else if(out.length&&Math.random()<.65){out.sort(function(a,b){return a[0]-b[0]});var top=out.filter(function(m){return m[0]===out[0][0]});f=top[Math.floor(Math.random()*top.length)].slice(1)}
+    else f=per[Math.floor(Math.random()*per.length)];
+    try{localStorage.setItem('amanda-ola',f[0]+f[1])}catch(e){}
+    return f;
+  }
   function desenharOla(){
-    if(!eu)return;
-    if(!olaFrase)olaFrase=sortearOla();
-    var nome=primeiro(eu.nome||nomeProf(minhaProf()))||'Amanda',t=olaFrase.replace('{n}',nome),h=hojeSP(),x=utc(h);
-    if($('olaT').textContent!==t)$('olaT').textContent=t;
-    $('olaD').textContent=cap(SEMLONGA[x.getUTCDay()])+', '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()];
+    if(!eu||!olaPronto)return;
+    if(!ola)ola=escolherOla();
+    var nome=primeiro(eu.nome||nomeProf(minhaProf()))||'Amanda',h=hojeSP(),x=utc(h),t=ola[0].replace('{n}',nome),m=ola[1].replace('{n}',nome);
+    if($('olaT').textContent!==t){$('olaT').textContent=t;$('olaM').textContent=m}
+    $('olaD').textContent=SEMLONGA[x.getUTCDay()]+' · '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()];
     var ped=rows.filter(function(r){return r.status==='pedido'}).length,u=urgentes(),hj=rows.filter(function(r){return r.status==='confirmado'&&r.data===h&&!passou(r)}).length,c=[];
     if(ped)c.push('<button type="button" class="ola-chip quente" data-rolar="blocoPed">🔔 '+vezes(ped,'pedido esperando você','pedidos esperando você')+'</button>');
     if(hj)c.push('<span class="ola-chip">📅 Hoje: '+vezes(hj,'atendimento','atendimentos')+'</span>');
     if(u)c.push('<button type="button" class="ola-chip" data-rolar="blocoRet">↻ '+vezes(u,'retorno para chamar','retornos para chamar')+'</button>');
     var ch=$('olaChips'),hc=c.join('');if(ch.innerHTML!==hc)ch.innerHTML=hc;ch.hidden=!c.length;
     $('ola').hidden=false;
+  }
+  // a primeira saudação espera os números, os retornos e as clientes (no máximo 2,5 s), para escolher com tudo na mão
+  function prepararOla(esperas){
+    if(olaPronto)return;
+    var pronto=function(){if(olaPronto)return;olaPronto=true;desenharOla()};
+    Promise.all(esperas.map(function(p){return p&&p.then?p.then(null,function(){}):p})).then(pronto);
+    setTimeout(pronto,2500);
   }
   document.addEventListener('click',function(e){var b=e.target.closest('[data-rolar]');if(!b)return;var el=$(b.getAttribute('data-rolar'));if(el&&!el.hidden)el.scrollIntoView({behavior:'smooth',block:'start'})});
   // semana de domingo a sábado; depois de duas semanas, agrupa por mês
@@ -333,6 +380,8 @@
     try{navigator.clipboard.writeText(t).then(function(){toast('Link copiado. É só colar 💚')},function(){toast(t)})}catch(x){toast(t)}});
 
   // ---------- sugestões de alterações (chegam para o Kevin) ----------
+  // em espera (pedido do Kevin, 24/11): a área só aparece com P.sugestoes ou localStorage painel-sugestoes = 1
+  var SUG_LIGADAS=!!P.sugestoes||(function(){try{return localStorage.getItem('painel-sugestoes')==='1'}catch(e){return false}})();
   var sugs,sugFoto=null,sugOcup=false,ST_SUG={nova:'Nova',andamento:'Em andamento',feita:'Feita ✓'};
   function carregarSugestoes(){
     sugs=null;
@@ -1218,7 +1267,7 @@
   var clientes=null,cliFiltro='todas',DIAS_SEM_VIR=10;
   function carregarClientes(){
     if(!clientes)$('cliLista').innerHTML='<p class="vazio">Carregando…</p>';
-    api('POST','rpc/clientes_resumo',comProf()).then(function(j){clientes=j||[];desenharClientes();desenharCadastro()},function(e){
+    return api('POST','rpc/clientes_resumo',comProf()).then(function(j){clientes=j||[];desenharClientes();desenharCadastro()},function(e){
       if(e==='sessao')return;
       $('cliLista').innerHTML='<p class="vazio">'+(e==='ausente'?'Para ver as clientes aqui, falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).':e==='rede'?'Sem conexão. Tente de novo quando a internet voltar.':'Não consegui carregar as clientes agora.')+'</p>'});
   }
@@ -1236,7 +1285,7 @@
   var seqNum=0;
   function carregarNumeros(){
     var minha=++seqNum;
-    api('POST','rpc/meus_numeros',comProf()).then(function(j){if(minha!==seqNum)return;numeros=j&&j.mes?j:null;semNumeros=false;desenharNumeros();if(numeros)carregarRecentes()},
+    return api('POST','rpc/meus_numeros',comProf()).then(function(j){if(minha!==seqNum)return;numeros=j&&j.mes?j:null;semNumeros=false;desenharNumeros();if(numeros)carregarRecentes()},
       function(e){if(minha!==seqNum)return;if(e==='ausente'){numeros=null;semNumeros=true;desenharNumeros()}});
   }
   // atendimentos dos últimos 7 dias (a agenda só mostra de hoje em diante): para marcar quem não veio depois

@@ -197,7 +197,11 @@ ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 
 }
 // simples para quem nunca usou painel: abre no Início, com guia e abas
 ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
-ok(await P.locator('#ola').isVisible() && /Amanda! .+/.test(await P.locator('#olaT').innerText()) && (await P.locator('#boasVindas').count()) === 0, 'o Início abre com uma saudação para a Amanda (sem guia nem explicações)');
+await P.waitForSelector('#ola:not([hidden])');
+const olaT = await P.locator('#olaT').innerText(), olaM = await P.locator('#olaM').innerText();
+ok(/Amanda/.test(olaT) && /^(Bom dia|Boa tarde|Boa noite|Oi|Ué|Feliz Dia|Daqui a|Meta batida|\d+ atendimentos|\S+ já passou|A \S+ voltou|Cliente nova|Mais um sábado|Agenda cheia|Hoje são|Sábado chegou|Tem cliente|Sexta-feira|Segunda-feira|Agenda com espaço)/.test(olaT) && olaM.length > 10 && (await P.locator('#boasVindas').count()) === 0, 'o Início abre com uma saudação para a Amanda e uma frase inspiradora (sem guia nem explicações): ' + olaT + ' / ' + olaM);
+ok(await P.evaluate(() => getComputedStyle(document.getElementById('olaM')).fontStyle === 'italic' && document.fonts.check('italic 22px Cormorant')), 'a frase da saudação usa a Cormorant itálica');
+ok(await P.locator('#blocoSug').isHidden(), 'sugestões em espera: a área não aparece no Início');
 ok(/🔔 3 pedidos esperando você/.test(await P.locator('#olaChips').innerText()), 'a saudação avisa dos pedidos esperando');
 ok((await P.locator('#selo').count()) === 0 && await P.locator('#vApp header .cab-logo').isVisible(), 'o topo tem o logo e não tem mais o selo');
 ok((await P.locator('#nPedNav').innerText()) === '3', 'a barra de baixo mostra 3 pedidos no botão Início');
@@ -513,6 +517,9 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   // sugestões de alterações: a Amanda escreve, anexa uma foto e envia; o Kevin recebe na página dele
   {
     const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    ok(await P2.locator('#blocoSug').isHidden(), 'sugestões: em espera, a área fica escondida');
+    await P2.evaluate(() => localStorage.setItem('painel-sugestoes', '1'));
+    await P2.reload(); await P2.waitForSelector('#vApp:not([hidden])');
     await P2.waitForSelector('#blocoSug:not([hidden])');
     await P2.click('#bSug');
     ok(await espera(async () => /Escreva sua ideia/.test(await P2.locator('#toast').innerText())), 'sugestões: sem texto, pede para escrever antes de enviar');
@@ -1519,7 +1526,8 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   const cS = await contexto(ANDROID, { apiDoBanco: apiS });
   const S = await entrarComo(cS, 'sandra@teste.com');
   ok(await S.locator('#visao').isVisible(), 'sócia: aparece a chave "Só a minha agenda / Todas as profissionais"');
-  ok(/Sandra! /.test(await S.locator('#olaT').innerText()), 'Início: a saudação usa o nome de quem entrou (Sandra)');
+  await S.waitForSelector('#ola:not([hidden])');
+  ok(/Sandra/.test(await S.locator('#olaT').innerText()), 'Início: a saudação usa o nome de quem entrou (Sandra)');
   ok(await S.locator('#proximos .vazio-bom').isVisible() && /espaço pra novas clientes/.test(await S.locator('#proximos').innerText()) && !/Nenhum/.test(await S.locator('[data-aba="inicio"]').innerText()), 'Início: sem atendimentos, aparece uma mensagem positiva (nada de "Nenhum…")');
   const divulgar = decodeURIComponent(await S.locator('#proximos .vazio-bom a.zap').getAttribute('href'));
   ok(/^https:\/\/wa\.me\/\?text=/.test(divulgar) && /agendar/.test(divulgar), 'Início: o botão "Divulgar" abre o WhatsApp com o link de agendamento');

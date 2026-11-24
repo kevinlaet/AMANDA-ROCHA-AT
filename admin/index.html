@@ -16,6 +16,7 @@
 <style>
 @font-face{font-family:'Great Vibes';src:url(../fonts/greatvibes-sub.woff2) format('woff2');font-display:swap}
 @font-face{font-family:'Cormorant';src:url(../fonts/cormorant-sub.woff2) format('woff2');font-weight:500 600;font-display:swap}
+@font-face{font-family:'Cormorant';font-style:italic;src:url(../fonts/cormorant-italico.woff2) format('woff2');font-weight:400 700;font-display:swap}
 @font-face{font-family:'Montserrat';src:url(../fonts/montserrat-sub.woff2) format('woff2');font-weight:400 800;font-display:swap}
 /* Painel de uso diário, no celular: uma coluna, ações grandes, cores de estado (livre, pedido, confirmado). */
 :root{--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;
@@ -355,8 +356,9 @@ header{background:linear-gradient(160deg,var(--teal) 0%,var(--teal-d) 100%)}
 @keyframes tituloBrilho{from{background-position:100% 0}to{background-position:0 0}}
 @keyframes sobeSuave{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .ola{margin:22px 0 6px}
-.ola-t{font-family:Cormorant,Georgia,serif;font-weight:600;font-size:clamp(25px,7.4vw,31px);line-height:1.15;color:var(--teal-d)}
-.ola-d{margin-top:4px;font-size:14px;font-weight:600;color:var(--muted)}
+.ola-d{font-size:11.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.ola-t{margin-top:6px;font-weight:700;font-size:clamp(20px,5.6vw,23px);line-height:1.3;letter-spacing:-.2px;color:var(--teal-d)}
+.ola-m{margin-top:10px;padding-left:14px;border-left:3px solid var(--peach);font-family:Cormorant,Georgia,serif;font-style:italic;font-weight:500;font-size:clamp(21px,6vw,24px);line-height:1.3;color:var(--ink)}
 .ola-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .ola-chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:7px 14px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13.5px;color:var(--ink)}
 .ola-chip.quente{background:var(--peach-l);border-color:var(--peach);color:var(--teal-d)}
@@ -440,7 +442,7 @@ button.ola-chip{cursor:pointer}
     <button class="banner guarda" id="avisoGuarda" type="button" data-ir="seguranca" hidden></button>
 
     <section class="aba" data-aba="inicio">
-    <div class="ola" id="ola" hidden><p class="ola-t" id="olaT"></p><p class="ola-d" id="olaD"></p><div class="ola-chips" id="olaChips" hidden></div></div>
+    <div class="ola" id="ola" hidden><p class="ola-d" id="olaD"></p><p class="ola-t" id="olaT"></p><p class="ola-m" id="olaM"></p><div class="ola-chips" id="olaChips" hidden></div></div>
     <div class="card num" id="numeros" hidden></div>
 
     <div id="blocoProx">
