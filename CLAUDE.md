@@ -51,7 +51,7 @@ Leia este arquivo inteiro antes de mexer em qualquer coisa. Ele guarda o context
 - **Banco:** tabela nova `retornos` (cópia de nome, telefone e serviço; `horario_id` único, solto quando o horário volta a ficar livre por gatilho `solta_retorno`, para outra cliente nunca herdar), RLS ligada e tabela fechada; só pelas funções `salvar_retorno`, `marcar_retorno`, `apagar_retorno`, `retornos_lista` (conferem `posso(profissional)`: parceira só mexe nos dela). Não altera nada que já existia.
 - **Publicado** em `site-v1`/`main` com o "pode" do Kevin (22/11), junto com o login de 24 h (desconecta na hora se algo estranho), cadastro de clientes travado e story de horários livres. Painel do salão sincronizado (`studiolarocha`, `ferramentas/painel.mjs`). **Falta o Kevin rodar `supabase/atualizacao.sql` no Supabase**: até lá o bloco de retornos fica escondido e o resto funciona.
 
-## 4c. Início novo e sugestões (24/11/2026, na branch `claude/new-session-gjqujs`, aguardando o "pode" do Kevin)
+## 4c. Início novo e sugestões (no ar em 24/11/2026 com o "pode" do Kevin; sugestões seguem em espera)
 
 - **Topo:** logo + "Amanda Rocha" com entrada suave (logo gira e acende, título com brilho pêssego), só CSS, uma vez por acesso, desligada em "reduzir movimento". **Sem o selo "Protegido"** (a situação do guardião fica em Mais › Segurança e no aviso vermelho quando há problema).
 - **Início sem explicações:** saiu o guia de boas-vindas, o "Como usar esta parte" (só do Início) e as dicas.
@@ -79,6 +79,7 @@ Leia este arquivo inteiro antes de mexer em qualquer coisa. Ele guarda o context
 - Chrome arredonda tamanho de página no PDF: o PDF do cartão é montado à mão (`pdfDeJpgs`) para 90×50 mm exatos.
 - O GitHub atrasa o `cron`: nunca prometer "a cada 15 minutos".
 - Nunca afirmar que o domínio está "no nome da Amanda": o titular é o Kevin.
+- Título em Great Vibes com `background-clip:text` (brilho do topo do painel) corta o alto do "A" e do "R": o fundo só pinta a caixa. Solução: `padding` com `margin` negativa igual (`.24em .16em .14em`).
 - Imagens por IA (modelo `gpt-image-2`, qualidade `medium`; `high` falha) servem de ponto de partida e são vetorizadas depois para os logos.
 
 ## 7. Estado atual (3/11/2026; atualizado em 22/11 com retornos e login de 24 h)
