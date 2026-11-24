@@ -1332,7 +1332,12 @@ as $$
   select public.sou_admin() or (p_prof is not null and p_prof = public.minha_profissional())
 $$;
 
--- Quem está no painel: { profissional, nome, socia }. Nulo se não tem acesso.
+-- Aniversário (só dia e mês, 'MM-DD') para a saudação do painel. Fica no banco, nunca no código público:
+-- update public.profissionais set aniversario = 'MM-DD' where id = '…';
+alter table public.profissionais add column if not exists aniversario text
+  check (aniversario is null or aniversario ~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+
+-- Quem está no painel: { profissional, nome, socia, aniversario }. Nulo se não tem acesso.
 create or replace function public.quem_sou()
 returns json
 language plpgsql
@@ -1349,7 +1354,8 @@ begin
   end if;
   return json_build_object('profissional', v_prof,
                            'nome', (select p.nome from public.profissionais p where p.id = v_prof),
-                           'socia', v_socia);
+                           'socia', v_socia,
+                           'aniversario', (select p.aniversario from public.profissionais p where p.id = v_prof));
 end;
 $$;
 

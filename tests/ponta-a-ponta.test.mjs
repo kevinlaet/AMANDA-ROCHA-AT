@@ -566,6 +566,11 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await ck.close();
     await P2.reload(); await P2.waitForSelector('#vApp:not([hidden])');
     ok(await espera(async () => /Feita ✓/.test(await P2.locator('#sugLista').innerText())), 'sugestões: a Amanda vê que a ideia dela foi feita');
+    // aniversário: a data fica no banco; no dia, a saudação é dela
+    await db.exec(`update profissionais set aniversario = to_char(public.agora_sp(), 'MM-DD') where id = 'amanda'`);
+    await P2.reload(); await P2.waitForSelector('#ola:not([hidden])');
+    ok(/Feliz aniversário, Amanda! 🎂/.test(await P2.locator('#olaT').innerText()), 'aniversário: no dia, a saudação é de parabéns');
+    await db.exec(`update profissionais set aniversario = '07-31' where id = 'amanda'`);
   }
 
   // editar dados

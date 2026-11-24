@@ -499,6 +499,9 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   await comoQ(EMAIL_ADMIN, `update profissionais set email = $1 where id = 'sandra'`, [SANDRA]);
   const qs = (await comoQ(SANDRA, `select public.quem_sou() q`))[0].q;
   ok(qs && qs.profissional === 'sandra' && qs.socia === true, 'a Amanda cadastra o e-mail da Sandra e ela entra como sócia');
+  await nq(`update profissionais set aniversario = '07-31' where id = 'amanda'`);
+  ok((await comoQ(EMAIL_ADMIN, `select public.quem_sou() q`))[0].q.aniversario === '07-31' && (await comoQ(SANDRA, `select public.quem_sou() q`))[0].q.aniversario === null, 'aniversário: fica no banco e só volta para a própria profissional');
+  ok(!!(await tenta(nq(`update profissionais set aniversario = '31/07' where id = 'amanda'`))).erro, 'aniversário: só aceita o formato MM-DD');
   ok(!!(await tentaQ(BIA, `insert into profissionais (id, nome, email, papel) values ('bia', 'Bia', $1, 'socia')`, [BIA])).erro, 'quem não é sócia não se cadastra sozinha');
   await comoQ(SANDRA, `insert into profissionais (id, nome, email, papel, ordem) values ('bia', 'Bia', $1, 'parceira', 3)`, [BIA]);
   const qb = (await comoQ(BIA, `select public.quem_sou() q`))[0].q;

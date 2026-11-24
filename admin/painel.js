@@ -294,6 +294,7 @@
     var x=agoraSP(),hr=x.getUTCHours(),agora=hr*60+x.getUTCMinutes(),h=hojeSP(),w=utc(h).getUTCDay(),dm=h.slice(5),am=somaDias(h,1),M=[];
     var conf=rows.filter(function(r){return r.status==='confirmado'}),hj=conf.filter(function(r){return r.data===h}),hjF=hj.filter(function(r){return !passou(r)}),hjP=hj.filter(passou);
     var ped=rows.filter(function(r){return r.status==='pedido'&&!passou(r)});
+    if(eu&&eu.aniversario===dm)M.push([1,'Feliz aniversário, {n}! 🎂','Hoje quem merece todo o cuidado do mundo é você. Aproveita o seu dia! 💛']);
     if(hr<5)M.push([1,'Ué, {n}, acordada a essa hora? 🦉','Até as grandes precisam dormir.']);
     if(dm==='03-08')M.push([1,'Feliz Dia da Mulher, {n}! 🌷','Você cuida de tantas… hoje o carinho é todo seu.']);
     if(dm==='05-12')M.push([1,'Feliz Dia da Enfermagem, {n}! 🩺','Ciência e afeto no mesmo cuidado. Esse é o seu jeito.']);
