@@ -676,6 +676,18 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
     const r3 = await salva(BIA, b18, await mais(30), null);
     ok(r3.r === 'ok' && r3.id !== r2.id && (await nq(`select nome from retornos where id = $1`, [r2.id]))[0].nome === 'Rita Retorno', 'retornos: a nova cliente do horário ganha um retorno novo, sem mexer no da anterior');
     ok((await comoQ(BIA, `select public.apagar_retorno($1) j`, [r3.id]))[0].j.r === 'ok' && (await nq(`select count(*)::int n from retornos where id = $1`, [r3.id]))[0].n === 0, 'retornos: dá para apagar um retorno');
+    // mensagem de acompanhamento e mudança pela tela de Clientes
+    const msg = 'Oi, Rita! Aqui é a Bia 💛\n\nComo estão as suas costas desde a última sessão? Correu tudo bem?';
+    const rm = (await comoQ(BIA, `select public.salvar_retorno($1, $2::date, $3, $4) j`, [b18, await mais(20), 'as suas costas', msg]))[0].j;
+    ok(rm.r === 'ok' && (await nq(`select mensagem from retornos where id = $1`, [rm.id]))[0].mensagem === msg, 'retornos: guarda a mensagem de acompanhamento (com as quebras de linha)');
+    ok((await lista(BIA)).find((x) => x.id === rm.id)?.mensagem === msg, 'retornos: a lista devolve a mensagem para o painel');
+    const ed = (email, rid, d, o, m) => comoQ(email, `select public.editar_retorno($1, $2::date, $3, $4) j`, [rid, d, o, m]).then((r) => r[0].j);
+    ok((await ed(EMAIL_ADMIN, rm.id, await mais(5), 'x', 'y')).r === 'ok' && (await ed(BIA, r1.id, await mais(5), 'x', 'y')).r === 'sem_acesso', 'retornos: a sócia muda o retorno da parceira; a parceira não mexe no da Amanda');
+    ok((await ed(BIA, rm.id, await mais(-2), null, null)).r === 'data' && (await ed(BIA, rm.id, await mais(9), null, 'acesse https://golpe.com')).r === 'dados', 'retornos: ao mudar, data no passado e link na mensagem são recusados');
+    ok((await ed(BIA, rm.id, await mais(9), 'as suas costas', msg + '\r\n🌸')).r === 'ok' && (await nq(`select data::text d, mensagem, status from retornos where id = $1`, [rm.id]))[0].mensagem === msg + '\n🌸', 'retornos: mudar a data e o texto (o \\r some, a quebra de linha fica)');
+    ok(!!(await tentaQ(null, `select public.editar_retorno($1, current_date, null, null)`, [rm.id])).erro, 'retornos: o site (sem login) não mexe em retorno');
+    const cli = (await comoQ(EMAIL_ADMIN, `select public.clientes_resumo('amanda') j`))[0].j.find((c) => c.nome === 'Maria Retorno');
+    ok(cli && cli.ref === a18 && cli.ref_data === dia, 'retornos: a lista de clientes diz qual atendimento liga o retorno (o último ou o próximo)');
     ok(hoje.length === 10, 'retornos: relógio de Brasília disponível');
   }
 
@@ -732,7 +744,7 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   const rr = await tenta(sal.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8')));
   ok(!rr.erro && (await nq(`select count(*)::int n from profissionais`))[0].n === 3 && (await nq(`select recurso from servicos where id = 'limpeza'`))[0].recurso === 'maca', 'rodar a atualização de novo mantém as profissionais e os recursos' + (rr.erro ? ': ' + rr.erro : ''));
   ok((await comoQ(BIA, `select profissional from horarios`)).every((r) => r.profissional === 'bia'), 'e as regras de acesso continuam valendo');
-  ok((await nq(`select count(*)::int n from retornos`))[0].n === 2, 'rodar a atualização de novo mantém os retornos');
+  ok((await nq(`select count(*)::int n from retornos`))[0].n === 3 && (await nq(`select count(*)::int n from retornos where mensagem is not null`))[0].n === 1, 'rodar a atualização de novo mantém os retornos (e as mensagens)');
   ok((await nq(`select count(*)::int n from sugestoes`))[0].n === 22 && (await nq(`select email from desenvolvedor`))[0].email === 'kevin@teste.com', 'rodar a atualização de novo mantém as sugestões e o e-mail do Kevin');
 }
 

@@ -442,22 +442,33 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(await espera(async () => /Lembrete enviado/.test(await P2.locator('#proximos .prox', { hasText: 'Carla' }).innerText())), 'lembrete: o painel mostra "Lembrete enviado"');
   await foto(P2, 'painel-lembretes', false);
 
-  // retornos: marcar na ficha do atendimento, aparecer no Início na data e chamar no WhatsApp
+  // retornos: marcar pela ficha do atendimento (tela própria), aparecer no Início na data e mandar a mensagem de acompanhamento
   {
     const HOJE = await dia(0);
+    const naTela = () => P2.locator('[data-aba="retorno"]:not([hidden])');
     await aba(P2, 'agenda');
     await P2.click(`[data-abrir="${idC}"]`);
     ok(await P2.locator('#sheet [data-a=perg-retorno]').isVisible(), 'retorno: a ficha do atendimento tem "Marcar retorno"');
     await P2.click('#sheet [data-a=perg-retorno]');
-    await P2.click('#sheet [data-rt-dias="30"]');
+    ok(await naTela().isVisible() && await P2.locator('#sheet').isHidden() && /Marcar retorno/.test(await P2.locator('#rtTit').innerText()) && /Carla Dias/.test(await P2.locator('#rtCorpo .r-cab').innerText()), 'retorno: abre numa tela própria, com o nome da cliente');
+    await P2.click('[data-rt-dias="30"]');
     const d30 = (await q(`select ($1::date + 30)::text d`, [AMANHA]))[0].d;
-    ok((await P2.inputValue('#rtData')) === d30 && /Retorno em/.test(await P2.locator('#rtPrev').innerText()), 'retorno: "30 dias" conta a partir do dia do atendimento e mostra a data');
-    const sab = P2.locator('#sheet [data-rt-sab]');
-    if (await sab.count()) { await sab.click(); ok(new Date((await P2.inputValue('#rtData')) + 'T12:00:00Z').getUTCDay() === 6, 'retorno: se a data não cai num sábado, um toque troca para o sábado mais perto'); await P2.click('#sheet [data-rt-dias="30"]'); }
-    await P2.fill('#rtObs', 'manutenção da limpeza');
-    await foto(P2, 'painel-retorno-ficha', false);
-    await P2.click('#sheet [data-rt=salvar]');
-    ok(await espera(async () => (await q(`select count(*)::int n from retornos where nome = 'Carla Dias' and data = $1 and obs = 'manutenção da limpeza' and status = 'pendente'`, [d30]))[0].n === 1), 'retorno: fica salvo no banco com a data, a orientação e "pendente"');
+    const salvo30 = await P2.inputValue('#rtData');
+    ok(new Date(salvo30 + 'T12:00:00Z').getUTCDay() === 6 && Math.abs((new Date(salvo30) - new Date(d30)) / 864e5) <= 3 && /Ajustado para o sábado mais perto/.test(await P2.locator('#rtPrev').innerText()), 'retorno: "30 dias" conta a partir do atendimento e cai no sábado mais perto (a Amanda atende aos sábados)');
+    ok(/Como você está desde a última sessão\? Correu tudo bem\?/.test(await P2.inputValue('#rtMsg')) && !(await P2.isChecked('#rtFoto')), 'retorno: auriculoterapia começa com a pergunta geral, sem pedir foto');
+    await P2.fill('#rtObs', 'o seu sono');
+    ok(/^Oi, Carla! Aqui é a Amanda 💛\n\nComo está o seu sono desde a última sessão\? Correu tudo bem\?\n\nMe conta como você tá se sentindo pra gente acompanhar juntas\.$/.test(await P2.inputValue('#rtMsg')), 'retorno: a mensagem acompanha o que ela escreveu ("Como está o seu sono desde a última sessão?")');
+    await P2.check('#rtFoto');
+    ok(/me manda uma foto pra gente acompanhar o resultado juntas/.test(await P2.inputValue('#rtMsg')), 'retorno: "Pedir uma foto" entra na mensagem');
+    await P2.uncheck('#rtFoto');
+    await P2.click('[data-rt-sug="as suas dores"]');
+    ok(/Como estão as suas dores desde a última sessão\?/.test(await P2.inputValue('#rtMsg')), 'retorno: as sugestões trocam o assunto, com o verbo certo ("estão as suas dores")');
+    await P2.fill('#rtObs', 'o seu sono');
+    await foto(P2, 'painel-retorno-marcar');
+    await P2.click('[data-rt=salvar]');
+    ok(await espera(async () => (await q(`select count(*)::int n from retornos where nome = 'Carla Dias' and data = $1 and obs = 'o seu sono' and mensagem like '%Como está o seu sono desde a última sessão?%' and status = 'pendente'`, [salvo30]))[0].n === 1), 'retorno: fica salvo no banco com a data, o assunto e a mensagem');
+    ok(await espera(async () => await P2.locator('[data-aba="agenda"]').isVisible()), 'retorno: depois de salvar, volta para a Agenda');
+    await P2.click(`[data-abrir="${idC}"]`);
     ok(await espera(async () => /Retorno/.test(await P2.locator('#sheet .ret-info').innerText().catch(() => ''))), 'retorno: a ficha mostra o retorno marcado');
     await P2.click('#sheet [data-a=fechar]');
     // chega o dia: aparece no Início
@@ -473,10 +484,11 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await P2.locator('#blocoRet').scrollIntoViewIfNeeded();
     await foto(P2, 'painel-retornos-lista', false);
     const carla = P2.locator('#retornos .ret', { hasText: 'Carla' });
-    ok(/Hoje/.test(await carla.locator('.ret-dt').innerText()) && /Auriculoterapia/.test(await carla.innerText()) && /manutenção da limpeza/.test(await carla.locator('.ret-obs').innerText()), 'retorno: a linha mostra nome, procedimento, data e orientação');
+    ok(/Hoje/.test(await carla.locator('.ret-dt').innerText()) && /Auriculoterapia/.test(await carla.innerText()) && /o seu sono/.test(await carla.locator('.ret-obs').innerText()), 'retorno: a linha mostra nome, procedimento, data e o que acompanhar');
     const hz = decodeURIComponent(await carla.locator('a[data-ret-zap]').getAttribute('href'));
-    ok(/wa\.me\/5511977771111/.test(hz) && /Oi, Carla! Tudo bem\? Aqui é a Amanda 💛 Já tá chegando a hora da sua manutenção da limpeza, como combinamos\. Quer que eu reserve um horário pra você nesse sábado\?/.test(hz), 'retorno: o WhatsApp abre com a mensagem pronta, o nome e a orientação');
-    ok(/Já passou um pouquinho da hora da sua próxima sessão de auriculo/.test(decodeURIComponent(await atras.locator('a[data-ret-zap]').getAttribute('href'))), 'retorno: para o atrasado, a mensagem fala que já passou um pouquinho');
+    ok(/wa\.me\/5511977771111/.test(hz) && hz.includes('Oi, Carla! Aqui é a Amanda 💛\n\nComo está o seu sono desde a última sessão? Correu tudo bem?'), 'retorno: o WhatsApp abre com a mensagem que ela deixou pronta');
+    const hb = decodeURIComponent(await atras.locator('a[data-ret-zap]').getAttribute('href'));
+    ok(/Oi, Beatriz! Aqui é a Amanda 💛\n\nComo você está desde a última sessão\? Correu tudo bem\?/.test(hb) && !/foto/.test(hb), 'retorno: sem mensagem salva, vai a pergunta de acompanhamento (auriculoterapia, sem foto)');
     await carla.locator('a[data-ret-zap]').click();
     ok(await espera(async () => (await q(`select status from retornos where nome = 'Carla Dias'`))[0].status === 'enviada'), 'retorno: depois do clique, fica "mensagem enviada" no banco');
     ok(await espera(async () => /Mensagem enviada/.test(await P2.locator('#retornos .ret', { hasText: 'Carla' }).innerText())), 'retorno: e o painel mostra "Mensagem enviada"');
@@ -495,6 +507,64 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=sem_resposta]').click();
     ok(await espera(async () => (await q(`select status from retornos where nome = 'Beatriz Nunes'`))[0].status === 'sem_resposta' && (await P2.locator('#retornos .ret').count()) === 0), 'retorno: "Não respondeu" anota e tira da lista');
     ok(await P2.locator('#blocoRet').isHidden(), 'retorno: sem retornos, o bloco some (nada de frase desanimadora)');
+  }
+
+  // retornos pela tela de Clientes: a Amanda escolhe a data de cada cliente e, no dia, manda a mensagem
+  {
+    const HOJE = await dia(0);
+    await db.exec(`alter table horarios disable trigger trg_horario_passado`);
+    await db.exec(`insert into horarios (data, hora, status, nome, telefone, servico, pedido_em) values ((public.agora_sp() - interval '20 days')::date, '10:00', 'confirmado', 'Lívia Prado', '11933332222', 'Limpeza de pele', now())`);
+    await db.exec(`alter table horarios enable trigger trg_horario_passado`);
+    await doMais(P2, 'clientes');
+    const livia = () => P2.locator('#cliLista .cli', { hasText: 'Lívia Prado' });
+    await P2.waitForSelector('#cliLista .cli:has-text("Lívia Prado")');
+    ok(/Marcar retorno/.test(await livia().locator('.cli-acoes').innerText()) && (await livia().locator('.cli-acoes > *').count()) === 3, 'Clientes: cada cartão tem WhatsApp, Marcar retorno e Anotar');
+    await livia().locator('[data-acao="cli-ret"]').click();
+    await P2.waitForSelector('[data-aba="retorno"]:not([hidden])');
+    ok(/Último atendimento/.test(await P2.locator('#rtCorpo .r-cab').innerText()) && await P2.locator('[data-rt-dias="15"]').isDisabled(), 'Clientes › Retorno: conta a partir do último atendimento (o de 15 dias já passou)');
+    const m0 = await P2.inputValue('#rtMsg');
+    ok(m0 === 'Oi, Lívia! Aqui é a Amanda 💛\n\nComo está a sua pele desde a última sessão? Correu tudo bem?\n\nSe puder, me manda uma foto pra gente acompanhar o resultado juntas.' && await P2.isChecked('#rtFoto'), 'Clientes › Retorno: na limpeza de pele, pergunta da pele e pede uma foto');
+    await P2.fill('#rtMsg', m0 + ' 🌸');
+    ok(await P2.locator('[data-rt="sugerido"]').isVisible(), 'Clientes › Retorno: dá para mudar o texto (e voltar ao sugerido)');
+    await P2.click('[data-rt-dias="45"]');
+    await P2.click('[data-rt=salvar]');
+    ok(await espera(async () => await P2.locator('[data-aba="clientes"]').isVisible()), 'Clientes › Retorno: salvar volta para Clientes');
+    ok(await espera(async () => /Retorno combinado/.test(await livia().innerText()) && /a sua pele/.test(await livia().locator('.cli-ret').innerText())), 'Clientes: o cartão mostra o retorno combinado');
+    ok(/Retornos \(1\)/.test(await P2.locator('#cliRet').innerText()), 'Clientes: o filtro "Retornos" mostra quantas são');
+    ok(!/Convidar a voltar/.test(await livia().innerText()) && /WhatsApp/.test(await livia().locator('.cli-acoes a.z').innerText()), 'Clientes: com retorno combinado, o botão WhatsApp não oferece outro convite');
+    await livia().locator('[data-acao="cli-ret"]').click();
+    ok(/Mudar retorno/.test(await P2.locator('#rtTit').innerText()) && (await P2.inputValue('#rtMsg')).endsWith('🌸'), 'Clientes › Retorno: ao mudar, mantém o texto que ela escreveu');
+    await P2.click('[data-rt-outra]');
+    await P2.fill('#rtData', HOJE);
+    await P2.click('[data-rt=salvar]');
+    ok(await espera(async () => (await q(`select data::text d from retornos where nome = 'Lívia Prado'`))[0]?.d === HOJE), 'Clientes › Retorno: a data muda no banco (outra data)');
+    ok(await espera(async () => (await livia().locator('a[data-ret-zap]').count()) === 1), 'Clientes: no dia, o cartão ganha "Enviar mensagem de retorno"');
+    const lz = decodeURIComponent(await livia().locator('a[data-ret-zap]').getAttribute('href'));
+    ok(lz.startsWith('https://wa.me/5511933332222?text=') && lz.includes('Como está a sua pele desde a última sessão?') && lz.endsWith('🌸'), 'Clientes: a mensagem vai pronta, com o texto dela');
+    await P2.click('[data-cli-f="retornos"]');
+    ok((await P2.locator('#cliLista .cli').count()) === 1, 'Clientes: o filtro "Retornos" mostra só quem tem retorno');
+    await foto(P2, 'painel-clientes-retorno');
+    await livia().locator('a[data-ret-zap]').click();
+    ok(await espera(async () => (await q(`select status from retornos where nome = 'Lívia Prado'`))[0].status === 'enviada' && /Mensagem de retorno enviada/.test(await livia().innerText())), 'Clientes: depois de enviar, fica "mensagem enviada"');
+    await livia().locator('[data-acao="cli-ret"]').click();
+    ok(/Hoje é o dia combinado com a Lívia/.test(await P2.locator('#rtSub').innerText()) && /Chamar de novo/.test(await P2.locator('#rtCorpo').innerText()) && /Como está a sua pele/.test(await P2.locator('#rtBolha').innerText()), 'Clientes › Retorno: no dia, a tela mostra a mensagem e o que fazer');
+    await foto(P2, 'painel-retorno-no-dia');
+    const vp0 = P2.viewportSize();
+    await P2.setViewportSize({ width: 320, height: 640 });
+    const largo = await P2.evaluate(() => document.documentElement.scrollWidth > 320);
+    await P2.click('[data-rt="editar"]');
+    const largo2 = await P2.evaluate(() => document.documentElement.scrollWidth > 320);
+    await P2.click('#rtVoltar'); await P2.waitForSelector('[data-aba="clientes"]:not([hidden])');
+    const largo3 = await P2.evaluate(() => document.documentElement.scrollWidth > 320);
+    ok(!largo && !largo2 && !largo3, 'Retorno e Clientes em 320px: nada passa da tela');
+    await P2.setViewportSize(vp0);
+    await livia().locator('[data-acao="cli-ret"]').click();
+    await P2.click('#rtCorpo [data-ret=agendou]');
+    ok(await espera(async () => (await q(`select status from retornos where nome = 'Lívia Prado'`))[0].status === 'agendou' && await P2.locator('[data-aba="clientes"]').isVisible()), 'Clientes › Retorno: "Agendou" anota e volta para Clientes');
+    ok(await espera(async () => !(await livia().count()) || !/Retorno combinado/.test(await livia().innerText())), 'Clientes: depois que ela agendou, a faixa do retorno sai do cartão');
+    await P2.click('[data-cli-f="todas"]');
+    // limpa a cliente de teste (não atrapalha a contagem de "Mais de 10 dias sem vir" mais adiante)
+    await db.exec(`delete from retornos where nome = 'Lívia Prado'; delete from horarios where nome = 'Lívia Prado'`);
   }
 
   // próximos atendimentos: 2 meses, agrupados por semana e por mês
@@ -939,7 +1009,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await M.waitForSelector('#cliLista .cli');
   const bea = M.locator('#cliLista .cli', { hasText: 'Beatriz Nunes' });
   ok((await bea.count()) === 1 && /\(11\) 95555-0000/.test(await bea.innerText()) && /próximo/.test(await bea.innerText()), 'Clientes: ficha com WhatsApp e próximo horário');
-  ok((await bea.locator('a.btn').getAttribute('href')).startsWith('https://wa.me/5511955550000'), 'Clientes: botão abre o WhatsApp da cliente');
+  ok((await bea.locator('.cli-acoes a.z').getAttribute('href')).startsWith('https://wa.me/5511955550000'), 'Clientes: botão abre o WhatsApp da cliente');
   await M.fill('#cliBusca', 'beat');
   ok((await M.locator('#cliLista .cli').count()) === 1, 'Clientes: busca pelo nome');
   await bea.locator('[data-acao=cli-obs]').click();
@@ -957,7 +1027,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await M.click('#cliSumidas');
   const sum = await M.locator('#cliLista .cli').allInnerTexts();
   ok(sum.length === 1 && /Glória Antiga/.test(sum[0]) && /15 dias/.test(sum[0]) && /Convidar a voltar/.test(sum[0]), 'Clientes: só aparece quem está há mais de 10 dias sem vir, com o convite pronto');
-  const convite = decodeURIComponent((await M.locator('#cliLista .cli a.btn').getAttribute('href')).split('text=')[1]);
+  const convite = decodeURIComponent((await M.locator('#cliLista .cli .cli-acoes a.z').getAttribute('href')).split('text=')[1]);
   ok(/^Oi, Glória!/.test(convite) && /15 dias da sua última sessão de auriculoterapia/.test(convite) && /Separei dois horários/.test(convite) && /1\) .+ às \d+h/.test(convite) && /responder 1 ou 2/.test(convite), 'Clientes: convite personalizado pelo serviço, com 2 horários livres de verdade para escolher');
   console.log('   convite:', convite.replace(/\n/g, ' / '));
   await M.click('[data-cli-f=todas]');

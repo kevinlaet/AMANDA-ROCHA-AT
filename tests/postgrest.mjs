@@ -111,7 +111,8 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/faturamento') { const b = corpo(); return json(route, (await db.query('select public.faturamento($1::date, $2::date, $3) j', [b.p_de ?? null, b.p_ate ?? null, b.p_prof ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/definir_meta') { const b = corpo(); return json(route, (await db.query('select public.definir_meta($1, $2) j', [b.p_valor ?? null, b.p_prof ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/retornos_lista') return json(route, (await db.query('select public.retornos_lista($1) j', [corpo().p_prof ?? null])).rows[0].j);
-        if (caminho === '/rest/v1/rpc/salvar_retorno') { const b = corpo(); return json(route, (await db.query('select public.salvar_retorno($1, $2::date, $3) j', [b.p_horario, b.p_data, b.p_obs ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/salvar_retorno') { const b = corpo(); return json(route, (await db.query('select public.salvar_retorno($1, $2::date, $3, $4) j', [b.p_horario, b.p_data, b.p_obs ?? null, b.p_msg ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/editar_retorno') { const b = corpo(); return json(route, (await db.query('select public.editar_retorno($1, $2::date, $3, $4) j', [b.p_id, b.p_data, b.p_obs ?? null, b.p_msg ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/marcar_retorno') { const b = corpo(); return json(route, (await db.query('select public.marcar_retorno($1, $2, $3::date) j', [b.p_id, b.p_status ?? null, b.p_data ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/apagar_retorno') return json(route, (await db.query('select public.apagar_retorno($1) j', [corpo().p_id])).rows[0].j);
         if (caminho === '/rest/v1/rpc/enviar_sugestao') { const b = corpo(); return json(route, (await db.query('select public.enviar_sugestao($1, $2) j', [b.p_texto ?? null, b.p_foto ?? null])).rows[0].j); }

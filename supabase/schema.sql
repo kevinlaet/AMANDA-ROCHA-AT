@@ -2286,6 +2286,8 @@ begin
                max(h.data) as recente,
                array_agg(distinct h.profissional) as profissionais,
                c.obs,
+               (array_agg(h.id order by (h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()) desc, h.data desc, h.hora desc))[1] as ref,
+               (array_agg(h.data order by (h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= public.agora_sp()) desc, h.data desc, h.hora desc))[1] as ref_data,
                (array_agg(ct.id))[1] as contato_id,
                (array_agg(ct.nome))[1] as contato_nome
           from public.horarios h
@@ -2297,7 +2299,7 @@ begin
          group by k.chave, c.obs
         union all
         select ct.telefone, ct.nome, ct.telefone, 0::bigint, null::date, null::timestamp, null::text[], null::text, 0::bigint,
-               ct.criado_em::date, ct.criado_em::date, array[ct.profissional], c.obs, ct.id, ct.nome
+               ct.criado_em::date, ct.criado_em::date, array[ct.profissional], c.obs, null::uuid, null::date, ct.id, ct.nome
           from public.contatos ct
           left join public.clientes c on c.chave = ct.telefone and c.profissional = v_obs
          where (p_prof is null or ct.profissional = p_prof)
@@ -2339,6 +2341,8 @@ create policy "retornos_profissional" on public.retornos
   for all to authenticated
   using (public.posso(profissional))
   with check (public.posso(profissional));
+-- a mensagem de acompanhamento que a profissional deixou pronta (ex.: "Como está a sua pele desde a última sessão?")
+alter table public.retornos add column if not exists mensagem text check (mensagem is null or length(mensagem) <= 700);
 
 -- Quando o horário volta a ficar livre (cancelado, recusado ou remarcado), o retorno
 -- continua valendo, mas se solta do horário: assim a próxima cliente desse horário
@@ -2360,7 +2364,8 @@ create trigger solta_retorno after update of status on public.horarios
   execute function public.solta_retorno();
 
 -- Marca (ou muda) o retorno de um atendimento. Resposta: {r: 'ok'|'sem_acesso'|'livre'|'data'|'dados', id}
-create or replace function public.salvar_retorno(p_horario uuid, p_data date, p_obs text default null)
+drop function if exists public.salvar_retorno(uuid, date, text);
+create or replace function public.salvar_retorno(p_horario uuid, p_data date, p_obs text default null, p_msg text default null)
 returns json
 language plpgsql
 security definer
@@ -2370,6 +2375,7 @@ declare
   h public.horarios;
   v_hoje date := (public.agora_sp())::date;
   v_obs text := nullif(left(btrim(regexp_replace(coalesce(p_obs, ''), '[[:cntrl:]]', ' ', 'g')), 80), '');
+  v_msg text := nullif(left(btrim(regexp_replace(replace(coalesce(p_msg, ''), E'\r', ''), '[\x01-\x09\x0B-\x1F\x7F]', ' ', 'g')), 700), '');
   v_id uuid;
 begin
   select * into h from public.horarios where id = p_horario;
@@ -2382,14 +2388,14 @@ begin
   if p_data is null or p_data < v_hoje or p_data > v_hoje + 730 then
     return json_build_object('r', 'data');
   end if;
-  if v_obs ~* '(https?:|www\.)' then
+  if v_obs ~* '(https?:|www\.)' or v_msg ~* '(https?:|www\.)' then
     return json_build_object('r', 'dados');
   end if;
-  insert into public.retornos (horario_id, profissional, nome, telefone, servico, data, obs)
+  insert into public.retornos (horario_id, profissional, nome, telefone, servico, data, obs, mensagem)
   values (h.id, h.profissional, left(h.nome, 60), h.telefone,
-          case when h.servico in ('Combinado por fora', 'Manual') then null else h.servico end, p_data, v_obs)
+          case when h.servico in ('Combinado por fora', 'Manual') then null else h.servico end, p_data, v_obs, v_msg)
   on conflict (horario_id) do update
-     set data = excluded.data, obs = excluded.obs, nome = excluded.nome, telefone = excluded.telefone,
+     set data = excluded.data, obs = excluded.obs, mensagem = excluded.mensagem, nome = excluded.nome, telefone = excluded.telefone,
          servico = excluded.servico, status = 'pendente', enviada_em = null, atualizado_em = now()
   returning id into v_id;
   return json_build_object('r', 'ok', 'id', v_id);
@@ -2430,6 +2436,36 @@ begin
 end;
 $$;
 
+-- Muda a data, o que acompanhar e a mensagem de um retorno que já existe (mesmo solto do horário).
+create or replace function public.editar_retorno(p_id uuid, p_data date, p_obs text default null, p_msg text default null)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  t public.retornos;
+  v_hoje date := (public.agora_sp())::date;
+  v_obs text := nullif(left(btrim(regexp_replace(coalesce(p_obs, ''), '[[:cntrl:]]', ' ', 'g')), 80), '');
+  v_msg text := nullif(left(btrim(regexp_replace(replace(coalesce(p_msg, ''), E'\r', ''), '[\x01-\x09\x0B-\x1F\x7F]', ' ', 'g')), 700), '');
+begin
+  select * into t from public.retornos where id = p_id;
+  if not found or not public.posso(t.profissional) then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  if p_data is null or p_data < v_hoje or p_data > v_hoje + 730 then
+    return json_build_object('r', 'data');
+  end if;
+  if v_obs ~* '(https?:|www\.)' or v_msg ~* '(https?:|www\.)' then
+    return json_build_object('r', 'dados');
+  end if;
+  update public.retornos
+     set data = p_data, obs = v_obs, mensagem = v_msg, status = 'pendente', enviada_em = null, atualizado_em = now()
+   where id = p_id;
+  return json_build_object('r', 'ok', 'id', p_id);
+end;
+$$;
+
 create or replace function public.apagar_retorno(p_id uuid)
 returns json
 language plpgsql
@@ -2465,7 +2501,7 @@ begin
   end if;
   return (
     select coalesce(json_agg(t order by t.data, t.nome), '[]'::json)
-      from (select r.id, r.horario_id, r.profissional, r.nome, r.telefone, r.servico, r.data, r.obs, r.status, r.enviada_em
+      from (select r.id, r.horario_id, r.profissional, r.nome, r.telefone, r.servico, r.data, r.obs, r.mensagem, r.status, r.enviada_em
               from public.retornos r
              where public.posso(r.profissional)
                and (p_prof is null or r.profissional = p_prof)
@@ -2755,11 +2791,13 @@ grant execute on function public.salvar_cliente(text, text, text) to authenticat
 grant execute on function public.meus_numeros(text) to authenticated;
 grant execute on function public.definir_meta(numeric, text) to authenticated;
 revoke all on function public.solta_retorno() from public, anon, authenticated;
-revoke all on function public.salvar_retorno(uuid, date, text) from public, anon, authenticated;
+revoke all on function public.salvar_retorno(uuid, date, text, text) from public, anon, authenticated;
+revoke all on function public.editar_retorno(uuid, date, text, text) from public, anon, authenticated;
 revoke all on function public.marcar_retorno(uuid, text, date) from public, anon, authenticated;
 revoke all on function public.apagar_retorno(uuid) from public, anon, authenticated;
 revoke all on function public.retornos_lista(text) from public, anon, authenticated;
-grant execute on function public.salvar_retorno(uuid, date, text) to authenticated;
+grant execute on function public.salvar_retorno(uuid, date, text, text) to authenticated;
+grant execute on function public.editar_retorno(uuid, date, text, text) to authenticated;
 grant execute on function public.marcar_retorno(uuid, text, date) to authenticated;
 grant execute on function public.apagar_retorno(uuid) to authenticated;
 grant execute on function public.retornos_lista(text) to authenticated;

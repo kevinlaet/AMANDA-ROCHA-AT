@@ -466,6 +466,51 @@ button.ola-chip{cursor:pointer}
 .fat-at .fa-v{font-size:15px;font-weight:700;color:var(--teal-d);white-space:nowrap;font-variant-numeric:tabular-nums}
 .fat-at li.faltou b,.fat-at li.faltou .fa-v{color:var(--muted);font-weight:600}
 .fat-at+.btn{margin-top:12px}
+/* retornos pela tela de Clientes (24/11): cartão com 3 botões, faixa do retorno e tela própria */
+.cli-acoes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:2px}
+.cli-acoes>*{min-height:58px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:700;font-size:13px;line-height:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 4px;text-decoration:none;text-align:center}
+.cli-acoes svg{width:21px;height:21px;color:var(--teal)}
+.cli-acoes .z{border-color:#BFE6CD;color:#147A3E}.cli-acoes .z svg{color:#1FAF5A}
+.cli-acoes .r{background:var(--peach-l);border-color:var(--peach);color:var(--teal-d)}
+.cli-acoes .vazio-z{color:var(--muted);font-weight:600;background:var(--cream);border-style:dashed}
+.cli-ret{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border-radius:14px;background:#F1F8F6;border:1px solid #D5E9E5;font-size:14px}
+.cli-ret>svg{width:20px;height:20px;color:var(--teal)}
+.cli-ret b{display:block;font-size:14.5px;color:var(--teal-d)}
+.cli-ret div span{display:block;color:var(--muted);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cli-ret .ret-dt{margin:0}
+.cli-ret.hoje{background:linear-gradient(160deg,#FFF6EC,#FBE3CE);border-color:var(--peach)}
+.cli-ret.atras{background:linear-gradient(160deg,#FFF5F2,#FDECEA);border-color:#F2CFC6}
+.cli-ret.hoje>svg,.cli-ret.atras>svg{color:var(--teal-d)}
+.cli-ret-env{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--ok)}
+.cli-ret-env svg{width:16px;height:16px}
+.cli .btn.zap svg{width:22px;height:22px}
+.cli.cli-hoje{border-color:var(--peach);box-shadow:0 8px 22px rgba(245,197,157,.35)}
+.r-cab{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-top:14px;padding:14px;border-radius:18px;background:#fff;border:1px solid var(--line)}
+.r-cab b{display:block;font-size:17px;overflow-wrap:anywhere}
+.r-cab span:not(.ret-av){display:block;font-size:13.5px;color:var(--muted)}
+.r-sec{margin-top:22px;font-size:15px;font-weight:800;color:var(--teal-d)}
+.r-sec small{display:block;font-weight:500;font-size:13px;color:var(--muted)}
+.r-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.r-chips .chip{min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:8px 4px}
+.r-chips .chip small{font-weight:600;font-size:11.5px;color:var(--muted)}
+.r-chips .chip svg{width:18px;height:18px;color:var(--teal)}
+.r-chips .chip[aria-pressed=true] small{color:var(--teal)}
+.r-chips .chip:disabled{opacity:.45}
+.r-data{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--peach-l);border:1px solid var(--peach)}
+.r-data>svg{width:24px;height:24px;color:var(--teal-d)}
+.r-data b{display:block;font-size:17px;color:var(--teal-d)}
+.r-data span{display:block;font-size:13px;color:var(--ink)}
+.r-data .sab-sug{color:var(--warn)}
+.r-sug{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.r-sug button{border:1px dashed var(--peach);background:#fff;border-radius:99px;padding:7px 12px;min-height:38px;font:inherit;font-size:13.5px;font-weight:600;color:var(--teal-d)}
+#rtMsg{margin-top:10px;min-height:170px;background:#F3FBF6;border-color:#C9EBD6;line-height:1.45}
+.r-link{display:block;margin:6px 0 0 auto;background:none;border:0;color:var(--teal);font-weight:700;font-size:14px;min-height:40px;text-decoration:underline;text-underline-offset:3px}
+.r-link[hidden]{display:none}
+.r-rem{display:block;margin:10px auto 0}
+.bolha{position:relative;padding:12px 14px 24px;border-radius:16px 16px 16px 4px;background:#E7F8EE;border:1px solid #C9EBD6;font-size:14.5px;line-height:1.45;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
+.bolha small{position:absolute;right:12px;bottom:5px;font-size:11px;color:#5E8B73;white-space:nowrap}
+.r-nota{margin-top:14px;font-size:13.5px;color:var(--muted);text-align:center}
+.r-hoje{margin-top:14px}
 </style>
 </head>
 <body>
@@ -628,12 +673,18 @@ button.ola-chip{cursor:pointer}
     </ul></details>
     </section>
 
+    <section class="aba" data-aba="retorno" hidden>
+    <button class="voltar" type="button" id="rtVoltar" data-ir="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span id="rtVoltarT">Clientes</span></button>
+    <div class="aba-topo"><h2 class="aba-t" id="rtTit">Retorno</h2><p id="rtSub"></p></div>
+    <div id="rtCorpo"></div>
+    </section>
+
     <section class="aba" data-aba="clientes" hidden>
     <button class="voltar" type="button" data-ir="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Mais</button>
     <div class="aba-topo"><h2 class="aba-t">Clientes</h2><p>Cada cliente que já marcou com você, com o que importa para o atendimento.</p></div>
     <label class="label" for="cliBusca">Buscar cliente</label>
     <input type="search" id="cliBusca" placeholder="Nome ou WhatsApp" autocomplete="off" maxlength="40">
-    <div class="chips cli-f" role="group" aria-label="Mostrar"><button class="chip" type="button" data-cli-f="todas" aria-pressed="true">Todas</button><button class="chip" type="button" data-cli-f="sumidas" aria-pressed="false" id="cliSumidas">Mais de 10 dias sem vir</button></div>
+    <div class="chips cli-f" role="group" aria-label="Mostrar"><button class="chip" type="button" data-cli-f="todas" aria-pressed="true">Todas</button><button class="chip" type="button" data-cli-f="retornos" aria-pressed="false" id="cliRet" hidden>Retornos</button><button class="chip" type="button" data-cli-f="sumidas" aria-pressed="false" id="cliSumidas">Mais de 10 dias sem vir</button></div>
     <p class="dica" id="cliResumo"></p>
     <div id="cliLista"><p class="vazio">Carregando…</p></div>
     </section>

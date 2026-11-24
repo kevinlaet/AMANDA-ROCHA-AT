@@ -97,7 +97,7 @@
   var VINTE_QUATRO_HORAS=24*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
   function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>VINTE_QUATRO_HORAS)}
-  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;zerarFat();fat.prof='';fat.serv='';fat.fp=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;rtela=null;zerarFat();fat.prof='';fat.serv='';fat.fp=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
   var MSG_24H='Por segurança, o painel pede a senha uma vez por dia. Entre de novo, por favor.';
   function msgExpirou(){return MSG_24H}
   var renovando=null;
@@ -174,9 +174,10 @@
   // ---------- abas ----------
   var DO_MAIS={numeros:1,clientes:1,servicos:1,historico:1,seguranca:1,ajuda:1,conta:1,profissionais:1};
   function irAba(n){
-    if(!document.querySelector('[data-aba="'+n+'"]'))n='inicio';
+    if(!document.querySelector('[data-aba="'+n+'"]')||(n==='retorno'&&!rtela))n='inicio';
     abaAtual=n;var nav=DO_MAIS[n]?'mais':n;
     if(n==='faturamento')nav=fat.volta==='numeros'?'mais':'inicio';
+    if(n==='retorno')nav=rtela.volta==='clientes'?'mais':rtela.volta;
     [].forEach.call(document.querySelectorAll('[data-aba]'),function(x){x.hidden=x.getAttribute('data-aba')!==n});
     [].forEach.call(document.querySelectorAll('[data-aba-btn]'),function(b){b.setAttribute('aria-current',b.getAttribute('data-aba-btn')===nav?'page':'false')});
     try{sessionStorage.setItem('amanda-aba',n)}catch(e){}
@@ -185,6 +186,7 @@
     if(n==='clientes'&&sess)carregarClientes();
     if(n==='numeros'&&sess)carregarNumeros();
     if(n==='faturamento'&&sess&&eu)carregarFat();
+    if(n==='retorno')desenharRetTela();
     if(n==='conta')$('cEmail').textContent=sess&&emailSessao()?'Conectada como '+emailSessao():'Conectada';
     if(n==='seguranca')verSeguranca();
     desenharSelos();
@@ -483,7 +485,6 @@
     else if(pergunta==='faltou')h+='<div class="pergunta">Marcar que '+nm+' não veio? Esse atendimento sai da sua conta e fica anotado na ficha dela.</div><button class="btn bad-solid" data-a="faltou" type="button"'+dis+'>Sim, não veio</button>'+V;
     else if(pergunta==='ocupar')h+=campos(null,profDe(r))+'<button class="btn main" data-a="ocupar" type="button"'+dis+'>Marcar como ocupado</button>'+V;
     else if(pergunta==='editar')h+=campos(r,profDe(r))+'<button class="btn main" data-a="editar" type="button"'+dis+'>Salvar alterações</button>'+V;
-    else if(pergunta==='retorno')h+=formRetorno(r)+V;
     else if(pergunta==='mover')h+='<label for="fData">Dia</label><input type="date" id="fData" value="'+r.data+'" min="'+hojeSP()+'"><label for="fHora">Horário</label><input type="time" id="fHora" value="'+r.hora+'" step="900"><button class="btn main" data-a="mover" type="button"'+dis+'>Salvar novo dia e horário</button>'+V;
     else if(pergunta==='remarcar'){
       var op=livresPara(r),dst=destino&&linha(destino);
@@ -514,16 +515,19 @@
   function urgentes(){var h=hojeSP();return (retornos||[]).filter(function(x){return x.status==='pendente'&&x.data<=h}).length}
   function badgeInicio(){var t=nPedidos+urgentes(),b=$('nPedNav');b.hidden=!t;b.textContent=t}
   function carregarRetornos(){
-    return api('POST','rpc/retornos_lista',comProf()).then(function(j){retornos=j||[];desenharRetornos();desenharOla();if(aberto&&!pergunta)desenharSheet()},
+    return api('POST','rpc/retornos_lista',comProf()).then(function(j){retornos=j||[];desenharRetornos();desenharOla();if(aberto&&!pergunta)desenharSheet();atualizarRetTela();if(clientes&&abaAtual==='clientes')desenharClientes()},
       function(e){if(e==='sessao')return;if(e==='ausente'){retornos=null;desenharRetornos()}});
   }
-  function diasEntre(a,b){return Math.round((utc(b)-utc(a))/864e5)}
-  function zapRetorno(x){
-    if(!x.telefone)return '';
-    var h=hojeSP(),oq=x.obs||(x.servico?x.servico.toLowerCase():'próxima sessão'),quando=(x.profissional||minhaProf())==='amanda'?'nesse sábado':'nos próximos dias';
-    var t='Oi, '+primeiro(x.nome)+'! Tudo bem? Aqui é a '+primeiro(nomeProf(x.profissional||minhaProf()))+' 💛 '+(x.data<h?'Já passou um pouquinho da hora da sua ':'Já tá chegando a hora da sua ')+oq+', como combinamos. Quer que eu reserve um horário pra você '+quando+'?';
-    return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t);
+  // a tela Retorno acompanha o que mudou (enviada, agendou, adiada); com o formulário aberto, não redesenha (não apaga o que ela digita)
+  function atualizarRetTela(){
+    if(!rtela||!rtela.ret||abaAtual!=='retorno')return;
+    var eraDia=rtNoDia(),n=(retornos||[]).filter(function(x){return x.id===rtela.ret.id})[0];
+    if(!eraDia)return;
+    if(!n||n.status==='agendou'||n.status==='sem_resposta'){var v=rtela.volta;rtela=null;irAba(v);return}
+    rtela.ret=n;if(rtNoDia())desenharRetTela();else{var v2=rtela.volta;rtela=null;irAba(v2)}
   }
+  function diasEntre(a,b){return Math.round((utc(b)-utc(a))/864e5)}
+  function zapRetorno(x){return x.telefone?'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(msgRetorno(x)):''}
   var IC_RET={volta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>',
     zap:'<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 4.5a11.5 11.5 0 0 0-9.9 17.3L4.5 27.5l5.9-1.5A11.5 11.5 0 1 0 16 4.5zm6.7 16.1c-.3.8-1.6 1.6-2.3 1.7-1.1.2-1.9.1-4.2-.8-3.5-1.5-5.7-5-5.9-5.3-.2-.2-1.4-1.8-1.4-3.5s.9-2.5 1.2-2.9c.3-.3.7-.4.9-.4h.6c.2 0 .5-.1.8.6l1.1 2.5c.1.2.1.4 0 .6-.6 1.3-1.3 1.2-.9 1.9a9.4 9.4 0 0 0 4.7 4.1c.4.2.6.2.8-.1l1-1.3c.3-.4.5-.3.8-.2l2.3 1.1c.4.2.6.3.7.4.1.2.1.9-.2 1.6z"/></svg>',
     ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -570,47 +574,140 @@
     var z=e.target.closest('[data-ret-zap]');if(z){marcarRet(z.getAttribute('data-ret-zap'),'enviada');return}
     var b=e.target.closest('[data-ret]');if(!b)return;
     var a=b.getAttribute('data-ret'),id=b.getAttribute('data-id'),h=hojeSP();
-    if(a==='adiar'){retAdiar=id;desenharRetornos();return}
-    if(a==='fechar-adiar'){retAdiar=null;desenharRetornos();return}
+    if(a==='adiar'){retAdiar=id;desenharRetornos();desenharRetTela();return}
+    if(a==='fechar-adiar'){retAdiar=null;desenharRetornos();desenharRetTela();return}
     if(a==='agendou')marcarRet(id,'agendou',null,'Anotado: ela agendou. 💛');
     else if(a==='sem_resposta')marcarRet(id,'sem_resposta',null,'Anotado: não respondeu. O retorno sai da lista.');
     else if(a==='para'){var d=b.getAttribute('data-d');marcarRet(id,null,d,'Retorno adiado para '+dia(d)+'.')}
     else if(a==='adiar-data'){var v=($('adData')||{}).value;if(!v||v<h){toast('Escolha uma data a partir de hoje.',true);return}marcarRet(id,null,v,'Retorno adiado para '+dia(v)+'.')}
     else if(a==='apagar'){if(retOcup)return;retOcup=true;api('POST','rpc/apagar_retorno',{p_id:id}).then(function(){retOcup=false;retAdiar=null;toast('Retorno removido.');return carregarRetornos()},function(er){retOcup=false;falha(er)})}
   });
-  // formulário da ficha do horário
-  function formRetorno(r){
-    var rt=retornoDe(r.id),h=hojeSP();
-    return '<div class="ret-form"><span class="label" style="margin-top:4px">Quando ela deve voltar?</span><div class="chips" id="rtDias">'+DIAS_RET.map(function(n){return '<button class="chip" type="button" data-rt-dias="'+n+'" aria-pressed="false">'+n+' dias</button>'}).join('')+'</div>'+
-      '<label for="rtData">ou escolha a data</label><input type="date" id="rtData" min="'+h+'" max="'+somaDias(h,730)+'" value="'+(rt?esc(rt.data):'')+'"><p class="dica" id="rtPrev">'+(rt?prevRet(rt.data):'Escolha quantos dias ou uma data.')+'</p>'+
-      '<label for="rtObs">O que é o retorno? <span style="font-weight:500;color:var(--muted)">(vai na mensagem)</span></label><input type="text" id="rtObs" maxlength="80" placeholder="Ex.: manutenção da limpeza" value="'+(rt&&rt.obs?esc(rt.obs):'')+'">'+
-      '<p class="dica">A mensagem fica assim: “Já tá chegando a hora da sua <i>manutenção da limpeza</i>, como combinamos.”</p></div>'+
-      '<button class="btn main" type="button" data-rt="salvar">Salvar retorno</button>'+(rt?'<button class="btn bad" type="button" data-rt="apagar">Remover retorno</button>':'');
-  }
+  // ---------- tela Retorno: marcar, mudar e, no dia, mandar a mensagem de acompanhamento ----------
+  // Abre pela ficha do atendimento (Agenda) ou pelo cartão da cliente (Clientes). Nada é enviado sozinho.
+  var rtela=null;
   // a Amanda atende aos sábados: se a data cair em outro dia, oferece o sábado mais perto
   function sabadoPerto(d){var w=utc(d).getUTCDay(),ant=somaDias(d,-((w+1)%7)),dep=somaDias(d,(6-w+7)%7);return ant>=hojeSP()&&(w+1)%7<=(6-w+7)%7?ant:dep}
-  function prevRet(d){if(!d)return '';var r=linha(aberto),sab=utc(d).getUTCDay()===6,ama=r&&profDe(r)==='amanda';
-    return 'Retorno em <b>'+dia(d)+'</b>'+(!sab&&ama?'<span class="sab-sug">Não é sábado. <button type="button" data-rt-sab="'+sabadoPerto(d)+'">Usar '+dia(sabadoPerto(d))+'</button></span>':'')}
+  function dataExtensa(d){var x=utc(d);return cap(SEMLONGA[x.getUTCDay()])+', '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()]}
+  // a mensagem: "Oi, Carla! Aqui é a Amanda 💛 Como está a sua pele desde a última sessão? Correu tudo bem? ..."
+  function eDePele(t){return /pele|limpeza|mancha|espinha|cravo|acne|rosto|poro/.test(semAcento(t||''))}
+  function assuntoPadrao(serv){return eDePele(serv)?'a sua pele':''}
+  function textoRetorno(nome,assunto,foto,prof){
+    var a=String(assunto||'').trim().replace(/[?.!]+$/,''),q=a?'Como '+(/^(as|os)\s/i.test(a)?'estão ':'está ')+a+' desde a última sessão?':'Como você está desde a última sessão?';
+    return 'Oi, '+primeiro(nome)+'! Aqui é a '+primeiro(nomeProf(prof||minhaProf()))+' 💛\n\n'+q+' Correu tudo bem?\n\n'+
+      (foto?'Se puder, me manda uma foto pra gente acompanhar o resultado juntas.':'Me conta como você tá se sentindo pra gente acompanhar juntas.');
+  }
+  function msgRetorno(x){return x.mensagem||textoRetorno(x.nome,assuntoPadrao(x.servico),eDePele(x.servico),x.profissional)}
+  function sugestoesAssunto(serv){return eDePele(serv)?['a sua pele','as manchas','as espinhas']:/auricul/.test(semAcento(serv||''))?['as suas dores','o seu sono','a ansiedade']:['a sua pele','as suas dores','o seu sono']}
+  // o retorno em aberto de uma cliente da lista (pelo WhatsApp ou, sem ele, pelo nome)
+  function retDaCliente(x){
+    return (retornos||[]).filter(function(r){return (r.status==='pendente'||r.status==='enviada')&&(r.telefone?r.telefone===x.telefone:!x.telefone&&('nome:'+String(r.nome||'').trim().toLowerCase())===x.chave)})
+      .sort(function(a,b){return a.data<b.data?-1:1})[0]||null}
+  function abrirRetorno(o){
+    var ret=o.ret||null,serv=(ret&&ret.servico)||o.servico||'',fotoIni=ret&&ret.mensagem?/foto/i.test(ret.mensagem):eDePele((ret&&ret.obs)||serv);
+    rtela={ref:o.ref||null,nome:(ret&&ret.nome)||o.nome,servico:serv,base:o.base||hojeSP(),prof:(ret&&ret.profissional)||o.prof||minhaProf(),ret:ret,volta:o.volta||'inicio',
+      editando:false,dias:null,outra:false,data:ret?ret.data:'',assunto:ret?(ret.obs||''):assuntoPadrao(serv),foto:fotoIni,msg:'',editada:false};
+    rtela.msg=ret&&ret.mensagem?ret.mensagem:textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof);
+    rtela.editada=!!(ret&&ret.mensagem&&ret.mensagem!==textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof));
+    irAba('retorno');
+  }
+  function abrirRetHorario(r){var ret=retornoDe(r.id);fecharSheet();abrirRetorno({ref:r.id,nome:r.nome,servico:r.servico&&POR_FORA.indexOf(r.servico)<0?r.servico:'',base:r.data,prof:profDe(r),ret:ret,volta:'agenda'})}
+  function abrirRetCliente(x){var ret=retDaCliente(x);abrirRetorno({ref:x.ref,nome:x.nome,servico:x.ultimo_servico||(x.servicos&&x.servicos[0])||'',base:x.ref_data||x.ultima||hojeSP(),prof:(x.profissionais&&x.profissionais[0])||minhaProf(),ret:ret,volta:'clientes'})}
+  function rtAmanda(){return rtela&&rtela.prof==='amanda'}
+  function rtNoDia(){var r=rtela&&rtela.ret;return !!(r&&!rtela.editando&&(r.status==='pendente'||r.status==='enviada')&&r.data<=hojeSP())}
+  function desenharRetTela(){
+    var box=$('rtCorpo');if(!box||abaAtual!=='retorno')return;
+    if(!rtela){irAba('inicio');return}
+    var h=hojeSP(),r=rtela.ret,ini=esc((String(rtela.nome||'?').trim().charAt(0)||'?').toUpperCase()),VOLTAS={clientes:'Clientes',agenda:'Agenda',inicio:'Início'};
+    $('rtVoltar').setAttribute('data-ir',rtela.volta);$('rtVoltarT').textContent=VOLTAS[rtela.volta]||'Início';
+    var dia1=rtNoDia(),tt,st;
+    if(dia1){var atr=r.data<h;tt='Retorno';st=atr?'O retorno combinado com a '+primeiro(rtela.nome)+' já passou '+vezes(diasEntre(r.data,h),'dia','dias')+'.':'Hoje é o dia combinado com a '+primeiro(rtela.nome)+'.'}
+    else {tt=r?'Mudar retorno':'Marcar retorno';st='Você escolhe quando cada cliente deve voltar.'}
+    $('rtTit').textContent=tt;$('rtSub').textContent=st;
+    var ult=(rtela.base>h?'Próximo atendimento: ':'Último atendimento: ')+semana(rtela.base).slice(0,3)+', '+curta(rtela.base)+(rtela.servico?' · '+rtela.servico:'');
+    if(dia1){
+      var z=r.telefone?'https://wa.me/55'+r.telefone+'?text='+encodeURIComponent(msgRetorno(r)):'',env=r.status==='enviada',id=esc(r.id);
+      box.innerHTML='<div class="ret r-hoje"><div class="ret-top"><span class="ret-av" aria-hidden="true">'+ini+'</span><div class="ret-q"><b>'+esc(r.nome)+'</b><span>'+esc(ult)+'</span>'+pilulaRet(r,h)+'</div></div>'+
+        (r.obs?'<p class="ret-obs">'+IC_RET.volta+'<span>'+esc(r.obs)+'</span></p>':'')+
+        '<div class="bolha" id="rtBolha">'+esc(msgRetorno(r))+'<small>'+(env?'enviada '+esc(idade(r.enviada_em)):'prontinha para enviar')+'</small></div>'+
+        (z?'<a class="btn '+(env?'zap-leve':'zap')+' ret-zap" target="_blank" rel="noopener" data-ret-zap="'+id+'" href="'+esc(z)+'">'+IC_RET.zap+(env?'Chamar de novo':'Enviar no WhatsApp')+'</a>':'<p class="dica">Ela não tem WhatsApp no cadastro. Mande a mensagem por outro meio e marque aqui como foi.</p>')+
+        '<div class="ret-acoes"><button type="button" class="sim" data-ret="agendou" data-id="'+id+'">'+IC_RET.ok+'Agendou</button>'+
+          '<button type="button" data-ret="sem_resposta" data-id="'+id+'">'+IC_RET.nao+'Não respondeu</button>'+
+          '<button type="button" data-ret="'+(retAdiar===r.id?'fechar-adiar':'adiar')+'" data-id="'+id+'" aria-expanded="'+(retAdiar===r.id)+'">'+IC_RET.relogio+'Adiar</button></div>'+
+        (retAdiar===r.id?'<div class="adiar"><span class="adiar-t">Lembrar de novo em…</span><div class="chips">'+opcoesAdiar(r,h).map(function(o){return '<button class="chip" type="button" data-ret="para" data-d="'+o.d+'" data-id="'+id+'">'+o.t+'</button>'}).join('')+'</div>'+
+          '<label for="adData" style="margin:4px 0 0">ou escolha a data</label><div class="adiar-d"><input type="date" id="adData" min="'+h+'" max="'+somaDias(h,730)+'"><button class="btn main" type="button" data-ret="adiar-data" data-id="'+id+'">Salvar</button></div></div>':'')+
+        '</div><button class="btn ghost" type="button" data-rt="editar">Mudar a data ou a mensagem</button>'+
+        '<p class="r-nota">Depois de enviar, toque em <b>Agendou</b> quando ela marcar. Se ela não responder, você decide se chama de novo.</p>';
+      return;
+    }
+    var base=rtela.base,chips=DIAS_RET.map(function(n){var d=somaDias(base,n),ok=d>=h;
+      return '<button class="chip" type="button" data-rt-dias="'+n+'" aria-pressed="'+(rtela.dias===n)+'"'+(ok?'':' disabled')+'>'+n+' dias<small>'+(ok?curta(d):'já passou')+'</small></button>'}).join('')+
+      '<button class="chip" type="button" data-rt-outra aria-pressed="'+rtela.outra+'">'+GRAF_CAL+'<small>Outra data</small></button>';
+    box.innerHTML='<div class="r-cab"><span class="ret-av" aria-hidden="true">'+ini+'</span><div><b>'+esc(rtela.nome)+'</b><span>'+esc(ult)+'</span></div></div>'+
+      '<div class="r-sec">Quando ela deve voltar?<small>Contando a partir do '+(base>h?'próximo':'último')+' atendimento</small></div>'+
+      '<div class="r-chips" id="rtDias">'+chips+'</div>'+
+      '<div id="rtOutra"'+(rtela.outra?'':' hidden')+'><label for="rtData">Escolha a data</label><input type="date" id="rtData" min="'+h+'" max="'+somaDias(h,730)+'" value="'+esc(rtela.data)+'"></div>'+
+      '<div id="rtPrev">'+prevRetTela()+'</div>'+
+      '<div class="r-sec">O que acompanhar?<small>Vai na mensagem para ela</small></div>'+
+      '<input type="text" id="rtObs" maxlength="80" placeholder="Ex.: a sua pele, as suas dores" value="'+esc(rtela.assunto)+'" style="margin-top:10px">'+
+      '<div class="r-sug">'+sugestoesAssunto(rtela.servico).map(function(s){return '<button type="button" data-rt-sug="'+esc(s)+'">'+esc(s)+'</button>'}).join('')+'</div>'+
+      '<label class="check"><input type="checkbox" id="rtFoto"'+(rtela.foto?' checked':'')+'> Pedir uma foto para acompanhar</label>'+
+      '<div class="r-sec">Mensagem que você vai mandar no dia<small>Pode mudar o texto se quiser</small></div>'+
+      '<textarea id="rtMsg" maxlength="700" rows="7">'+esc(rtela.msg)+'</textarea>'+
+      '<button class="r-link" type="button" data-rt="sugerido"'+(rtela.editada?'':' hidden')+'>Voltar ao texto sugerido</button>'+
+      '<button class="btn main" type="button" data-rt="salvar" style="margin-top:16px">Salvar retorno</button>'+
+      (r?'<button class="ret-rem r-rem" type="button" data-rt="apagar">Remover este retorno</button>':'')+
+      '<p class="r-nota">No dia, ela aparece no Início e em Clientes, com o botão para você mandar. Nada é enviado sozinho.</p>';
+  }
+  var GRAF_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+  function prevRetTela(){
+    var d=rtela.data;if(!d)return '<p class="dica">Escolha quantos dias ou outra data.</p>';
+    var sab=utc(d).getUTCDay()===6,aj=rtela.ajustado;
+    return '<div class="r-data">'+GRAF_CAL+'<div><b>'+esc(dataExtensa(d))+'</b>'+(aj?'<span>Ajustado para o sábado mais perto, seu dia de atendimento.</span>':
+      !sab&&rtAmanda()?'<span class="sab-sug">Não é sábado. <button type="button" data-rt-sab="'+sabadoPerto(d)+'">Usar '+esc(dia(sabadoPerto(d)))+'</button></span>':'')+'</div></div>';
+  }
+  function rtRegerar(){if(!rtela||rtela.editada)return;rtela.msg=textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof);var m=$('rtMsg');if(m)m.value=rtela.msg}
+  function rtSetData(d,aj){rtela.data=d;rtela.ajustado=!!aj;var p=$('rtPrev');if(p)p.innerHTML=prevRetTela();var i=$('rtData');if(i&&i.value!==d)i.value=d}
   document.addEventListener('click',function(e){
+    if(!rtela)return;
     var c=e.target.closest('[data-rt-dias]');
-    if(c){var r=linha(aberto);if(!r)return;var n=+c.getAttribute('data-rt-dias'),base=r.data<hojeSP()?hojeSP():r.data,d=somaDias(base,n);
-      $('rtData').value=d;$('rtPrev').innerHTML=prevRet(d);[].forEach.call(document.querySelectorAll('[data-rt-dias]'),function(x){x.setAttribute('aria-pressed',x===c)});return}
-    var sb=e.target.closest('[data-rt-sab]');if(sb){var ds=sb.getAttribute('data-rt-sab');$('rtData').value=ds;$('rtPrev').innerHTML=prevRet(ds);[].forEach.call(document.querySelectorAll('[data-rt-dias]'),function(x){x.setAttribute('aria-pressed','false')});return}
+    if(c){var n=+c.getAttribute('data-rt-dias'),d=somaDias(rtela.base,n),aj=false;if(d<hojeSP())return;
+      if(rtAmanda()&&utc(d).getUTCDay()!==6){d=sabadoPerto(d);aj=true}
+      rtela.dias=n;rtela.outra=false;$('rtOutra').hidden=true;
+      [].forEach.call(document.querySelectorAll('#rtDias .chip'),function(x){x.setAttribute('aria-pressed',String(x===c))});rtSetData(d,aj);return}
+    if(e.target.closest('[data-rt-outra]')){rtela.dias=null;rtela.outra=true;$('rtOutra').hidden=false;
+      [].forEach.call(document.querySelectorAll('#rtDias .chip'),function(x){x.setAttribute('aria-pressed',String(x.hasAttribute('data-rt-outra')))});
+      var i=$('rtData');try{i.focus();if(i.showPicker)i.showPicker()}catch(x){}return}
+    var sb=e.target.closest('[data-rt-sab]');if(sb){rtSetData(sb.getAttribute('data-rt-sab'),false);return}
+    var sg=e.target.closest('[data-rt-sug]');if(sg){rtela.assunto=sg.getAttribute('data-rt-sug');$('rtObs').value=rtela.assunto;
+      if(eDePele(rtela.assunto)){rtela.foto=true;$('rtFoto').checked=true}rtRegerar();return}
     var b=e.target.closest('[data-rt]');if(!b)return;
-    var r2=linha(aberto);if(!r2||retOcup)return;
-    if(b.getAttribute('data-rt')==='apagar'){var rt=retornoDe(r2.id);if(!rt)return;retOcup=true;
-      api('POST','rpc/apagar_retorno',{p_id:rt.id}).then(function(){retOcup=false;toast('Retorno removido.');pergunta=null;return carregarRetornos()},function(er){retOcup=false;falha(er)});return}
-    var d=($('rtData')||{}).value,o=(($('rtObs')||{}).value||'').trim();
-    if(!d){toast('Escolha quantos dias ou uma data para o retorno.',true);return}
+    var a=b.getAttribute('data-rt');
+    if(a==='editar'){rtela.editando=true;rtela.dias=null;rtela.outra=false;desenharRetTela();window.scrollTo(0,0);return}
+    if(a==='sugerido'){rtela.editada=false;b.hidden=true;rtRegerar();return}
+    if(retOcup)return;
+    if(a==='apagar'){if(!rtela.ret)return;retOcup=true;
+      api('POST','rpc/apagar_retorno',{p_id:rtela.ret.id}).then(function(){retOcup=false;toast('Retorno removido.');var v=rtela.volta;return carregarRetornos().then(function(){irAba(v)})},function(er){retOcup=false;falha(er)});return}
+    if(a!=='salvar')return;
+    var d=rtela.data,o=($('rtObs').value||'').trim(),m=($('rtMsg').value||'').trim();
+    if(!d){toast('Escolha quando ela deve voltar.',true);return}
     if(d<hojeSP()){toast('Escolha uma data a partir de hoje.',true);return}
-    retOcup=true;
-    api('POST','rpc/salvar_retorno',{p_horario:r2.id,p_data:d,p_obs:o||null}).then(function(j){
-      retOcup=false;
-      if(!j||j.r!=='ok'){toast(j&&j.r==='data'?'Escolha uma data a partir de hoje.':j&&j.r==='dados'?'Tire o link da orientação e tente de novo.':'Não deu certo. Nada foi alterado. Tente de novo.',true);return}
-      toast('Retorno marcado para '+dia(d)+'.');pergunta=null;return carregarRetornos().then(function(){desenharSheet()});
-    },function(er){retOcup=false;falha(er)});
+    if(!rtela.ret&&!rtela.ref){toast('Essa cliente ainda não tem atendimento para ligar o retorno.',true);return}
+    retOcup=true;b.disabled=true;
+    var p=rtela.ret?api('POST','rpc/editar_retorno',{p_id:rtela.ret.id,p_data:d,p_obs:o||null,p_msg:m||null}):api('POST','rpc/salvar_retorno',{p_horario:rtela.ref,p_data:d,p_obs:o||null,p_msg:m||null});
+    p.then(function(j){
+      retOcup=false;b.disabled=false;
+      if(!j||j.r!=='ok'){toast(j&&j.r==='data'?'Escolha uma data a partir de hoje.':j&&j.r==='dados'?'Tire o link do texto e tente de novo.':'Não deu certo. Nada foi alterado. Tente de novo.',true);return}
+      toast('Retorno marcado para '+dia(d)+'.');var v=rtela.volta;return carregarRetornos().then(function(){irAba(v)});
+    },function(er){retOcup=false;b.disabled=false;if(er==='ausente'){toast('Falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).',true);return}falha(er)});
   });
-  document.addEventListener('input',function(e){if(e.target&&e.target.id==='rtData'){$('rtPrev').innerHTML=prevRet(e.target.value);[].forEach.call(document.querySelectorAll('[data-rt-dias]'),function(x){x.setAttribute('aria-pressed','false')})}});
+  document.addEventListener('input',function(e){
+    var t=e.target;if(!rtela||!t)return;
+    if(t.id==='rtObs'){rtela.assunto=t.value;rtRegerar()}
+    else if(t.id==='rtMsg'){rtela.msg=t.value;rtela.editada=true;var s=document.querySelector('[data-rt="sugerido"]');if(s)s.hidden=false}
+    else if(t.id==='rtData'&&/^\d{4}-\d\d-\d\d$/.test(t.value)){rtela.dias=null;rtSetData(t.value<hojeSP()?hojeSP():t.value,false)}
+  });
+  document.addEventListener('change',function(e){var t=e.target;if(rtela&&t&&t.id==='rtFoto'){rtela.foto=t.checked;rtRegerar()}});
+
 
   // ---------- ações (só valem se o horário ainda estiver como ela viu) ----------
   var MUDOU='Esse horário mudou enquanto você olhava (talvez uma cliente tenha pedido agora). Atualizei a tela: confira e tente de novo.';
@@ -679,6 +776,7 @@
     if(a==='fechar'){fecharSheet();return}
     if(a==='voltar'){pergunta=null;destino=null;desenharSheet();return}
     if(!r)return;
+    if(a==='perg-retorno'){abrirRetHorario(r);return}
     if(a.indexOf('perg-')===0){aberto=r.id;pergunta=a.slice(5);destino=null;desenharSheet();return}
     executar(a,r);
   });
@@ -910,6 +1008,7 @@
     if(a==='protecao')protecao(b.getAttribute('data-ligar')==='1',b);
     if(a==='sair-outros')sairOutros(b);
     if(a==='cli-obs')abrirObs(b.getAttribute('data-chave'));
+    if(a==='cli-ret'){var xc=cliPorChave(b.getAttribute('data-chave'));if(xc)abrirRetCliente(xc)}
     if(a==='ntfy-copiar')copiarCodigo();
     if(a==='ntfy-teste')testarNtfy(b);
     if(a==='resumo-agora')resumoAgora(b);
@@ -1647,33 +1746,45 @@
       '\n\nÉ só responder '+(l.length>1?'1 ou 2':'"quero"')+' que eu já reservo.':'Qual dia fica bom para você nas próximas semanas? Me responde aqui que eu encaixo você.';
     return 'Oi, '+n+'! Aqui é a Amanda 🌿\n\n'+motivo+'\n\n'+op+'\n\nE lembra: se uma amiga fizer o primeiro atendimento comigo por indicação sua, você ganha 1 sessão de auriculoterapia. Te espero!';
   }
+  var IC_NOTA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
   function zapCliente(x,volta){if(!x.telefone)return '';
     var t=volta?conviteVolta(x):'Oi, '+primeiro(x.nome)+'! Aqui é a Amanda.';
     return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t)}
   function desenharClientes(){
     var el=$('cliLista'),b=$('cliBusca').value.trim().toLowerCase(),bd=b.replace(/\D/g,'');
-    var nSum=(clientes||[]).filter(sumida).length;
+    var nSum=(clientes||[]).filter(sumida).length,hj=hojeSP(),comRet=function(x){return retornos?retDaCliente(x):null},nRet=retornos?(clientes||[]).filter(comRet).length:0;
+    var cr=$('cliRet');cr.hidden=!retornos;cr.textContent='Retornos'+(clientes&&retornos?' ('+nRet+')':'');
+    if(cliFiltro==='retornos'&&!retornos)cliFiltro='todas';
     $('cliSumidas').textContent='Mais de '+DIAS_SEM_VIR+' dias sem vir'+(clientes?' ('+nSum+')':'');
     [].forEach.call(document.querySelectorAll('[data-cli-f]'),function(c){c.setAttribute('aria-pressed',c.getAttribute('data-cli-f')===cliFiltro)});
-    var l=(clientes||[]).filter(function(x){return (cliFiltro!=='sumidas'||sumida(x))&&(!b||semAcento(x.nome).indexOf(semAcento(b))>=0||(bd&&String(x.telefone||'').indexOf(bd)>=0))});
+    var l=(clientes||[]).filter(function(x){return (cliFiltro!=='sumidas'||sumida(x))&&(cliFiltro!=='retornos'||comRet(x))&&(!b||semAcento(x.nome).indexOf(semAcento(b))>=0||(bd&&String(x.telefone||'').indexOf(bd)>=0))});
     if(cliFiltro==='sumidas')l.sort(function(a,c){return a.ultima<c.ultima?-1:1});
+    if(cliFiltro==='retornos')l.sort(function(a,c){return comRet(a).data<comRet(c).data?-1:1});
     var total=(clientes||[]).length;
-    $('cliResumo').textContent=cliFiltro==='sumidas'?(nSum?'Clientes sem horário marcado e que não vêm há mais de '+DIAS_SEM_VIR+' dias. Que tal chamar?':''):total?total+(total>1?' clientes':' cliente')+(b?' · '+l.length+' encontrada'+(l.length===1?'':'s'):''):'';
-    if(!l.length){el.innerHTML='<p class="vazio">'+(cliFiltro==='sumidas'&&!b?'Nenhuma cliente há mais de '+DIAS_SEM_VIR+' dias sem vir. Ótimo sinal!':b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui quando marcam o primeiro horário ou quando você as cadastra em Enviar.')+'</p>';return}
+    $('cliResumo').textContent=cliFiltro==='retornos'?(nRet?'Clientes com retorno combinado, do mais perto para o mais longe.':''):cliFiltro==='sumidas'?(nSum?'Clientes sem horário marcado e que não vêm há mais de '+DIAS_SEM_VIR+' dias. Que tal chamar?':''):total?total+(total>1?' clientes':' cliente')+(b?' · '+l.length+' encontrada'+(l.length===1?'':'s'):''):'';
+    if(!l.length){el.innerHTML='<p class="vazio">'+(cliFiltro==='retornos'&&!b?'Quando você marcar o retorno de uma cliente (botão Retorno), ela aparece aqui.':cliFiltro==='sumidas'&&!b?'Nenhuma cliente há mais de '+DIAS_SEM_VIR+' dias sem vir. Ótimo sinal!':b?'Nenhuma cliente encontrada.':'As clientes aparecem aqui quando marcam o primeiro horário ou quando você as cadastra em Enviar.')+'</p>';return}
     el.innerHTML=l.map(function(x){
       var prox=x.proxima?String(x.proxima).replace('T',' '):'',pd=prox.slice(0,10),ph=prox.slice(11,16);
       var sumiu=sumida(x),z=zapCliente(x,sumiu);
       var cad=x.contato_id?(eu&&eu.socia?'<button class="btn ghost" type="button" data-acao="contato-editar" data-contato="'+esc(x.contato_id)+'">Editar contato</button>':
         (function(zc){return zc?'<a class="btn ghost" target="_blank" rel="noopener" href="'+esc(zc)+'">Pedir correção</a>':''})(zapCorrecao(x))):'';
-      return '<div class="card cli"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+(x.contato_id?'<span class="tag">Cadastro travado</span>':'')+(todas()&&x.profissionais&&x.profissionais.length?'<span class="tag-prof">com '+esc(x.profissionais.map(function(i){return primeiro(nomeProf(i))}).join(', '))+'</span>':'')+'</div>'+
+      var rt=comRet(x),due=rt&&rt.data<=hj&&rt.status==='pendente',zr=due?zapRetorno(rt):'',podeRet=!!retornos&&!!(rt||x.ref);
+      var faixa=rt?'<div class="cli-ret'+(rt.data<hj?' atras':rt.data===hj?' hoje':'')+'">'+IC_RET.volta+'<div><b>Retorno combinado</b><span>'+esc(rt.obs||rt.servico||'Acompanhar como ela está')+'</span></div>'+pilulaRet(rt,hj)+'</div>'+
+        (zr?'<a class="btn zap" target="_blank" rel="noopener" data-ret-zap="'+esc(rt.id)+'" href="'+esc(zr)+'">'+IC_RET.zap+'Enviar mensagem de retorno</a>':'')+
+        (rt.status==='enviada'?'<p class="cli-ret-env">'+IC_RET.ok+'Mensagem de retorno enviada '+esc(idade(rt.enviada_em))+'</p>':''):'';
+      // com retorno combinado, a mensagem certa é a do retorno: o WhatsApp do cartão volta a ser um "oi" simples
+      if(rt){sumiu=false;z=zapCliente(x,false)}
+      var acoes=[z?'<a class="z" target="_blank" rel="noopener" href="'+esc(z)+'">'+IC_RET.zap+(sumiu?'Convidar a voltar':'WhatsApp')+'</a>':'<span class="vazio-z">Sem WhatsApp</span>'];
+      if(podeRet)acoes.push('<button type="button"'+(rt?'':' class="r"')+' data-acao="cli-ret" data-chave="'+esc(x.chave)+'">'+IC_RET.volta+(rt?'Retorno':'Marcar retorno')+'</button>');
+      acoes.push('<button type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+IC_NOTA+(x.obs?'Editar anotação':'Anotar')+'</button>');
+      return '<div class="card cli'+(due?' cli-hoje':'')+'"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+(x.contato_id?'<span class="tag">Cadastro travado</span>':'')+(todas()&&x.profissionais&&x.profissionais.length?'<span class="tag-prof">com '+esc(x.profissionais.map(function(i){return primeiro(nomeProf(i))}).join(', '))+'</span>':'')+'</div>'+
         '<div class="cli-d">'+(x.telefone?esc(fmtTel(x.telefone)):'Sem WhatsApp')+(x.servicos&&x.servicos.length?' · '+esc(x.servicos.join(', ')):'')+(x.faltas?' · não veio '+x.faltas+(x.faltas>1?' vezes':' vez'):'')+'</div>'+
         '<div class="cli-n"><div><b>'+x.atendimentos+'</b>'+(x.atendimentos===1?'atendimento':'atendimentos')+'</div>'+
           '<div><b>'+(x.ultima?esc(curta(x.ultima)):'—')+'</b>última vez'+(x.ultima?' ('+(diasDesde(x.ultima)===0?'hoje':'há '+diasDesde(x.ultima)+' dia'+(diasDesde(x.ultima)===1?'':'s'))+')':'')+'</div>'+
           '<div><b>'+(prox?esc(curta(pd)):'—')+'</b>'+(prox?'próximo, '+esc(hh(ph)):'sem horário marcado')+'</div></div>'+
-        (sumiu?'<div class="cli-volta">Faz '+diasDesde(x.ultima)+' dias que ela não vem. Que tal chamar?</div>':'')+
-        (x.obs?'<div class="cli-obs">'+esc(x.obs)+'</div>':'')+
-        '<div class="row">'+(z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">'+(sumiu?'Convidar a voltar':'WhatsApp')+'</a>':'<span></span>')+
-        '<button class="btn ghost" type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+(x.obs?'Editar anotação':'Anotar')+'</button></div>'+(cad?'<div class="row" style="margin-top:8px">'+cad+'</div>':'')+'</div>'}).join('');
+        (sumiu&&!rt?'<div class="cli-volta">Faz '+diasDesde(x.ultima)+' dias que ela não vem. Que tal chamar?</div>':'')+
+        (x.obs?'<div class="cli-obs">'+esc(x.obs)+'</div>':'')+faixa+
+        '<div class="cli-acoes" style="grid-template-columns:repeat('+acoes.length+',minmax(0,1fr))">'+acoes.join('')+'</div>'+(cad?'<div class="row" style="margin-top:8px">'+cad+'</div>':'')+'</div>'}).join('');
   }
   $('cliBusca').oninput=desenharClientes;
   function cliPorChave(k){return (clientes||[]).filter(function(x){return x.chave===k})[0]}

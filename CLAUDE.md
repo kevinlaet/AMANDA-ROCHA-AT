@@ -68,6 +68,14 @@ Leia este arquivo inteiro antes de mexer em qualquer coisa. Ele guarda o context
 - **Banco:** função nova `faturamento(p_de, p_ate, p_prof)` (mesmas regras de `meus_numeros`: sócia vê todas ou uma; parceira só a dela; até ~10 anos por pedido; não devolve telefone, só `cli` = md5 para contar clientes). O painel guarda os atendimentos já trazidos e só busca o que falta; recarrega quando os números mudam.
 - Testes: banco (10 checagens) e ponta a ponta (seção 4j, relógio em 20/10/2026), inclusive 320 px.
 
+## 4e. Retornos pela tela de Clientes e mensagem de acompanhamento (24/11/2026, na branch, aguardando o "pode")
+
+- **Pedido do Kevin:** a Amanda escolhe a data do retorno de cada cliente (depende da pele, do problema) e, no dia, tem um botão para mandar a mensagem. Telas separadas para não poluir. Prévia aprovada ("o resto ficou bom"), só a mensagem mudou.
+- **Mensagem (Kevin, 24/11):** acompanhamento, não convite: "Oi, {Nome}! Aqui é a Amanda 💛 / Como está a sua pele desde a última sessão? Correu tudo bem? / Se puder, me manda uma foto pra gente acompanhar o resultado juntas." Sem foto: "Me conta como você tá se sentindo pra gente acompanhar juntas." Assunto vazio: "Como você está desde a última sessão?". Verbo concorda ("Como estão as suas dores"). Limpeza de pele já vem com "a sua pele" e foto marcada. A Amanda pode editar o texto (botão "Voltar ao texto sugerido"). Vale também para o Início › Retornos próximos (retornos antigos sem mensagem usam a pergunta gerada pelo serviço).
+- **Clientes:** cartão com 3 botões iguais (WhatsApp · Retorno/Marcar retorno · Anotar); faixa "Retorno combinado" com o assunto e a data (pêssego no dia, vermelha se atrasado); no dia, botão verde "Enviar mensagem de retorno" (marca "enviada"); filtro "Retornos (N)".
+- **Tela Retorno** (aba `retorno`, volta para Clientes/Agenda): chips 15/21/30/45/60 dias contados do último atendimento (ou do próximo, se ainda não veio; os que já passaram ficam apagados) + "Outra data"; para a Amanda, ajusta para o sábado mais perto; "O que acompanhar?" com sugestões; "Pedir uma foto"; a mensagem editável; Salvar/Remover. No dia: mensagem pronta, "Enviar no WhatsApp", Agendou / Não respondeu / Adiar e "Mudar a data ou a mensagem". A ficha do atendimento (Agenda › "Marcar retorno") abre esta mesma tela.
+- **Banco:** `retornos.mensagem` (≤ 700), `salvar_retorno(p_horario, p_data, p_obs, p_msg)` (a versão de 3 argumentos é apagada), `editar_retorno(p_id, p_data, p_obs, p_msg)`, `retornos_lista` devolve a mensagem, `clientes_resumo` devolve `ref`/`ref_data` (o atendimento que liga o retorno). Links na mensagem são recusados.
+
 ## 5. Como trabalhar (checklist antes de entregar)
 
 1. `cd tests && npm ci && npx playwright install chromium` (uma vez), depois `npm test` (banco com PGlite + ponta a ponta com Playwright). **Todos devem passar** antes de qualquer push (hoje: 301 checagens no site, mais os do banco).
