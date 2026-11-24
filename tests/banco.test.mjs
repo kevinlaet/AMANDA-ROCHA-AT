@@ -434,6 +434,18 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
   ok(n.total.atendimentos === 8 && Number(n.total.faturamento) === 480 && n.total.clientes === 5 && n.total.desde === '2026-08-15', `desde o começo: 8 atendimentos, R$ 480, 5 clientes diferentes ("marcado por fora" não conta como cliente) — veio ${n.total.atendimentos}, R$ ${n.total.faturamento}, ${n.total.clientes}`);
   ok(n.faltas === 1 && n.meta === null, 'conta as faltas; sem meta definida');
 
+  // faturamento detalhado (filtros do painel): bate com Seus números
+  const soma = (l) => l.filter((r) => !r.faltou).reduce((t, r) => t + Number(r.valor ?? 0), 0);
+  const fOut = (await comoAmanda(`select public.faturamento('2026-10-01', '2026-10-31') j`))[0].j;
+  ok(fOut.linhas.filter((r) => !r.faltou).length === 5 && soma(fOut.linhas) === 235 && fOut.linhas.filter((r) => r.faltou).length === 1, 'faturamento detalhado de outubro: os mesmos 5 atendimentos e R$ 235 de Seus números; a falta vem marcada');
+  ok(!fOut.linhas.some((r) => r.nome === 'Duda Reis') && fOut.linhas.every((r) => r.data + ' ' + r.hora <= '2026-10-20 15:00'), 'faturamento detalhado: o que ainda não aconteceu fica de fora');
+  ok(fOut.desde === '2026-08-15' && fOut.hoje === '2026-10-20', 'faturamento detalhado: diz desde quando há atendimentos (a inauguração)');
+  const fTudo = (await comoAmanda(`select public.faturamento('2016-10-25', '2026-10-20') j`))[0].j.linhas;
+  ok(fTudo.filter((r) => !r.faltou).length === 8 && soma(fTudo) === 480 && new Set(fTudo.filter((r) => !r.faltou && r.cli).map((r) => r.cli)).size === 5, 'faturamento desde a inauguração: 8 atendimentos, R$ 480 e 5 clientes, igual a Seus números');
+  ok(fTudo.every((r) => !('telefone' in r)), 'faturamento detalhado: a resposta não traz telefone');
+  ok((await comoAmanda(`select public.faturamento('2026-10-31', '2026-10-01') j`))[0].j === null && (await comoAmanda(`select public.faturamento('2010-01-01', '2026-10-20') j`))[0].j === null, 'faturamento detalhado: período ao contrário ou longo demais é recusado');
+  ok(!!(await nb.como('anon', null, () => tenta(nq(`select public.faturamento('2026-10-01', '2026-10-31')`)))).erro && (await nb.como('authenticated', 'outra@pessoa.com', () => nq(`select public.faturamento('2026-10-01', '2026-10-31') j`)))[0].j === null, 'faturamento detalhado: visitante e outra conta não veem nada');
+
   // meta do mês
   ok((await comoAmanda(`select public.definir_meta(0) r`))[0].r === false && (await comoAmanda(`select public.definir_meta(-5) r`))[0].r === false, 'meta zero ou negativa é recusada');
   ok((await comoAmanda(`select public.definir_meta(2000) r`))[0].r === true && Number((await comoAmanda(`select public.meus_numeros() j`))[0].j.meta) === 2000, 'a Amanda define a meta do mês (R$ 2.000)');
@@ -703,6 +715,18 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
     for (let i = 0; i < 19; i++) await env(BIA, 'ideia ' + i);
     ok((await env(BIA, 'mais uma')).r === 'limite', 'sugestões: no máximo 20 por dia para cada pessoa');
   }
+
+  // faturamento detalhado com várias profissionais
+  await nq(`alter table horarios disable trigger trg_horario_passado`);
+  await nq(`insert into horarios (data, hora, status, nome, telefone, servico, profissional, pedido_em) values
+    ((public.agora_sp() - interval '3 days')::date, '09:00', 'confirmado', 'Teste Bia', '11930000009', 'Massagem', 'bia', now()),
+    ((public.agora_sp() - interval '3 days')::date, '09:00', 'confirmado', 'Teste Amanda', '11930000008', 'Auriculoterapia', 'amanda', now())`);
+  await nq(`alter table horarios enable trigger trg_horario_passado`);
+  const faixa = `public.agora_sp()::date - 30, public.agora_sp()::date`;
+  const fB = (await comoQ(BIA, `select public.faturamento(${faixa}, 'amanda') j`))[0].j.linhas;
+  ok(fB.length === 1 && fB[0].profissional === 'bia', 'faturamento detalhado: a parceira pedindo o da Amanda recebe só o dela');
+  ok(new Set((await comoQ(SANDRA, `select public.faturamento(${faixa}) j`))[0].j.linhas.map((r) => r.profissional)).size === 2, 'faturamento detalhado: a sócia vê o de todas juntas');
+  ok((await comoQ(SANDRA, `select public.faturamento(${faixa}, 'bia') j`))[0].j.linhas.map((r) => r.nome).join() === 'Teste Bia', 'faturamento detalhado: ou só o de uma profissional');
 
   // a atualização roda de novo sem estragar nada
   const rr = await tenta(sal.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8')));

@@ -1300,7 +1300,56 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/Faturamento de outubro/.test(t) && /R\$ 235/.test(t) && /3 atendimentos este mês/.test(t), 'Início mostra o faturamento do mês (R$ 235) e os 3 atendimentos: ' + t.replace(/\n+/g, ' / '));
   ok(/Você já passou setembro \(R\$ 80\)/.test(t), 'sem meta, compara com o mês passado (setembro, R$ 80)');
   ok(/\+ R\$ 75 em 1 atendimento já marcado até o fim do mês/.test(t), 'mostra quanto já está marcado até o fim do mês');
+  ok(/desde a inauguração\s*R\$ 315\s*4 atendimentos · desde 10\/09\/2026/i.test(t), 'Início mostra o faturamento desde a inauguração (R$ 315, 4 atendimentos)');
   await foto(N, 'painel-numeros', false);
+  // faturamento detalhado: filtros por dia, semana, mês, ano, tudo, período e procedimento
+  {
+    await N.click('#numeros [data-fat-ir]');
+    await N.waitForSelector('[data-aba="faturamento"]:not([hidden]) #fatRes .fat-res');
+    const fres = () => N.locator('#fatRes').innerText();
+    const rot = () => N.locator('#fatRot').innerText();
+    const itens = () => N.locator('#fatRes .fat-at li').count();
+    let f = await fres();
+    ok(/R\$ 235/.test(f) && /Setembro inteiro: R\$ 80/.test(f) && /\+ R\$ 75 em 1 atendimento já marcado até o fim do mês/.test(f), 'faturamento detalhado abre no mês: R$ 235, setembro para comparar e o que já está marcado');
+    ok(/Auriculoterapia\s*R\$ 160\s*2 atendimentos · 68%/.test(f) && /Limpeza de pele\s*R\$ 75\s*1 atendimento · 32%/.test(f), 'faturamento: separado por procedimento, com a parte de cada um');
+    ok(/Dia a dia/.test(f) && (await itens()) === 3 && /Média de R\$ 78,33 por atendimento/.test(f), 'faturamento: dia a dia, os 3 atendimentos e a média');
+    await foto(N, 'painel-faturamento');
+    await N.selectOption('#fatServ', 'Limpeza de pele');
+    f = await fres();
+    ok(/Faturamento · Limpeza de pele/.test(f) && /R\$ 75/.test(f) && (await itens()) === 1 && !/Por procedimento/.test(f), 'faturamento: filtro por procedimento (só a limpeza, R$ 75)');
+    await N.selectOption('#fatServ', '');
+    await N.click('[data-fat-n="-1"]');
+    ok(/Setembro/.test(await rot()) && /R\$ 80/.test(await fres()) && await N.locator('[data-fat-n="-1"]').isDisabled(), 'faturamento: a seta volta para setembro (R$ 80), e antes da inauguração não volta mais');
+    await N.click('[data-fat-n="1"]');
+    ok(/Outubro/.test(await rot()) && await N.locator('[data-fat-n="1"]').isDisabled(), 'faturamento: não avança para depois de hoje');
+    await N.click('[data-fat-p="dia"]');
+    ok(await aguarda(async () => /Hoje/.test(await rot()) && /Rita Souza/.test(await fres())) && /R\$ 80/.test(await fres()), 'faturamento por dia: abre no último dia com atendimento (hoje, Rita, R$ 80)');
+    await N.click('[data-fat-n="-1"]');
+    ok(/Quinta-feira/.test(await rot()) && /15 de outubro de 2026/.test(await rot()) && /Joana Lima/.test(await fres()), 'faturamento por dia: a seta pula para o dia anterior com atendimento (15/10)');
+    await N.click('[data-fat-p="semana"]');
+    f = await fres();
+    ok(/18 a 24 de outubro/.test(await rot()) && /R\$ 80/.test(f) && /Semana anterior: R\$ 75/.test(f) && /já marcado até o fim da semana/.test(f), 'faturamento por semana: de domingo a sábado, com a semana anterior e o que já está marcado');
+    await N.click('[data-fat-p="ano"]');
+    f = await fres();
+    ok(/2026/.test(await rot()) && /R\$ 315/.test(f) && /Mês a mês/.test(f) && (await N.locator('#fatRes .fat-bar').last().locator('li').count()) === 2, 'faturamento por ano: R$ 315, mês a mês desde a inauguração');
+    await N.click('[data-fat-p="tudo"]');
+    f = await fres();
+    ok(/Desde a inauguração/.test(await rot()) && /10\/09\/2026 até hoje/.test(await rot()) && /R\$ 315/.test(f) && /4\s*atendimentos/.test(f) && /3\s*clientes/.test(f), 'faturamento "Tudo": desde a inauguração (R$ 315, 4 atendimentos, 3 clientes)');
+    await N.click('[data-fat-p="periodo"]');
+    await N.fill('#fatIni', '2026-10-10'); await N.fill('#fatFim', '2026-10-20');
+    ok(await aguarda(async () => /R\$ 155/.test(await fres()) && (await itens()) === 2), 'faturamento por período: do dia 10 ao 20/10 (R$ 155)');
+    await N.click('#fatOlho [data-num="olho"]');
+    ok(/R\$ •••/.test(await fres()) && !/155/.test(await fres()), 'faturamento: o olho esconde os valores');
+    await N.click('#fatOlho [data-num="olho"]');
+    ok(/R\$ 155/.test(await fres()), 'faturamento: e mostra de novo');
+    await N.setViewportSize({ width: 320, height: 640 });
+    let largo = [];
+    for (const m of ['mes', 'dia', 'semana', 'ano', 'tudo', 'periodo']) { await N.click(`[data-fat-p="${m}"]`); if (await N.evaluate(() => document.documentElement.scrollWidth > 320)) largo.push(m); }
+    ok(!largo.length, 'faturamento em 320px: nada passa da tela ' + largo.join());
+    await N.setViewportSize(IPHONE.viewport);
+    await N.click('#fatVoltar');
+    ok(await N.locator('[data-aba="inicio"]').isVisible(), 'faturamento: "Início" volta para o Início');
+  }
   // olho: esconde os valores e lembra no aparelho
   await N.click('#numeros [data-num="olho"]');
   t = await cartao();

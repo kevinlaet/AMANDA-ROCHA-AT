@@ -412,6 +412,60 @@ button.ola-chip{cursor:pointer}
 .sug-st.andamento{background:#E9F4F1;color:var(--teal)}.sug-st.feita{background:var(--ok-bg);color:var(--ok)}
 .foto-grande{width:100%;max-height:60vh;object-fit:contain;border-radius:14px;background:var(--cream)}
 .sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0!important}
+/* faturamento (24/11): total desde a inauguração no Início e página com filtros */
+.nw{white-space:nowrap}
+.card span.nw,span.nw{display:inline}
+.num-tot{display:grid;gap:1px;margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--cream);border:1px solid var(--line);border-left:4px solid var(--peach)}
+.num-tot-l{font-size:11.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+.num-tot b{font-size:26px;font-weight:700;line-height:1.2;color:var(--teal-d);white-space:nowrap}
+.num-tot small{font-size:13.5px;color:var(--muted)}
+.fat-ir{display:grid;grid-template-columns:42px minmax(0,1fr) 20px;align-items:center;gap:12px;width:100%;margin-top:12px;padding:12px 12px 12px 14px;min-height:64px;border-radius:16px;border:1.5px solid #CFE5E0;background:#fff;color:var(--teal);text-align:left;box-shadow:0 4px 14px rgba(11,95,89,.06)}
+.fat-ir .fi-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#E9F4F1;color:var(--teal)}
+.fat-ir .fi-ic svg{width:22px;height:22px}
+.fat-ir .fi-tx{min-width:0}
+.fat-ir b{display:block;font-size:15.5px;font-weight:800;line-height:1.3;color:var(--teal-d)}
+.fat-ir small{display:block;font-size:13px;color:var(--muted);margin-top:1px}
+.fat-ir>svg{width:20px;height:20px}
+.fat-ir:active{transform:scale(.99)}
+.link-meta{display:block;margin:8px auto 0;min-height:44px;padding:0 10px;background:none;border:0;color:var(--teal);font-weight:700;font-size:14.5px;text-decoration:underline;text-underline-offset:3px}
+.fat-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.fat-per{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.fat-per .chip{min-width:0;width:100%;padding:8px 4px}
+.fat-nav{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:center;gap:6px;margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px}
+.fat-nav[hidden]{display:none}
+.fat-seta{width:48px;height:48px;border-radius:12px;border:0;background:var(--cream);color:var(--teal);display:grid;place-items:center}
+.fat-seta:disabled{opacity:.3;cursor:default}
+.fat-seta svg{width:22px;height:22px}
+.fat-rot{position:relative;text-align:center;min-width:0;padding:2px 0}
+.fat-rot b{display:block;font-size:17px;font-weight:800;color:var(--teal-d);line-height:1.25}
+.fat-rot small{display:block;font-size:13px;color:var(--muted)}
+.fat-rot input{position:absolute;inset:0;width:100%;height:100%;min-height:0;opacity:0;cursor:pointer;border:0;padding:0}
+.fat-de{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px}
+.fat-de[hidden]{display:none}
+.fat-fil{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 10px}
+.fat-res{margin-top:16px}
+.fat-cmp{font-size:14.5px;font-weight:700;color:var(--muted);margin-top:2px}
+.fat-cmp.sobe{color:var(--ok)}
+.fat-mk{color:var(--teal-d);font-weight:600}
+.fat-mk.so{margin-top:12px;padding:10px 12px;border-radius:12px;background:#E9F4F1}
+@media (max-width:360px){.fat-ir{grid-template-columns:36px minmax(0,1fr) 18px;gap:10px;padding:12px 10px 12px 12px}.fat-ir .fi-ic{width:36px;height:36px}}
+.fat-calmo{margin-top:14px;padding:14px 16px;border-radius:16px;background:var(--cream);color:var(--muted);font-size:15px;text-align:center}
+.fat-bar{list-style:none;display:grid;gap:14px}
+.fat-bar li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.fat-bar .fb-n{font-weight:700;font-size:15px;min-width:0;overflow-wrap:anywhere}
+.fat-bar .fb-v{font-weight:700;color:var(--teal-d);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fat-bar small{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.fat-bar .barra{grid-column:1/-1;height:8px;margin-top:4px;border-radius:99px;background:#E3F0ED;overflow:hidden}
+.fat-bar .barra i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),#167469)}
+.fat-at{list-style:none;display:grid}
+.fat-at li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.fat-at li:first-child{border-top:0;padding-top:0}
+.fat-at li:last-child{padding-bottom:0}
+.fat-at b{display:block;font-size:15px;overflow-wrap:anywhere}
+.fat-at span{display:block;font-size:13.5px;color:var(--muted)}
+.fat-at .fa-v{font-size:15px;font-weight:700;color:var(--teal-d);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fat-at li.faltou b,.fat-at li.faltou .fa-v{color:var(--muted);font-weight:600}
+.fat-at+.btn{margin-top:12px}
 </style>
 </head>
 <body>
@@ -552,6 +606,25 @@ button.ola-chip{cursor:pointer}
       <li>Deu desconto, vendeu pacote ou foi cortesia? Toque no horário › <b>Editar dados</b> › <b>Valor cobrado</b> (cortesia é 0).</li>
       <li>A cliente não veio? Toque no horário › <b>Não veio</b> (ou aqui, em <b>Últimos 7 dias</b>, se lembrar depois). Ele sai da conta e fica anotado na ficha dela.</li>
       <li>O olho esconde os valores, para quando alguém estiver olhando a tela com você.</li>
+    </ul></details>
+    </section>
+
+    <section class="aba" data-aba="faturamento" hidden>
+    <button class="voltar" type="button" id="fatVoltar" data-ir="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span id="fatVoltarT">Início</span></button>
+    <div class="aba-topo fat-topo"><div><h2 class="aba-t">Faturamento</h2><p>Escolha o período e o procedimento. Só você vê.</p></div><span id="fatOlho"></span></div>
+    <div class="fat-per" role="group" aria-label="Período">
+      <button class="chip" type="button" data-fat-p="dia" aria-pressed="false">Dia</button><button class="chip" type="button" data-fat-p="semana" aria-pressed="false">Semana</button><button class="chip" type="button" data-fat-p="mes" aria-pressed="true">Mês</button>
+      <button class="chip" type="button" data-fat-p="ano" aria-pressed="false">Ano</button><button class="chip" type="button" data-fat-p="tudo" aria-pressed="false">Tudo</button><button class="chip" type="button" data-fat-p="periodo" aria-pressed="false">Período</button>
+    </div>
+    <div class="fat-nav" id="fatNav"><button class="fat-seta" type="button" data-fat-n="-1" aria-label="Ver o anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="fat-rot" id="fatRot" aria-live="polite"></div><button class="fat-seta" type="button" data-fat-n="1" aria-label="Ver o seguinte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
+    <div class="fat-de" id="fatDe" hidden><div><label for="fatIni">De</label><input type="date" id="fatIni"></div><div><label for="fatFim">Até</label><input type="date" id="fatFim"></div></div>
+    <div class="fat-fil"><div><label for="fatServ">Procedimento</label><select id="fatServ"><option value="">Todos</option></select></div><div id="fatProfBox" hidden><label for="fatProf">Profissional</label><select id="fatProf"></select></div></div>
+    <div id="fatRes"><p class="vazio">Carregando…</p></div>
+    <details class="ajuda"><summary>Como é contado</summary><ul>
+      <li>Entra cada atendimento <b>confirmado</b> depois que o horário começa. Pedido sem confirmar não conta.</li>
+      <li>O valor é o que ficou no horário (o preço do dia em que a cliente marcou, ou o que você ajustou em <b>Editar dados</b>).</li>
+      <li>Quando a cliente não veio, o atendimento aparece na lista, mas fica fora da conta.</li>
+      <li><b>Tudo</b> mostra desde a inauguração. Em <b>Período</b>, você escolhe o primeiro e o último dia.</li>
     </ul></details>
     </section>
 

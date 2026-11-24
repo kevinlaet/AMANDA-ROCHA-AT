@@ -2102,6 +2102,53 @@ begin
 end;
 $$;
 
+-- Faturamento detalhado (painel): os atendimentos já feitos entre duas datas, para os filtros
+-- por dia, semana, mês, período e procedimento. Mesmas regras de Seus números: a sócia vê o salão todo
+-- (ou uma profissional); a parceira, só os dela. "cli" é só uma marca para contar clientes diferentes.
+create or replace function public.faturamento(p_de date, p_ate date, p_prof text default null)
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_agora timestamp := public.agora_sp();
+  v_eu text := public.minha_profissional();
+  v_socia boolean := public.sou_admin();
+begin
+  if not v_socia and v_eu is null then
+    return null;
+  end if;
+  if not v_socia then
+    p_prof := v_eu;
+  end if;
+  if p_de is null or p_ate is null or p_ate < p_de or p_ate - p_de > 3700 then
+    return null;
+  end if;
+  return json_build_object(
+    'hoje', v_agora::date,
+    'desde', (select min(h.data) from public.horarios h
+               where h.status = 'confirmado' and not h.faltou and (h.data + h.hora::time) <= v_agora
+                 and (p_prof is null or h.profissional = p_prof)),
+    'primeiro', (select min(h.data) from public.horarios h
+                  where h.status = 'confirmado' and (h.data + h.hora::time) <= v_agora
+                    and (p_prof is null or h.profissional = p_prof)),
+    'linhas', (select coalesce(json_agg(json_build_object(
+                 'data', h.data, 'hora', h.hora, 'servico', h.servico, 'nome', h.nome, 'faltou', h.faltou,
+                 'profissional', h.profissional,
+                 'cli', case when h.nome <> 'Marcado por fora' then md5(coalesce(h.telefone, 'nome:' || lower(btrim(h.nome)))) end,
+                 'valor', coalesce(h.valor, (select s.preco from public.servicos s
+                                              where s.profissional = h.profissional and lower(s.nome) = lower(btrim(coalesce(h.servico, ''))) limit 1))
+               ) order by h.data, h.hora), '[]'::json)
+                 from public.horarios h
+                where h.status = 'confirmado' and h.data between p_de and p_ate
+                  and (h.data + h.hora::time) <= v_agora
+                  and (p_prof is null or h.profissional = p_prof))
+  );
+end;
+$$;
+
 -- Meta do mês de uma profissional (vazia tira a meta)
 drop function if exists public.definir_meta(numeric);
 create or replace function public.definir_meta(p_valor numeric, p_prof text default null)
@@ -2731,3 +2778,5 @@ grant execute on function public.sugestoes_dev() to authenticated;
 grant execute on function public.marcar_sugestao(uuid, text) to authenticated;
 grant execute on function public.foto_sugestao(uuid) to authenticated;
 grant execute on function public.testar_aviso_dev() to authenticated;
+revoke all on function public.faturamento(date, date, text) from public, anon, authenticated;
+grant execute on function public.faturamento(date, date, text) to authenticated;

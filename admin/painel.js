@@ -10,6 +10,9 @@
   var motivoEstranho='',servs=null,bancoVelho=false,destino=null,guard=null,semGuardiao=false,abaAtual='inicio';
   var hist={itens:[],fim:false,busca:'',ok:false,seq:0};
   var retornos=null,retAdiar=null,retOcup=false;
+  // faturamento detalhado: filtro escolhido e os atendimentos já trazidos do banco (de carregadoDe até hoje)
+  var fat={modo:'mes',ancora:null,de:null,ate:null,serv:'',prof:'',linhas:null,carregadoDe:null,desde:null,seq:0,mais:40,volta:'inicio',erro:'',carregando:false,diaAuto:false,fp:null};
+  function zerarFat(){fat.linhas=null;fat.carregadoDe=null;fat.desde=null;fat.seq++;fat.carregando=false;fat.erro=''}
   // Várias profissionais: o mesmo painel serve a Amanda (site dela) e o Studio La Rocha (window.PAINEL, em marca.js)
   var P=window.PAINEL||{};
   var eu=null,profs=[],recursos=null,visao='minha';
@@ -94,7 +97,7 @@
   var VINTE_QUATRO_HORAS=24*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
   function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>VINTE_QUATRO_HORAS)}
-  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;zerarFat();fat.prof='';fat.serv='';fat.fp=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
   var MSG_24H='Por segurança, o painel pede a senha uma vez por dia. Entre de novo, por favor.';
   function msgExpirou(){return MSG_24H}
   var renovando=null;
@@ -173,6 +176,7 @@
   function irAba(n){
     if(!document.querySelector('[data-aba="'+n+'"]'))n='inicio';
     abaAtual=n;var nav=DO_MAIS[n]?'mais':n;
+    if(n==='faturamento')nav=fat.volta==='numeros'?'mais':'inicio';
     [].forEach.call(document.querySelectorAll('[data-aba]'),function(x){x.hidden=x.getAttribute('data-aba')!==n});
     [].forEach.call(document.querySelectorAll('[data-aba-btn]'),function(b){b.setAttribute('aria-current',b.getAttribute('data-aba-btn')===nav?'page':'false')});
     try{sessionStorage.setItem('amanda-aba',n)}catch(e){}
@@ -180,6 +184,7 @@
     if(n==='historico'&&sess)carregarHist(true);
     if(n==='clientes'&&sess)carregarClientes();
     if(n==='numeros'&&sess)carregarNumeros();
+    if(n==='faturamento'&&sess&&eu)carregarFat();
     if(n==='conta')$('cEmail').textContent=sess&&emailSessao()?'Conectada como '+emailSessao():'Conectada';
     if(n==='seguranca')verSeguranca();
     desenharSelos();
@@ -278,7 +283,7 @@
   }
   document.addEventListener('click',function(e){var b=e.target.closest('[data-visao]');if(!b)return;
     visao=b.getAttribute('data-visao')==='todas'?'todas':'minha';try{localStorage.setItem('amanda-visao',visao)}catch(x){}
-    clientes=null;numeros=null;hist.ok=false;desenharVisao();carregar().then(function(){if(abaAtual==='clientes')carregarClientes();if(abaAtual==='numeros')carregarNumeros()})});
+    clientes=null;numeros=null;hist.ok=false;zerarFat();fat.prof='';fat.fp=null;desenharVisao();carregar().then(function(){if(abaAtual==='clientes')carregarClientes();if(abaAtual==='numeros')carregarNumeros()})});
 
 
   // ---------- Início: saudação, próximos 2 meses e convite para divulgar ----------
@@ -1286,7 +1291,10 @@
   var seqNum=0;
   function carregarNumeros(){
     var minha=++seqNum;
-    return api('POST','rpc/meus_numeros',comProf()).then(function(j){if(minha!==seqNum)return;numeros=j&&j.mes?j:null;semNumeros=false;desenharNumeros();if(numeros)carregarRecentes()},
+    return api('POST','rpc/meus_numeros',comProf()).then(function(j){if(minha!==seqNum)return;numeros=j&&j.mes?j:null;semNumeros=false;desenharNumeros();if(numeros)carregarRecentes();
+      // mudou algum atendimento (valor, não veio, horário que passou): o faturamento detalhado busca de novo
+      var fp=numeros?JSON.stringify([numeros.total,numeros.mes,numeros.faltas]):null;if(fat.fp!==null&&fp!==fat.fp)zerarFat();fat.fp=fp;
+      if(abaAtual==='faturamento'&&!fat.linhas&&!fat.carregando)carregarFat()},
       function(e){if(minha!==seqNum)return;if(e==='ausente'){numeros=null;semNumeros=true;desenharNumeros()}});
   }
   // atendimentos dos últimos 7 dias (a agenda só mostra de hoje em diante): para marcar quem não veio depois
@@ -1297,7 +1305,8 @@
   }
   // R$ 1.140 ou R$ 89,90; com o olho fechado, os totais viram R$ •••
   function rs(v){v=+v||0;return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})}
-  function dinheiro(v){return ocultar?'R$ •••':rs(v)}
+  // nunca quebra entre o R$ e o número
+  function dinheiro(v){return '<span class="nw">'+(ocultar?'R$ •••':rs(v))+'</span>'}
   function vezes(n,um,varios){return n+' '+(n===1?um:varios)}
   // o maior marco (10, 25, 50...) que ela passou neste mês
   function marcoDoMes(n){var t=+n.total.atendimentos,ini=t-(+n.mes.atendimentos),m=null;MARCOS.forEach(function(x){if(ini<x&&x<=t)m=x});return m}
@@ -1320,7 +1329,10 @@
     if(nMc)h+='<p class="num-x">+ '+(ocultar?'':dinheiro(mc.faturamento)+' em ')+vezes(nMc,'atendimento já marcado','atendimentos já marcados')+' até o fim do mês'+(meta&&!batida&&fat+(+mc.faturamento)>=meta?'. Com eles, você bate a meta! 💪':'.')+'</p>';
     if(+m.sem_valor)h+='<p class="num-x">'+vezes(+m.sem_valor,'atendimento sem preço ainda não entrou','atendimentos sem preço ainda não entraram')+' na conta. Coloque o preço em Mais › Serviços e preços.</p>';
     if(marco)h+='<p class="num-x marco">🎉 Este mês você chegou a '+marco+' atendimentos desde o começo!</p>';
-    h+='<div class="row">'+(meta?'':'<button class="btn ghost" type="button" data-num="meta-ir">Definir uma meta</button>')+'<button class="btn ghost" type="button" data-ir="numeros"'+(meta?' style="grid-column:1/-1"':'')+'>Ver meus números</button></div>';
+    var t0=n.total||{};
+    if(+t0.atendimentos)h+='<div class="num-tot"><span class="num-tot-l">Desde a inauguração</span><b>'+dinheiro(t0.faturamento)+'</b><small>'+vezes(+t0.atendimentos,'atendimento','atendimentos')+(t0.desde?' · <span class="nw">desde '+dataBR(t0.desde)+'</span>':'')+'</small></div>';
+    h+=botaoFat()+
+      (meta?'':'<button class="link-meta" type="button" data-num="meta-ir">Definir uma meta do mês</button>');
     card.innerHTML=h;card.hidden=false;
     // com ela digitando a meta, não redesenha a página (não apaga o que está sendo digitado)
     if(document.activeElement&&document.activeElement.id==='metaV')return;
@@ -1329,7 +1341,8 @@
     det.innerHTML='<div class="card num-d"><div class="num-top"><span class="num-l">'+cap(mes)+'</span>'+botaoOlho()+'</div>'+
         '<div class="num-kpi"><div><b>'+dinheiro(fat)+'</b><span>faturamento</span></div><div><b>'+m.atendimentos+'</b><span>'+(+m.atendimentos===1?'atendimento':'atendimentos')+'</span></div></div>'+
         (n.servicos.length?'<ul class="num-serv">'+n.servicos.map(function(x){return '<li><span>'+esc(x.servico)+'</span><span>'+vezes(+x.atendimentos,'atendimento','atendimentos')+' · '+dinheiro(x.faturamento)+'</span></li>'}).join('')+'</ul>':'<p class="dica">Nenhum atendimento ainda este mês.</p>')+
-        (+m.sem_valor?'<p class="dica">'+vezes(+m.sem_valor,'atendimento sem preço não entrou','atendimentos sem preço não entraram')+' no faturamento. Coloque o preço em Mais › Serviços e preços ou no próprio horário (Editar dados).</p>':'')+'</div>'+
+        (+m.sem_valor?'<p class="dica">'+vezes(+m.sem_valor,'atendimento sem preço não entrou','atendimentos sem preço não entraram')+' no faturamento. Coloque o preço em Mais › Serviços e preços ou no próprio horário (Editar dados).</p>':'')+
+        botaoFat()+'</div>'+
       (recentes&&recentes.length?'<h2>Últimos 7 dias</h2><div class="card"><ul class="num-ult">'+recentes.map(function(r){
         return '<li'+(r.faltou?' class="faltou"':'')+'><div><b>'+esc(r.nome)+'</b><span>'+esc(dia(r.data))+' às '+hh(r.hora)+' · '+esc(servRot(r))+(r.valor!=null?' · '+dinheiro(r.valor):'')+(r.faltou?' · não veio':'')+'</span></div>'+
           '<button class="btn ghost" type="button" data-num="faltou" data-id="'+esc(r.id)+'" data-v="'+(r.faltou?'0':'1')+'">'+(r.faltou?'Veio, sim':'Não veio')+'</button></li>'}).join('')+
@@ -1338,12 +1351,12 @@
         (meta?'<button class="btn ghost" type="button" data-num="meta-tirar" style="margin-top:10px">Tirar a meta</button>':'<p class="dica">Com uma meta, o Início mostra quanto falta a cada atendimento.</p>')+'</div>'+
       '<h2>Últimos 6 meses</h2><div class="card"><ul class="num-meses">'+n.meses.map(function(x){var f=mx>0?(+x.faturamento)/mx:mxN>0?(+x.atendimentos)/mxN:0;
         return '<li><span class="nm">'+cap(MESES[+String(x.mes).slice(5,7)-1].slice(0,3))+'</span><span class="barra" aria-hidden="true"><i style="width:'+Math.round(f*100)+'%"></i></span><span class="vl">'+vezes(+x.atendimentos,'atend.','atend.')+' · '+dinheiro(x.faturamento)+'</span></li>'}).join('')+'</ul></div>'+
-      '<h2>Desde o começo</h2><div class="card"><div class="num-kpi tres"><div><b>'+t.atendimentos+'</b><span>atendimentos</span></div><div><b>'+t.clientes+'</b><span>'+(+t.clientes===1?'cliente':'clientes')+'</span></div><div><b>'+dinheiro(t.faturamento)+'</b><span>faturamento</span></div></div>'+
+      '<h2>Desde a inauguração</h2><div class="card"><div class="num-kpi tres"><div><b>'+t.atendimentos+'</b><span>atendimentos</span></div><div><b>'+t.clientes+'</b><span>'+(+t.clientes===1?'cliente':'clientes')+'</span></div><div><b>'+dinheiro(t.faturamento)+'</b><span>faturamento</span></div></div>'+
         (desde?'<p class="dica">Desde '+desde.slice(8,10)+'/'+desde.slice(5,7)+'/'+desde.slice(0,4)+'.'+(+n.faltas?' '+vezes(+n.faltas,'vez','vezes')+' a cliente não veio (fora da conta).':'')+'</p>':'')+'</div>';
   }
   document.addEventListener('click',function(e){
     var b=e.target.closest('[data-num]');if(!b)return;var a=b.getAttribute('data-num');
-    if(a==='olho'){ocultar=!ocultar;try{localStorage.setItem('amanda-ocultar-valores',ocultar?'1':'0')}catch(x){}desenharNumeros();
+    if(a==='olho'){ocultar=!ocultar;try{localStorage.setItem('amanda-ocultar-valores',ocultar?'1':'0')}catch(x){}desenharNumeros();desenharFat();
       var o=document.querySelector('[data-aba]:not([hidden]) [data-num="olho"]');if(o)o.focus();return}
     if(a==='meta-ir'){irAba('numeros');var i=$('metaV');if(i)i.focus();return}
     if(a==='faltou'){var fv=b.getAttribute('data-v')==='1';b.disabled=true;
@@ -1358,6 +1371,180 @@
       if(!ok){toast('Não deu certo. Confira o valor e tente de novo.',true);return}
       toast(v?'Meta salva: '+rs(v)+' por mês.':'Meta tirada.');if(document.activeElement)document.activeElement.blur();carregarNumeros()},falha)
       .then(function(){b.disabled=false});
+  });
+
+  // ---------- faturamento detalhado: por dia, semana, mês, ano, período, procedimento (e profissional) ----------
+  // Os atendimentos feitos vêm do banco (rpc faturamento) e ficam guardados de fat.carregadoDe até hoje.
+  // Os filtros só recortam essa lista: trocar de filtro é na hora, e só se busca no banco o que ainda falta.
+  var GRAF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>';
+  var SETA_D='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  function botaoFat(){return '<button class="fat-ir" type="button" data-fat-ir><span class="fi-ic">'+GRAF+'</span><span class="fi-tx"><b>Verificar faturamento detalhado</b><small>Por dia, semana, mês e procedimento</small></span>'+SETA_D+'</button>'}
+  function dataBR(d){d=String(d);return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)}
+  function primeiroDoMes(d){return d.slice(0,8)+'01'}
+  function somaMeses(d,n){var p=d.split('-'),m=(+p[0])*12+(+p[1])-1+n;return Math.floor(m/12)+'-'+dd(m%12+1)+'-01'}
+  function fimDoMes(d){return somaDias(somaMeses(d,1),-1)}
+  function inicioSemana(d){return somaDias(d,-utc(d).getUTCDay())}
+  function difDias(a,b){return Math.round((utc(b)-utc(a))/864e5)}
+  function nomeMes(d){return MESES[+d.slice(5,7)-1]}
+  // o intervalo do filtro e o anterior, para comparar (semana, mês e ano)
+  function fatIntervalo(){
+    var h=hojeSP(),a=fat.ancora||h,m=fat.modo,iv={ant:null};
+    if(m==='dia'){iv.de=iv.ate=a}
+    else if(m==='semana'){iv.de=inicioSemana(a);iv.ate=somaDias(iv.de,6);iv.ant=[somaDias(iv.de,-7),somaDias(iv.de,-1)];iv.cmp='a semana anterior';iv.ref='Semana anterior'}
+    else if(m==='ano'){var y=+a.slice(0,4);iv.de=y+'-01-01';iv.ate=y+'-12-31';iv.ant=[(y-1)+'-01-01',(y-1)+'-12-31'];iv.cmp=String(y-1);iv.ref=(y-1)+' inteiro'}
+    else if(m==='tudo'){iv.de=fat.desde||h;iv.ate=h}
+    else if(m==='periodo'){iv.de=fat.de||primeiroDoMes(h);iv.ate=fat.ate||h;if(iv.ate<iv.de){var x=iv.de;iv.de=iv.ate;iv.ate=x}}
+    else {iv.de=primeiroDoMes(a);iv.ate=fimDoMes(a);iv.ant=[somaMeses(iv.de,-1),somaDias(iv.de,-1)];iv.cmp=nomeMes(iv.ant[0]);iv.ref=cap(nomeMes(iv.ant[0]))+' inteiro'}
+    iv.emCurso=iv.ate>=h;
+    return iv;
+  }
+  // a partir de que dia precisa ter os atendimentos (dia e "tudo" usam a história toda, para pular entre os dias)
+  function fatPrecisa(iv){return fat.modo==='dia'||fat.modo==='tudo'?somaDias(hojeSP(),-3650):iv.ant?iv.ant[0]:iv.de}
+  function carregarFat(){
+    if(!sess||!eu)return;
+    var h=hojeSP(),precisa=fatPrecisa(fatIntervalo());
+    if(fat.linhas&&fat.carregadoDe<=precisa){desenharFat();return}
+    var ate=fat.linhas?somaDias(fat.carregadoDe,-1):h,de=precisa,minha=++fat.seq;
+    if(difDias(de,ate)>3650)de=somaDias(ate,-3650);
+    fat.carregando=true;desenharFat();
+    api('POST','rpc/faturamento',comProf({p_de:de,p_ate:ate})).then(function(j){
+      if(minha!==fat.seq)return;fat.carregando=false;
+      if(!j||!j.linhas){fat.erro='acesso';desenharFat();return}
+      fat.erro='';fat.desde=j.desde||null;fat.linhas=j.linhas.concat(fat.linhas||[]);
+      // antes do primeiro atendimento não há nada: a lista já está completa
+      fat.carregadoDe=!j.primeiro||de<=String(j.primeiro)?'0000-00-00':de;
+      desenharFat()},
+      function(e){if(minha!==fat.seq)return;fat.carregando=false;fat.erro=e==='ausente'?'banco':e==='sessao'?'':'rede';desenharFat()});
+  }
+  function fatPassa(r){return (!fat.serv||servRot(r)===fat.serv)&&(!fat.prof||r.profissional===fat.prof)}
+  function fatRecorte(de,ate){return (fat.linhas||[]).filter(function(r){return r.data>=de&&r.data<=ate&&fatPassa(r)})}
+  function fatSoma(l){var s={f:0,n:0,sv:0,fal:0,c:{}};l.forEach(function(r){if(r.faltou){s.fal++;return}s.n++;if(r.valor==null)s.sv++;else s.f+=+r.valor;if(r.cli)s.c[r.cli]=1});s.cli=Object.keys(s.c).length;return s}
+  function fatGrupo(l,chave){var o={},ord=[];l.forEach(function(r){if(r.faltou)return;var k=chave(r);if(!o[k]){o[k]={k:k,n:0,f:0};ord.push(o[k])}o[k].n++;o[k].f+=+r.valor||0});return ord}
+  function fatBarras(itens,rot,parte){
+    var mx=0,mxN=0,tot=0;itens.forEach(function(x){mx=Math.max(mx,x.f);mxN=Math.max(mxN,x.n);tot+=x.f});
+    return '<ul class="fat-bar">'+itens.map(function(x){var w=mx>0?x.f/mx:mxN>0?x.n/mxN:0;
+      return '<li><span class="fb-n">'+esc(rot(x.k))+'</span><span class="fb-v">'+dinheiro(x.f)+'</span>'+
+        '<small>'+vezes(x.n,'atendimento','atendimentos')+(parte&&tot>0?' · '+Math.round(x.f/tot*100)+'%':'')+'</small>'+
+        '<span class="barra" aria-hidden="true"><i style="width:'+Math.max(x.n?2:0,Math.round(w*100))+'%"></i></span></li>'}).join('')+'</ul>';
+  }
+  // dias com atendimento (respeitando procedimento e profissional): no modo Dia, as setas pulam entre eles
+  function fatDias(){var o={};(fat.linhas||[]).forEach(function(r){if(fatPassa(r))o[r.data]=1});return Object.keys(o).sort()}
+  function fatPode(dir){
+    var iv=fatIntervalo(),h=hojeSP(),a=fat.ancora||h;
+    if(!fat.linhas||fat.modo==='tudo'||fat.modo==='periodo')return false;
+    if(fat.modo==='dia'){var ds=fatDias();return dir<0?!!ds.length&&ds[0]<a:a<h}
+    return dir>0?iv.ate<h:!!fat.desde&&iv.de>String(fat.desde);
+  }
+  function fatMover(dir){
+    if(!fatPode(dir))return;
+    var iv=fatIntervalo(),h=hojeSP(),a=fat.ancora||h;
+    if(fat.modo==='dia'){var ds=fatDias(),alvo=null,i;
+      if(dir<0){for(i=ds.length-1;i>=0;i--)if(ds[i]<a){alvo=ds[i];break}}
+      else{for(i=0;i<ds.length;i++)if(ds[i]>a){alvo=ds[i];break}if(!alvo)alvo=h}
+      fat.ancora=alvo>h?h:alvo}
+    else if(fat.modo==='semana')fat.ancora=somaDias(iv.de,7*dir);
+    else if(fat.modo==='ano')fat.ancora=(+iv.de.slice(0,4)+dir)+'-01-01';
+    else fat.ancora=somaMeses(iv.de,dir);
+    if(fat.ancora>h)fat.ancora=h;
+    fat.mais=40;carregarFat();
+  }
+  function fatRotulo(iv){
+    var h=hojeSP(),a=iv.de,m=fat.modo;
+    if(m==='dia')return {b:a===h?'Hoje':a===somaDias(h,-1)?'Ontem':cap(SEMLONGA[utc(a).getUTCDay()]),s:(+a.slice(8,10))+' de '+nomeMes(a)+' de '+a.slice(0,4)};
+    if(m==='semana'){var z=iv.ate,b=a.slice(5,7)===z.slice(5,7)?(+a.slice(8,10))+' a '+(+z.slice(8,10))+' de '+nomeMes(z):(+a.slice(8,10))+' de '+MESES3[+a.slice(5,7)-1]+'. a '+(+z.slice(8,10))+' de '+MESES3[+z.slice(5,7)-1]+'.';
+      var ini=inicioSemana(h);return {b:b,s:a===ini?'Esta semana':a===somaDias(ini,-7)?'Semana passada':z.slice(0,4)}}
+    if(m==='ano')return {b:a.slice(0,4),s:iv.emCurso?'De janeiro até hoje':'De janeiro a dezembro'};
+    if(m==='tudo')return {b:'Desde a inauguração',s:fat.desde?dataBR(fat.desde)+' até hoje':'Até hoje'};
+    return {b:cap(nomeMes(a)),s:a.slice(0,4)+(iv.emCurso?' · até hoje':'')};
+  }
+  // topo da página: período escolhido, setas, datas do período livre e os filtros
+  function desenharFatTopo(){
+    if(!$('fatRes'))return;
+    var iv=fatIntervalo(),h=hojeSP(),r=fatRotulo(iv);
+    [].forEach.call(document.querySelectorAll('[data-fat-p]'),function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-fat-p')===fat.modo))});
+    $('fatNav').hidden=fat.modo==='periodo';$('fatDe').hidden=fat.modo!=='periodo';
+    $('fatRot').innerHTML='<b>'+esc(r.b)+'</b><small>'+esc(r.s)+'</small>'+(fat.modo==='dia'?'<input type="date" id="fatDia" aria-label="Escolher o dia" max="'+h+'" value="'+iv.de+'">':'');
+    [-1,1].forEach(function(d){var b=document.querySelector('[data-fat-n="'+d+'"]');b.disabled=!fatPode(d)});
+    if(fat.modo==='periodo')['fatIni','fatFim'].forEach(function(id,i){var e=$(id);e.max=h;if(document.activeElement!==e)e.value=i?iv.ate:iv.de});
+    $('fatOlho').innerHTML=botaoOlho();
+    var v=$('fatVoltar');v.setAttribute('data-ir',fat.volta);$('fatVoltarT').textContent=fat.volta==='numeros'?'Seus números':'Início';
+    // procedimentos: os do cadastro e os que aparecem nos atendimentos
+    var nomes={},ps=[];
+    (servs||[]).forEach(function(x){if((todas()?(!fat.prof||x.profissional===fat.prof):(x.profissional||'amanda')===minhaProf())&&x.nome)nomes[x.nome]=1});
+    (fat.linhas||[]).forEach(function(x){if(!fat.prof||x.profissional===fat.prof)nomes[servRot(x)]=1});
+    if(fat.serv)nomes[fat.serv]=1;
+    for(var k in nomes)ps.push(k);
+    ps.sort(function(a,b){return (a==='Combinado por fora')-(b==='Combinado por fora')||a.localeCompare(b,'pt-BR')});
+    var sel=$('fatServ'),op='<option value="">Todos</option>'+ps.map(function(x){return '<option value="'+esc(x)+'"'+(x===fat.serv?' selected':'')+'>'+esc(x)+'</option>'}).join('');
+    if(sel.getAttribute('data-op')!==op){sel.innerHTML=op;sel.setAttribute('data-op',op)}
+    var pb=$('fatProfBox'),ver=todas()&&profs.length>1;pb.hidden=!ver;
+    if(ver){var sp=$('fatProf'),op2='<option value="">Todas</option>'+profs.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===fat.prof?' selected':'')+'>'+esc(x.nome)+'</option>'}).join('');
+      if(sp.getAttribute('data-op')!==op2){sp.innerHTML=op2;sp.setAttribute('data-op',op2)}}
+  }
+  function desenharFat(){
+    var box=$('fatRes');if(!box||abaAtual!=='faturamento')return;
+    if(fat.modo==='dia'&&fat.diaAuto&&fat.linhas){var ds=fatDias();fat.ancora=ds.length?ds[ds.length-1]:hojeSP();fat.diaAuto=false}
+    desenharFatTopo();
+    var iv=fatIntervalo(),hj=hojeSP();
+    if(!fat.linhas||fat.carregadoDe>iv.de){
+      box.innerHTML='<p class="vazio">'+(fat.carregando||!fat.erro?'Carregando…':fat.erro==='banco'?'Para ver o faturamento detalhado, falta rodar a atualização do banco (arquivo supabase/atualizacao.sql).':fat.erro==='rede'?'Sem conexão agora. Tente de novo quando a internet voltar.':'Não consegui abrir o faturamento. Tente de novo.')+'</p>';return}
+    var l=fatRecorte(iv.de,iv.ate),s=fatSoma(l),h='';
+    var tit='Faturamento'+(fat.serv?' · '+fat.serv:'')+(fat.prof?' · '+primeiro(nomeProf(fat.prof)):'');
+    h+='<div class="card num fat-res"><div class="num-l">'+esc(tit)+'</div><div class="num-v">'+dinheiro(s.f)+'</div>';
+    if(iv.ant&&fat.carregadoDe<=iv.ant[0]){var sa=fatSoma(fatRecorte(iv.ant[0],iv.ant[1]));
+      if(sa.f>0){if(iv.emCurso)h+='<p class="fat-cmp">'+esc(iv.ref)+': '+dinheiro(sa.f)+'</p>';
+        else{var pc=Math.round((s.f-sa.f)/sa.f*100);
+          h+='<p class="fat-cmp'+(pc>0?' sobe':'')+'">'+(pc>0?'▲ '+pc+'% a mais que ':pc<0?'▼ '+(-pc)+'% a menos que ':'O mesmo que ')+esc(iv.cmp)+'</p>'}}}
+    if(s.n||s.fal||!iv.emCurso)h+='<div class="num-kpi"><div><b>'+s.n+'</b><span>'+(s.n===1?'atendimento':'atendimentos')+'</span></div><div><b>'+s.cli+'</b><span>'+(s.cli===1?'cliente':'clientes')+'</span></div></div>';
+    if(s.n-s.sv>1)h+='<p class="num-x">Média de '+dinheiro(Math.round(s.f/(s.n-s.sv)*100)/100)+' por atendimento.</p>';
+    if(s.sv)h+='<p class="num-x">'+vezes(s.sv,'atendimento sem preço não entrou','atendimentos sem preço não entraram')+' na conta.</p>';
+    if(s.fal)h+='<p class="num-x">'+vezes(s.fal,'vez','vezes')+' a cliente não veio (fora da conta).</p>';
+    // período em andamento: o que já está marcado até o fim dele (ainda não entra na conta)
+    var mk=iv.emCurso?rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data>=iv.de&&r.data<=iv.ate&&fatPassa(r)}):[],mkV=0;
+    mk.forEach(function(r){mkV+=+r.valor||0});
+    if(mk.length)h+='<p class="num-x fat-mk'+(s.n?'':' so')+'">+ '+(mkV&&!ocultar?dinheiro(mkV)+' em ':'')+vezes(mk.length,'atendimento já marcado','atendimentos já marcados')+' até '+({dia:'o fim do dia',semana:'o fim da semana',mes:'o fim do mês',ano:'o fim do ano'}[fat.modo]||'o fim do período')+'.</p>';
+    h+='</div>';
+    if(!s.n&&!s.fal&&mk.length){box.innerHTML=h;return}
+    if(!s.n&&!s.fal){box.innerHTML=h+'<p class="fat-calmo">'+(iv.emCurso?'Os atendimentos aparecem aqui assim que acontecem.':'Sem atendimentos nesse período.')+(fat.serv||fat.prof?' Experimente tirar o filtro.':iv.emCurso?'':' Toque nas setas para ver outro.')+'</p>';return}
+    if(!fat.serv){var ps=fatGrupo(l,servRot).sort(function(a,b){return b.f-a.f||b.n-a.n});
+      if(ps.length)h+='<h2>Por procedimento</h2><div class="card">'+fatBarras(ps,function(k){return k},true)+'</div>'}
+    if(todas()&&!fat.prof){var pp=fatGrupo(l,function(r){return r.profissional||''}).sort(function(a,b){return b.f-a.f||b.n-a.n});
+      if(pp.length>1)h+='<h2>Por profissional</h2><div class="card">'+fatBarras(pp,function(k){return nomeProf(k)},true)+'</div>'}
+    if(fat.modo!=='dia'){
+      if(fat.modo==='ano'||fat.modo==='tudo'||difDias(iv.de,iv.ate)>62){
+        var ini=primeiroDoMes(fat.desde&&String(fat.desde)>iv.de?String(fat.desde):iv.de),fim=primeiroDoMes(iv.ate<hj?iv.ate:hj),porM={},ms=[];
+        fatGrupo(l,function(r){return r.data.slice(0,7)}).forEach(function(x){porM[x.k]=x});
+        for(var m=ini;m<=fim;m=somaMeses(m,1))ms.push(porM[m.slice(0,7)]||{k:m.slice(0,7),n:0,f:0});
+        if(ms.length>1)h+='<h2>Mês a mês</h2><div class="card">'+fatBarras(ms,function(k){var nm=cap(MESES[+k.slice(5,7)-1]);return fat.modo==='ano'?nm:nm+' de '+k.slice(0,4)})+'</div>';
+      }else{var pd=fatGrupo(l,function(r){return r.data}).sort(function(a,b){return a.k<b.k?-1:1});
+        if(pd.length>1)h+='<h2>Dia a dia</h2><div class="card">'+fatBarras(pd,function(k){return cap(SEM[utc(k).getUTCDay()])+', '+curta(k)})+'</div>'}
+    }
+    var lista=l.slice().sort(function(a,b){return (b.data+b.hora)<(a.data+a.hora)?-1:1});
+    h+='<h2>Atendimentos</h2><div class="card"><ul class="fat-at">'+lista.slice(0,fat.mais).map(function(r){
+      return '<li'+(r.faltou?' class="faltou"':'')+'><div><b>'+esc(r.nome)+'</b><span>'+(fat.modo==='dia'?'':esc(cap(SEM[utc(r.data).getUTCDay()]).slice(0,3)+', '+curta(r.data))+' · ')+hh(r.hora)+' · '+esc(servRot(r))+
+        (todas()&&!fat.prof&&r.profissional?' · com '+esc(primeiro(nomeProf(r.profissional))):'')+'</span></div>'+
+        '<span class="fa-v">'+(r.faltou?'não veio':r.valor==null?'sem preço':dinheiro(r.valor))+'</span></li>'}).join('')+'</ul>'+
+      (lista.length>fat.mais?'<button class="btn ghost" type="button" data-fat-mais>Mostrar mais '+Math.min(40,lista.length-fat.mais)+'</button>':'')+'</div>';
+    box.innerHTML=h;
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-fat-ir],[data-fat-p],[data-fat-n],[data-fat-mais]');if(!b)return;
+    if(b.hasAttribute('data-fat-ir')){fat.volta=abaAtual==='numeros'?'numeros':'inicio';irAba('faturamento');return}
+    if(b.hasAttribute('data-fat-p')){var m=b.getAttribute('data-fat-p');if(m===fat.modo)return;
+      fat.modo=m;fat.ancora=null;fat.diaAuto=m==='dia';fat.mais=40;
+      if(m==='periodo'&&!fat.de){fat.de=primeiroDoMes(hojeSP());fat.ate=hojeSP()}
+      carregarFat();return}
+    if(b.hasAttribute('data-fat-n')){fatMover(+b.getAttribute('data-fat-n'));return}
+    fat.mais+=40;desenharFat();
+  });
+  document.addEventListener('change',function(e){
+    var t=e.target,id=t&&t.id,h=hojeSP(),v=t&&t.value;
+    if(id==='fatServ'||id==='fatProf'){fat[id==='fatServ'?'serv':'prof']=v;fat.mais=40;desenharFat();return}
+    if(id!=='fatIni'&&id!=='fatFim'&&id!=='fatDia')return;
+    if(!/^\d{4}-\d\d-\d\d$/.test(v||''))return;
+    if(v>h)v=h;
+    if(id==='fatDia'){fat.ancora=v;fat.diaAuto=false}else fat[id==='fatIni'?'de':'ate']=v;
+    fat.mais=40;carregarFat();
   });
 
   // ---------- sugestão de nomes: ao digitar, mostra clientes que já existem ----------
