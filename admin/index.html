@@ -338,12 +338,84 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .tag-prof{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:99px;background:var(--sand);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted);vertical-align:2px}
 .prof-t{font-size:13px;font-weight:700;color:var(--muted);margin:10px 0 6px;letter-spacing:.02em}
 .como-cliente{display:block;text-align:center;margin:10px 0 0}
+/* topo e Início (24/11): logo e título com entrada suave, saudação do dia, próximos 2 meses, sugestões */
+header{background:linear-gradient(160deg,var(--teal) 0%,var(--teal-d) 100%)}
+.cab{display:flex;align-items:center;gap:12px;min-width:0}
+.cab-logo{width:46px;height:46px;flex:none;border-radius:50%;box-shadow:0 0 0 2px rgba(245,197,157,.35)}
+@media (prefers-reduced-motion:no-preference){
+#vApp .cab-logo{animation:logoEntra .9s cubic-bezier(.2,.75,.2,1) both,logoBrilho 1.6s ease-out .55s both}
+#vApp header h1{background:linear-gradient(100deg,var(--peach) 0%,var(--peach) 42%,#FFF4E6 50%,var(--peach) 58%,var(--peach) 100%);background-size:260% 100%;background-position:0 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:tituloEntra .8s ease-out .15s both,tituloBrilho 1.9s ease-in-out .65s both}
+#vApp header small{animation:sobeSuave .7s ease-out .35s both}
+.ola{animation:sobeSuave .7s ease-out .25s both}
+.prox-g,.sug,.ret{animation:sobeSuave .6s ease-out both}
+}
+@keyframes logoEntra{from{opacity:0;transform:scale(.55) rotate(-14deg)}to{opacity:1;transform:none}}
+@keyframes logoBrilho{0%{box-shadow:0 0 0 2px rgba(245,197,157,.35),0 0 0 0 rgba(245,197,157,.6)}70%{box-shadow:0 0 0 2px rgba(245,197,157,.35),0 0 0 16px rgba(245,197,157,0)}100%{box-shadow:0 0 0 2px rgba(245,197,157,.35),0 0 0 0 rgba(245,197,157,0)}}
+@keyframes tituloEntra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes tituloBrilho{from{background-position:100% 0}to{background-position:0 0}}
+@keyframes sobeSuave{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.ola{margin:22px 0 6px}
+.ola-t{font-family:Cormorant,Georgia,serif;font-weight:600;font-size:clamp(25px,7.4vw,31px);line-height:1.15;color:var(--teal-d)}
+.ola-d{margin-top:4px;font-size:14px;font-weight:600;color:var(--muted)}
+.ola-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.ola-chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:7px 14px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:13.5px;color:var(--ink)}
+.ola-chip.quente{background:var(--peach-l);border-color:var(--peach);color:var(--teal-d)}
+button.ola-chip{cursor:pointer}
+.prox-g{margin-bottom:16px}
+.prox-gt{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 2px 8px}
+.prox-gt b{font-size:13px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--teal)}
+.prox-gt span{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap}
+.prox-l{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 6px 18px rgba(11,95,89,.06);overflow:hidden}
+.prox{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-left:0;margin:0}
+.prox+.prox{border-top:1px solid var(--line)}
+.pd{width:56px;text-align:center;border-radius:14px;background:var(--cream);border:1px solid var(--line);padding:5px 0 6px;line-height:1.1}
+.pd small{display:block;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.pd b{display:block;font-weight:800;font-size:20px;line-height:1.15;color:var(--teal-d)}
+.prox.hoje .pd{background:var(--peach-l);border-color:var(--peach)}
+.prox .pl{display:flex;flex-direction:column;gap:1px;min-width:0}
+.prox .pl b{font-size:16px;overflow-wrap:anywhere}
+.prox .pl span{font-size:13.5px;color:var(--muted)}
+.prox .lemb{font-size:12.5px!important}
+.prox .mini{width:auto;min-height:40px;padding:6px 12px;border-radius:99px;font-size:13px;gap:6px;white-space:nowrap}
+.prox .mini svg{width:18px;height:18px}
+.prox .grande{grid-column:1/-1;min-height:48px}
+.prox .grande svg{width:22px;height:22px}
+@media (max-width:360px){.prox{grid-template-columns:56px 1fr}.prox .mini{grid-column:2;justify-self:start}}
+.vazio-bom{display:grid;gap:10px;justify-items:center;text-align:center;padding:24px 18px;border-radius:22px;background:linear-gradient(160deg,#fff 30%,var(--peach-l));border:1px solid var(--line);box-shadow:0 8px 24px rgba(11,95,89,.07);margin-top:18px}
+.vazio-bom .vb-ic{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:#fff;box-shadow:0 0 0 6px rgba(245,197,157,.35)}
+.vazio-bom b{font-family:Cormorant,Georgia,serif;font-weight:600;font-size:24px;line-height:1.2;color:var(--teal-d)}
+.vazio-bom p{font-size:14.5px;color:var(--muted);max-width:300px}
+.vazio-bom .row{width:100%;margin-top:4px}
+.sug{margin-top:26px;padding:18px;border-radius:22px;background:#fff;border:1px solid var(--line);box-shadow:0 6px 18px rgba(11,95,89,.06)}
+.sug-top{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-bottom:12px}
+.sug-top h2{margin:0;font-size:17px}
+.sug-top p{font-size:14px;color:var(--muted);margin-top:2px}
+.sug-ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--peach-l);color:var(--teal-d)}
+.sug-ic svg{width:26px;height:26px}
+.sug textarea{width:100%;min-height:96px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:var(--cream);font:inherit;resize:vertical;outline:none}
+.sug textarea:focus{border-color:var(--teal);background:#fff}
+.sug-acoes{display:grid;grid-template-columns:auto 1fr;gap:10px;margin-top:10px}
+.sug-acoes .btn{min-height:50px}
+.sug-acoes label.btn{margin:0;width:auto;padding:12px 16px;font-size:15px;cursor:pointer}
+.sug-prev{position:relative;margin-top:10px;width:96px;height:96px}
+.sug-prev img{width:96px;height:96px;object-fit:cover;border-radius:14px;border:1px solid var(--line)}
+.sug-prev button{position:absolute;top:-8px;right:-8px;width:30px;height:30px;border-radius:50%;border:0;background:var(--ink);color:#fff;font-size:18px;line-height:1}
+#sugLista{margin-top:14px;display:grid;gap:8px}
+#sugLista:empty{display:none}
+.sug-it{padding:12px 14px;border-radius:14px;background:var(--cream);border:1px solid var(--line);display:grid;gap:6px}
+.sug-it-t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-weight:600}
+.sug-it p{font-size:14.5px;white-space:pre-line;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.sug-it .ver-foto{justify-self:start;background:none;border:0;color:var(--teal);font-weight:700;font-size:13.5px;min-height:32px;padding:0}
+.sug-st{font-style:normal;font-size:12px;font-weight:800;border-radius:99px;padding:3px 10px;white-space:nowrap;background:var(--warn-bg);color:var(--warn)}
+.sug-st.andamento{background:#E9F4F1;color:var(--teal)}.sug-st.feita{background:var(--ok-bg);color:var(--ok)}
+.foto-grande{width:100%;max-height:60vh;object-fit:contain;border-radius:14px;background:var(--cream)}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0!important}
 </style>
 </head>
 <body>
 
 <section id="vLogin" hidden>
-  <header><div><h1>Amanda Rocha</h1><small>Agenda</small></div></header>
+  <header><div class="cab"><img class="cab-logo" src="../img/logo.svg" alt="" width="46" height="46"><div><h1>Amanda Rocha</h1><small>Agenda</small></div></div></header>
   <div class="wrap">
     <h2>Entrar</h2>
     <form class="card" id="fLogin" novalidate>
@@ -359,7 +431,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 </section>
 
 <section id="vApp" hidden>
-  <header><div><h1 id="cabNome">Amanda Rocha</h1><small>Agenda</small></div><button class="selo" id="selo" type="button" data-ir="seguranca" hidden></button></header>
+  <header><div class="cab"><img class="cab-logo" src="../img/logo.svg" alt="" width="46" height="46"><div><h1 id="cabNome">Amanda Rocha</h1><small>Agenda</small></div></div></header>
   <div class="wrap">
     <div class="sync"><span id="atualizado">Carregando…</span><button type="button" id="bAtualizar">Atualizar agora</button></div>
     <div class="visao" id="visao" role="group" aria-label="Qual agenda ver" hidden><button type="button" data-visao="minha" aria-pressed="true">Só a minha agenda</button><button type="button" data-visao="todas" aria-pressed="false">Todas as profissionais</button></div>
@@ -368,32 +440,35 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
     <button class="banner guarda" id="avisoGuarda" type="button" data-ir="seguranca" hidden></button>
 
     <section class="aba" data-aba="inicio">
-    <div class="boas" id="boasVindas" hidden>
-      <b>Bem-vinda, Amanda!</b>
-      <p>O painel tem 4 partes, nos botões aqui embaixo:</p>
-      <ul><li><b>Início:</b> o que precisa de você hoje</li><li><b>Agenda:</b> seus dias e horários</li><li><b>Enviar:</b> mandar horários para uma cliente</li><li><b>Mais:</b> serviços e preços, histórico, segurança e ajuda</li></ul>
-      <p>Tudo o que você muda aqui aparece no site na hora. Não precisa publicar nada.</p>
-      <p>Para começar, abra seus horários na Agenda.</p>
-      <div class="row"><button class="btn main" type="button" data-ir="agenda" data-abrir-form data-guia-ok>Abrir meus horários</button><button class="btn ghost" type="button" data-guia-ok>Já entendi</button></div>
-    </div>
-    <div class="aba-topo"><h2 class="aba-t">Início</h2><p>O que precisa de você agora.</p></div>
-    <details class="ajuda"><summary>Como usar esta parte</summary><ol><li>Quando uma cliente pede um horário pelo site, ele aparece em <b>Pedidos</b>. Toque em <b>Confirmar</b>.</li><li>Logo depois, toque em <b>Avisar no WhatsApp</b>: a mensagem já vai pronta.</li><li>Um dia antes do atendimento, toque em <b>Mandar lembrete</b>.</li><li>Depois do atendimento, abra o horário e toque em <b>Marcar retorno</b>. Quando chegar a data, ela aparece em <b>Retornos próximos</b> com a mensagem pronta.</li></ol></details>
+    <div class="ola" id="ola" hidden><p class="ola-t" id="olaT"></p><p class="ola-d" id="olaD"></p><div class="ola-chips" id="olaChips" hidden></div></div>
     <div class="card num" id="numeros" hidden></div>
-    <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
-    <div id="pedidos"><p class="vazio">Carregando…</p></div>
 
-    <h2>Próximos atendimentos</h2>
-    <p class="dica" style="margin:-6px 0 10px">Confirmados nos próximos 7 dias. Um dia antes, toque em “Mandar lembrete”.</p>
+    <div id="blocoProx">
+    <h2 id="proxT" hidden>Próximos atendimentos</h2>
     <div id="proximos"></div>
+    </div>
 
     <div id="blocoRet" hidden>
     <h2 class="ret-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>Retornos próximos <span class="badge" id="nRet" hidden></span></h2>
-    <p class="dica" style="margin:-6px 0 12px">Quem combinou de voltar nos próximos 7 dias. Os atrasados vêm primeiro.</p>
     <div id="retornos"></div>
     </div>
 
-
     <div class="atalhos"><button class="btn ghost" type="button" data-ir="agenda" data-abrir-form>Abrir novos horários</button><button class="btn ghost" type="button" data-ir="enviar">Enviar horários para uma cliente</button><button class="btn ghost" type="button" data-acao="story" data-quando="hoje">Story: horários livres de hoje</button><a class="btn ghost ver-site" data-como-cliente href="../?o=painel#agendar" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Visualizar agenda como cliente</a></div>
+
+    <div class="sug" id="blocoSug" hidden>
+      <div class="sug-top"><span class="sug-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></svg></span><div><h2>Sugestões de alterações</h2><p>Teve uma ideia ou quer mudar algo no app? Conta aqui 💚</p></div></div>
+      <label class="sr" for="sugTxt">Sua sugestão</label>
+      <textarea id="sugTxt" rows="3" maxlength="1000" placeholder="Escreva sua ideia…"></textarea>
+      <div class="sug-prev" id="sugPrev" hidden><img id="sugImg" alt="Foto escolhida"><button type="button" id="sugTira" aria-label="Tirar a foto">×</button></div>
+      <div class="sug-acoes"><label class="btn ghost" for="sugArq" id="sugFotoBt"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Foto</label><button class="btn main" id="bSug" type="button">Enviar</button></div>
+      <input type="file" id="sugArq" accept="image/*" hidden>
+      <div id="sugLista"></div>
+    </div>
+
+    <div id="blocoPed" hidden>
+    <h2>Pedidos para responder <span class="badge" id="nPed" hidden></span></h2>
+    <div id="pedidos"></div>
+    </div>
     </section>
 
     <section class="aba" data-aba="agenda" hidden>

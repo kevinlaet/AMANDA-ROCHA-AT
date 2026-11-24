@@ -94,7 +94,7 @@
   var VINTE_QUATRO_HORAS=24*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
   function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>VINTE_QUATRO_HORAS)}
-  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;irAba('inicio');mostrar(msg);return fim}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;olaFrase=null;retornos=null;irAba('inicio');mostrar(msg);return fim}
   var MSG_24H='Por segurança, o painel pede a senha uma vez por dia. Entre de novo, por favor.';
   function msgExpirou(){return MSG_24H}
   var renovando=null;
@@ -187,13 +187,11 @@
   function mostrarAbrir(sim,parado){$('cardAbrir').hidden=!sim;$('bMostrarAbrir').textContent=sim?'Fechar':'Abrir novos horários';$('bMostrarAbrir').className='btn '+(sim?'ghost':'main');if(sim&&!parado)$('cardAbrir').scrollIntoView({block:'start'})}
   $('bMostrarAbrir').onclick=function(){mostrarAbrir($('cardAbrir').hidden)};
   document.addEventListener('click',function(e){
-    var g=e.target.closest('[data-guia-ok]');if(g){$('boasVindas').hidden=true;try{localStorage.setItem('amanda-guia','1')}catch(x){}}
     var b=e.target.closest('[data-aba-btn],[data-ir]');if(!b)return;
     irAba(b.getAttribute('data-aba-btn')||b.getAttribute('data-ir'));
     if(b.hasAttribute('data-abrir-form'))mostrarAbrir(true);
   });
-  (function(){var vista=null;try{vista=localStorage.getItem('amanda-guia')}catch(e){}$('boasVindas').hidden=!!vista;
-    var a=null;try{a=sessionStorage.getItem('amanda-aba')}catch(e){}if(a&&document.querySelector('[data-aba="'+a+'"]'))irAba(a)})();
+  (function(){var a=null;try{a=sessionStorage.getItem('amanda-aba')}catch(e){}if(a&&document.querySelector('[data-aba="'+a+'"]'))irAba(a)})();
 
   // ---------- carregar ----------
   // cada carga ganha um número; se outra começou depois (ou ela acabou de salvar algo), a resposta antiga é descartada
@@ -215,7 +213,7 @@
       .then(function(j){atual();rows=j||[];ultimo=agoraSP();$('semNet').hidden=true;
         return api('GET','servicos?select=*&order=ordem.asc,nome.asc').then(function(sv){atual();servs=sv||[];bancoVelho=false},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;servs=null;bancoVelho=true})})
       .then(function(){return api('POST','rpc/situacao_guardiao',{}).then(function(g){atual();guard=g;semGuardiao=false;motivoEstranho=acessoEstranho()||alertaNovo();if(motivoEstranho)throw 'estranho'},function(e){atual();if(e!=='erro'&&e!=='ausente')throw e;guard=null;semGuardiao=true})})
-      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes();carregarNumeros();carregarRetornos()})
+      .then(function(){atual();$('bancoVelho').hidden=!(bancoVelho||semGuardiao);desenhar();if(!semGuardiao)carregarClientes();carregarNumeros();carregarRetornos();if(sugs===undefined)carregarSugestoes()})
       .catch(function(e){
         if(e==='estranho'){encerrar(motivoEstranho+' Desconectei todos os aparelhos por segurança. Se foi você, é só entrar de novo. Se não foi, entre e troque sua senha em Mais › Minha conta.','global');return}
         if(e==='velho'||minha!==geracao)return;
@@ -231,7 +229,7 @@
     var x=ultimo||agoraSP();
     $('atualizado').textContent='Atualizado às '+dd(x.getUTCHours())+':'+dd(x.getUTCMinutes())+' · atualiza sozinho';
     var ped=rows.filter(function(r){return r.status==='pedido'});
-    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;nPedidos=ped.length;badgeInicio();document.title=(ped.length?'('+ped.length+') ':'')+(P.titulo||'Agenda da Amanda');
+    var n=$('nPed');n.hidden=!ped.length;n.textContent=ped.length;nPedidos=ped.length;badgeInicio();$('blocoPed').hidden=!ped.length;document.title=(ped.length?'('+ped.length+') ':'')+(P.titulo||'Agenda da Amanda');
     $('pedidos').innerHTML=ped.length?ped.map(function(r){
       var min=r.pedido_em?(Date.now()-new Date(r.pedido_em).getTime())/60000:0,z=zapUrl(r,'falar');
       return '<div class="card ped"><div class="nome">'+esc(r.nome)+tagProf(r)+'</div>'+
@@ -239,7 +237,7 @@
         (passou(r)?'<div class="passou">Esse horário já passou.</div>':min>180?'<div class="velho">Esperando sua resposta há bastante tempo.</div>':'')+
         (z?'<a class="btn zap-leve" target="_blank" rel="noopener" href="'+esc(z)+'">Chamar '+esc(primeiro(r.nome))+' no WhatsApp</a>':'')+
         '<div class="row"><button class="btn ok" data-a="confirmar" data-id="'+esc(r.id)+'" type="button">Confirmar</button>'+
-        '<button class="btn bad" data-a="perg-recusar" data-id="'+esc(r.id)+'" type="button">Recusar</button></div></div>'}).join(''):'<p class="vazio">Nenhum pedido esperando resposta.</p>';
+        '<button class="btn bad" data-a="perg-recusar" data-id="'+esc(r.id)+'" type="button">Recusar</button></div></div>'}).join(''):'';
 
     var por={},ordem=[];rows.forEach(function(r){if(!por[r.data]){por[r.data]=[];ordem.push(r.data)}por[r.data].push(r)});
     $('agenda').innerHTML=ordem.length?ordem.map(function(d){
@@ -250,13 +248,8 @@
         return '<button class="s '+r.status+(bloq?' bloq':'')+(passou(r)?' velho':'')+'" data-abrir="'+esc(r.id)+'" type="button" aria-label="'+esc(hh(r.hora)+', '+(r.status==='livre'?(bloq?'livre, mas bloqueado por outro atendimento':'livre'):r.status+' para '+r.nome))+'">'+hh(r.hora)+'<small>'+(r.faltou?'não veio':passou(r)?'passou':rot)+'</small></button>'}).join('')+'</div>'}).join('')+'</div>'}).join(''):
       '<p class="vazio">Nenhum horário aberto ainda. Toque em “Abrir novos horários” acima.</p>';
     if(!rows.length&&$('cardAbrir').hidden)mostrarAbrir(true,true);
-    var ate=somaDias(hojeSP(),7),prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
-    $('proximos').innerHTML=prox.length?prox.map(function(r){var z=zapUrl(r,'lembrar');
-      return '<div class="card prox"><div class="pl"><b>'+esc(r.nome)+'</b>'+tagProf(r)+'<span>'+esc(servRot(r))+'</span><span class="quando">'+dia(r.data)+' às '+hh(r.hora)+'</span>'+
-        (bancoVelho?'':r.lembrete_em?'<span class="lemb ok">✓ Lembrete enviado '+idade(r.lembrete_em)+'</span>':'<span class="lemb">Lembrete ainda não enviado</span>')+'</div>'+
-        (z?'<a class="btn '+(r.lembrete_em?'zap-leve':'zap')+'" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(z)+'">'+(r.lembrete_em?'Mandar de novo':'Mandar lembrete')+'</a>':
-           '<button class="btn ghost" type="button" data-abrir="'+esc(r.id)+'">Sem WhatsApp: toque para adicionar</button>')+'</div>'}).join(''):
-      '<p class="vazio">Nenhum atendimento confirmado nos próximos 7 dias.</p>';
+    desenharProximos();
+    desenharOla();
     desenharVisao();
     desenharServicos();
     desenharEnvio();
@@ -286,6 +279,103 @@
   document.addEventListener('click',function(e){var b=e.target.closest('[data-visao]');if(!b)return;
     visao=b.getAttribute('data-visao')==='todas'?'todas':'minha';try{localStorage.setItem('amanda-visao',visao)}catch(x){}
     clientes=null;numeros=null;hist.ok=false;desenharVisao();carregar().then(function(){if(abaAtual==='clientes')carregarClientes();if(abaAtual==='numeros')carregarNumeros()})});
+
+
+  // ---------- Início: saudação, próximos 2 meses e convite para divulgar ----------
+  var OLA={manha:['Bom dia, {n}! ☀️ Bora brilhar hoje?','Bom dia, {n}! 🌿 Que seu dia seja leve','Bom dia, {n}! ☕ Café na mão e agenda em dia','Bom dia, {n}! 🌸 Hoje é dia de cuidar com carinho','Oi, {n}! 🌤️ Que bom começar o dia com você'],
+    tarde:['Boa tarde, {n}! 🌼 Tudo fluindo por aí?','Boa tarde, {n}! ✨ Seu cuidado faz diferença','Oi, {n}! 💚 Que bom te ver por aqui','Boa tarde, {n}! 🍃 Respira fundo, tá indo lindo','Boa tarde, {n}! 🌷 Bora ver como tá a agenda?'],
+    noite:['Boa noite, {n}! 🌙 Olha que lindo tá ficando','Boa noite, {n}! ✨ Mais um dia de cuidado com afeto','Boa noite, {n}! 💫 A agenda tá aqui, pode descansar','Oi, {n}! 🌙 Que bom te ver antes de descansar','Boa noite, {n}! 🤍 Orgulho do que você tá construindo']};
+  var olaFrase=null,MESES3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  function periodo(){var h=agoraSP().getUTCHours();return h>=5&&h<12?'manha':h>=12&&h<18?'tarde':'noite'}
+  // uma frase por acesso, sorteada da lista do horário, sem repetir a última que ela viu
+  function sortearOla(){var per=periodo(),l=OLA[per],ult=null;try{ult=localStorage.getItem('amanda-ola')}catch(e){}
+    var op=l.filter(function(x){return x!==ult});var f=op[Math.floor(Math.random()*op.length)];try{localStorage.setItem('amanda-ola',f)}catch(e){}return f}
+  function desenharOla(){
+    if(!eu)return;
+    if(!olaFrase)olaFrase=sortearOla();
+    var nome=primeiro(eu.nome||nomeProf(minhaProf()))||'Amanda',t=olaFrase.replace('{n}',nome),h=hojeSP(),x=utc(h);
+    if($('olaT').textContent!==t)$('olaT').textContent=t;
+    $('olaD').textContent=cap(SEMLONGA[x.getUTCDay()])+', '+x.getUTCDate()+' de '+MESES[x.getUTCMonth()];
+    var ped=rows.filter(function(r){return r.status==='pedido'}).length,u=urgentes(),hj=rows.filter(function(r){return r.status==='confirmado'&&r.data===h&&!passou(r)}).length,c=[];
+    if(ped)c.push('<button type="button" class="ola-chip quente" data-rolar="blocoPed">🔔 '+vezes(ped,'pedido esperando você','pedidos esperando você')+'</button>');
+    if(hj)c.push('<span class="ola-chip">📅 Hoje: '+vezes(hj,'atendimento','atendimentos')+'</span>');
+    if(u)c.push('<button type="button" class="ola-chip" data-rolar="blocoRet">↻ '+vezes(u,'retorno para chamar','retornos para chamar')+'</button>');
+    var ch=$('olaChips'),hc=c.join('');if(ch.innerHTML!==hc)ch.innerHTML=hc;ch.hidden=!c.length;
+    $('ola').hidden=false;
+  }
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-rolar]');if(!b)return;var el=$(b.getAttribute('data-rolar'));if(el&&!el.hidden)el.scrollIntoView({behavior:'smooth',block:'start'})});
+  // semana de domingo a sábado; depois de duas semanas, agrupa por mês
+  function grupoProx(d){var h=hojeSP(),fim=somaDias(h,6-utc(h).getUTCDay()),fim2=somaDias(fim,7);
+    if(d<=fim)return 'Esta semana';if(d<=fim2)return 'Semana que vem';var x=utc(d);return cap(MESES[x.getUTCMonth()])+(d.slice(0,4)!==h.slice(0,4)?' de '+d.slice(0,4):'')}
+  var IC_ZAP='<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 4.5a11.5 11.5 0 0 0-9.9 17.3L4.5 27.5l5.9-1.5A11.5 11.5 0 1 0 16 4.5zm6.7 16.1c-.3.8-1.6 1.6-2.3 1.7-1.1.2-1.9.1-4.2-.8-3.5-1.5-5.7-5-5.9-5.3-.2-.2-1.4-1.8-1.4-3.5s.9-2.5 1.2-2.9c.3-.3.7-.4.9-.4h.6c.2 0 .5-.1.8.6l1.1 2.5c.1.2.1.4 0 .6-.6 1.3-1.3 1.2-.9 1.9a9.4 9.4 0 0 0 4.7 4.1c.4.2.6.2.8-.1l1-1.3c.3-.4.5-.3.8-.2l2.3 1.1c.4.2.6.3.7.4.1.2.1.9-.2 1.6z"/></svg>';
+  function linkDivulgar(){return P.agenda?new URL(P.agenda,location.href).href+'?p='+encodeURIComponent(minhaProf())+'&de=whatsapp':siteBase()+'agendar/?o=whatsapp'}
+  function desenharProximos(){
+    var h=hojeSP(),ate=somaDias(h,60),am=somaDias(h,1),em2=somaDias(h,2);
+    var prox=rows.filter(function(r){return r.status==='confirmado'&&!passou(r)&&r.data<=ate});
+    $('proxT').hidden=!prox.length;
+    if(!prox.length){
+      var lk=linkDivulgar(),msg='Oi! 💚 Já dá pra agendar comigo pelo link: escolhe o dia e o horário que ficar melhor pra você. '+lk;
+      $('proximos').innerHTML='<div class="vazio-bom"><span class="vb-ic" aria-hidden="true">✨</span><b>Sua agenda tá com espaço pra novas clientes</b><p>Compartilhe seu link de agendamento e deixe as clientes escolherem o horário.</p>'+
+        '<div class="row"><a class="btn zap" target="_blank" rel="noopener" href="https://wa.me/?text='+esc(encodeURIComponent(msg))+'">'+IC_ZAP.replace('<svg','<svg width="20" height="20"')+'Divulgar</a><button class="btn ghost" type="button" data-copiar-link="'+esc(lk)+'">Copiar link</button></div></div>';
+      return;
+    }
+    var gr=[],m={};prox.forEach(function(r){var g=grupoProx(r.data);if(!m[g]){m[g]=[];gr.push(g)}m[g].push(r)});
+    $('proximos').innerHTML=gr.map(function(g){return '<div class="prox-g"><div class="prox-gt"><b>'+esc(g)+'</b><span>'+vezes(m[g].length,'atendimento','atendimentos')+'</span></div><div class="prox-l">'+m[g].map(function(r){
+      var x=utc(r.data),hoje=r.data===h,perto=r.data<=em2,z=zapUrl(r,'lembrar'),lb=r.lembrete_em,rot=hoje?'hoje':r.data===am?'amanhã':SEM[x.getUTCDay()].slice(0,3);
+      var bt=!z?'<button class="btn ghost mini" type="button" data-abrir="'+esc(r.id)+'">Sem WhatsApp</button>':
+        (perto&&!lb?'<a class="btn zap grande" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(z)+'">'+IC_ZAP+'Mandar lembrete</a>':
+         '<a class="btn zap-leve mini" target="_blank" rel="noopener"'+(bancoVelho?'':' data-lembrete="'+esc(r.id)+'"')+' href="'+esc(z)+'" aria-label="Mandar lembrete para '+esc(primeiro(r.nome))+'">'+IC_ZAP+(lb?'De novo':'Lembrete')+'</a>');
+      return '<div class="prox'+(hoje?' hoje':'')+'"><div class="pd"><small>'+rot+'</small><b>'+x.getUTCDate()+'</b><small>'+MESES3[x.getUTCMonth()]+'</small></div>'+
+        '<div class="pl"><b>'+esc(r.nome)+'</b>'+tagProf(r)+'<span>'+esc(servRot(r))+' · '+hh(r.hora)+'</span>'+
+        (bancoVelho?'':lb?'<span class="lemb ok">✓ Lembrete enviado '+idade(lb)+'</span>':perto?'<span class="lemb">Lembrete ainda não enviado</span>':'')+'</div>'+bt+'</div>'}).join('')+'</div></div>'}).join('');
+  }
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-copiar-link]');if(!b)return;var t=b.getAttribute('data-copiar-link');
+    try{navigator.clipboard.writeText(t).then(function(){toast('Link copiado. É só colar 💚')},function(){toast(t)})}catch(x){toast(t)}});
+
+  // ---------- sugestões de alterações (chegam para o Kevin) ----------
+  var sugs,sugFoto=null,sugOcup=false,ST_SUG={nova:'Nova',andamento:'Em andamento',feita:'Feita ✓'};
+  function carregarSugestoes(){
+    sugs=null;
+    return api('POST','rpc/minhas_sugestoes',{}).then(function(j){sugs=j||false;desenharSugestoes()},function(e){if(e==='sessao')return;sugs=e==='ausente'?false:null;desenharSugestoes()});
+  }
+  function desenharSugestoes(){
+    var bl=$('blocoSug');
+    if(sugs===false){bl.hidden=true;return}
+    bl.hidden=false;
+    var l=sugs||[];
+    $('sugLista').innerHTML=l.length?'<span class="label" style="margin:4px 0 0">Suas sugestões</span>'+l.map(function(x){var d=String(x.criado_em).slice(0,10);
+      return '<div class="sug-it"><div class="sug-it-t"><span>'+curta(d)+'</span><em class="sug-st '+esc(x.status)+'">'+esc(ST_SUG[x.status]||x.status)+'</em></div><p>'+esc(x.texto)+'</p>'+
+        (x.tem_foto?'<button class="ver-foto" type="button" data-sug-foto="'+esc(x.id)+'">📷 Ver foto</button>':'')+'</div>'}).join(''):'';
+  }
+  function lerFoto(arq){
+    return new Promise(function(ok,erro){
+      var fr=new FileReader();fr.onerror=function(){erro('foto')};
+      fr.onload=function(){var im=new Image();im.onerror=function(){erro('foto')};im.onload=function(){
+        var tenta=function(max,q){var k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
+          var cx=c.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,c.width,c.height);cx.drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)};
+        var u=tenta(1280,.82);if(u.length>1300000)u=tenta(1024,.7);if(u.length>1300000)u=tenta(800,.6);
+        if(u.length>1300000||u.indexOf('data:image/jpeg;base64,')!==0){erro('foto');return}ok(u)};im.src=fr.result};
+      fr.readAsDataURL(arq);
+    });
+  }
+  $('sugArq').onchange=function(){var f=this.files&&this.files[0];this.value='';if(!f)return;
+    lerFoto(f).then(function(u){sugFoto=u;$('sugImg').src=u;$('sugPrev').hidden=false},function(){toast('Não consegui abrir essa foto. Tente outra.',true)})};
+  $('sugTira').onclick=function(){sugFoto=null;$('sugPrev').hidden=true;$('sugImg').removeAttribute('src')};
+  $('bSug').onclick=function(){
+    var t=$('sugTxt').value.trim(),b=this;
+    if(t.length<2){toast('Escreva sua ideia antes de enviar 💚',true);$('sugTxt').focus();return}
+    if(sugOcup)return;sugOcup=true;b.disabled=true;b.textContent='Enviando…';
+    api('POST','rpc/enviar_sugestao',{p_texto:t,p_foto:sugFoto}).then(function(j){
+      if(!j||j.r!=='ok'){toast(j&&j.r==='foto'?'Essa foto não deu certo. Tente outra.':j&&j.r==='limite'?'Muitas sugestões hoje. Manda as outras amanhã 💚':'Não consegui enviar agora. Tente de novo.',true);return}
+      $('sugTxt').value='';$('sugTira').onclick();toast('Sugestão enviada! O Kevin já foi avisado 💚');return carregarSugestoes();
+    },function(e){if(e!=='sessao')toast(e==='rede'?'Sem conexão. Sua sugestão não foi enviada.':'Não consegui enviar agora. Tente de novo.',true)})
+    .then(function(){sugOcup=false;b.disabled=false;b.textContent='Enviar'});
+  };
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-sug-foto]');if(!b)return;b.disabled=true;
+    api('POST','rpc/foto_sugestao',{p_id:b.getAttribute('data-sug-foto')}).then(function(u){
+      if(!u||String(u).indexOf('data:image/')!==0){toast('Não consegui abrir a foto agora.',true);return}
+      abrirEnvio('<div><div class="t" id="envT">Foto da sugestão</div></div><img class="foto-grande" alt="Foto da sugestão" src="'+esc(u)+'"><button class="btn ghost" data-acao="fecharEnvio" type="button">Fechar</button>')},
+      function(){toast('Não consegui abrir a foto agora.',true)}).then(function(){b.disabled=false})});
 
   // ---------- painel de ações ----------
   function linha(id){return rows.filter(function(r){return r.id===id})[0]}
@@ -369,7 +459,7 @@
   function urgentes(){var h=hojeSP();return (retornos||[]).filter(function(x){return x.status==='pendente'&&x.data<=h}).length}
   function badgeInicio(){var t=nPedidos+urgentes(),b=$('nPedNav');b.hidden=!t;b.textContent=t}
   function carregarRetornos(){
-    return api('POST','rpc/retornos_lista',comProf()).then(function(j){retornos=j||[];desenharRetornos();if(aberto&&!pergunta)desenharSheet()},
+    return api('POST','rpc/retornos_lista',comProf()).then(function(j){retornos=j||[];desenharRetornos();desenharOla();if(aberto&&!pergunta)desenharSheet()},
       function(e){if(e==='sessao')return;if(e==='ausente'){retornos=null;desenharRetornos()}});
   }
   function diasEntre(a,b){return Math.round((utc(b)-utc(a))/864e5)}
@@ -394,8 +484,8 @@
   function desenharRetornos(){
     var bl=$('blocoRet');if(!bl)return;
     if(!retornos){bl.hidden=true;badgeInicio();return}
-    bl.hidden=false;
     var h=hojeSP(),ate=somaDias(h,7),l=retornos.filter(function(x){return (x.status==='pendente'||x.status==='enviada')&&x.data<=ate});
+    bl.hidden=!l.length;
     var u=urgentes(),n=$('nRet');n.hidden=!u;n.textContent=u;badgeInicio();
     $('retornos').innerHTML=l.length?l.map(function(x){
       var atr=x.data<h,z=zapRetorno(x),env=x.status==='enviada',id=esc(x.id),ini=esc((String(x.nome||'?').trim().charAt(0)||'?').toUpperCase());
@@ -411,7 +501,7 @@
           '<label for="adData" style="margin:4px 0 0">ou escolha a data</label><div class="adiar-d"><input type="date" id="adData" min="'+h+'" max="'+somaDias(h,730)+'"><button class="btn main" type="button" data-ret="adiar-data" data-id="'+id+'">Salvar</button></div>'+
           '<button class="ret-rem" type="button" data-ret="apagar" data-id="'+id+'">Remover este retorno</button></div>':'')+
         '</div>'}).join(''):
-      '<div class="ret-vazio">'+IC_RET.volta+'<span>Nenhum retorno nos próximos 7 dias.<br><small>Marque o retorno na ficha de cada atendimento.</small></span></div>';
+      '';
   }
   function marcarRet(id,st,data,msg){
     if(retOcup)return;retOcup=true;
@@ -969,10 +1059,9 @@
   }
   function estadoGuarda(){return !guard?null:guard.pausado?'warn':guard.graves>0?'bad':'ok'}
   function desenharSelos(){
-    var e=estadoGuarda(),selo=$('selo'),m=$('mSeg'),av=$('avisoGuarda'),nm=$('nMais'),n=guard?guard.nao_vistos:0;
-    selo.hidden=m.hidden=!e;nm.hidden=!n;nm.textContent=n||'';
+    var e=estadoGuarda(),m=$('mSeg'),av=$('avisoGuarda'),nm=$('nMais'),n=guard?guard.nao_vistos:0;
+    m.hidden=!e;nm.hidden=!n;nm.textContent=n||'';
     if(!e){av.hidden=true;return}
-    selo.className='selo'+(e==='ok'?'':' '+e);selo.textContent=e==='ok'?'Protegido':e==='warn'?'Proteção ligada':'Atenção';
     m.className='st'+(e==='ok'?(n?' warn':''):' '+e);
     m.textContent=e==='warn'?'Proteção ligada':e==='bad'?guard.graves+(guard.graves>1?' alertas':' alerta'):n?n+(n>1?' novos':' novo'):'Tudo normal';
     av.hidden=e==='ok'||abaAtual==='seguranca';av.className='banner guarda'+(e==='warn'?' warn':'');

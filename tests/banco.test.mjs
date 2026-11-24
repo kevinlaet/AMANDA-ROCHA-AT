@@ -664,11 +664,49 @@ for (const [rotulo, extras] of [['antes da atualização 2', []], ['depois da at
     ok(hoje.length === 10, 'retornos: relógio de Brasília disponível');
   }
 
+  // sugestões: a profissional manda uma ideia; só o desenvolvedor (Kevin) vê todas e muda o status
+  {
+    const KEVIN = 'kevin@teste.com';
+    await sal.db.exec(`insert into auth.users (email) values ('${KEVIN}') on conflict do nothing`);
+    const env = (email, t, f) => comoQ(email, `select public.enviar_sugestao($1, $2) j`, [t, f ?? null]).then((r) => r[0].j);
+    const FOTO = 'data:image/jpeg;base64,' + Buffer.from('foto de teste').toString('base64');
+    const antes = (await nq(`select count(*)::int n from net.enviados`))[0].n;
+    const s1 = await env(EMAIL_ADMIN, 'Queria um botão para ver as clientes do mês 💚', FOTO);
+    ok(s1.r === 'ok', 'sugestões: a Amanda envia uma ideia com foto');
+    const g = (await nq(`select profissional, autor, status, foto is not null f from sugestoes where id = $1`, [s1.id]))[0];
+    ok(g.profissional === 'amanda' && g.autor === EMAIL_ADMIN && g.status === 'nova' && g.f, 'sugestões: fica guardada como "nova", com quem mandou e a foto');
+    const av = (await nq(`select body from net.enviados order by id desc limit 1`))[0].body;
+    ok((await nq(`select count(*)::int n from net.enviados`))[0].n === antes + 1 && /^sugestoes-/.test(av.topic) && /Sugestão nova de Amanda/.test(av.title) && /botão para ver as clientes/.test(av.message) && /Com foto/.test(av.message) && !('email' in av), 'sugestões: avisa o desenvolvedor pelo ntfy (sem e-mail enquanto ele não configurar)');
+    ok((await env(EMAIL_ADMIN, ' ')).r === 'dados' && (await env(EMAIL_ADMIN, 'Oi', 'data:text/html;base64,PHNjcmlwdD4=')).r === 'foto', 'sugestões: texto vazio e arquivo que não é foto são recusados');
+    ok(!!(await tentaQ(null, `select public.enviar_sugestao('teste anônimo') j`)).erro && (await env('outra@pessoa.com', 'teste de fora')).r === 'sem_acesso', 'sugestões: quem não é da equipe não envia (o site não consegue nem chamar)');
+    ok((await env(BIA, 'Linha 1\r\nLinha 2\u0007')).r === 'ok', 'sugestões: a parceira também envia');
+    ok((await comoQ(BIA, `select public.minhas_sugestoes() j`))[0].j.map((x) => x.texto).join() === 'Linha 1\nLinha 2', 'sugestões: cada uma vê só as suas (e o texto chega limpo)');
+    const minhas = (await comoQ(EMAIL_ADMIN, `select public.minhas_sugestoes() j`))[0].j;
+    ok(minhas.length === 1 && minhas[0].tem_foto === true && !('foto' in minhas[0]), 'sugestões: a lista vem leve (a foto só quando ela tocar para ver)');
+    ok((await comoQ(EMAIL_ADMIN, `select public.foto_sugestao($1) f`, [s1.id]))[0].f === FOTO && (await comoQ(BIA, `select public.foto_sugestao($1) f`, [s1.id]))[0].f === null, 'sugestões: a foto abre para quem mandou, não para outra profissional');
+    ok(!!(await tentaQ(EMAIL_ADMIN, `select * from sugestoes`)).erro && !!(await tentaQ(EMAIL_ADMIN, `select * from desenvolvedor`)).erro, 'sugestões: as tabelas não abrem direto');
+    ok((await comoQ(EMAIL_ADMIN, `select public.sugestoes_dev() j`))[0].j === null && (await comoQ(KEVIN, `select public.sugestoes_dev() j`))[0].j === null, 'sugestões: sem configurar, ninguém vê a página do desenvolvedor (nem a Amanda)');
+    await nq(`update desenvolvedor set email = $1`, [KEVIN]);
+    const dev = (await comoQ(KEVIN, `select public.sugestoes_dev() j`))[0].j;
+    ok(dev && dev.novas === 2 && dev.lista.length === 2 && dev.lista.some((x) => /^Amanda/.test(x.quem)) && dev.lista.some((x) => x.quem === 'Bia'), 'sugestões: o Kevin vê todas, com quem mandou e o número de novas');
+    ok((await comoQ(KEVIN, `select public.foto_sugestao($1) f`, [s1.id]))[0].f === FOTO, 'sugestões: o Kevin abre a foto');
+    ok((await comoQ(EMAIL_ADMIN, `select public.marcar_sugestao($1, 'feita') j`, [s1.id]))[0].j.r === 'sem_acesso', 'sugestões: a Amanda não muda o status');
+    ok((await comoQ(KEVIN, `select public.marcar_sugestao($1, 'andamento') j`, [s1.id]))[0].j.r === 'ok' && (await comoQ(EMAIL_ADMIN, `select public.minhas_sugestoes() j`))[0].j[0].status === 'andamento', 'sugestões: o Kevin marca "em andamento" e a Amanda vê o status novo');
+    ok((await comoQ(KEVIN, `select public.marcar_sugestao($1, 'apagar') j`, [s1.id]))[0].j.r === 'dados', 'sugestões: status desconhecido é recusado');
+    await env(SANDRA, 'Agora com e-mail configurado');
+    const av2 = (await nq(`select body from net.enviados order by id desc limit 1`))[0].body;
+    ok(av2.email === KEVIN && /Sugestão nova de Sandra/.test(av2.title), 'sugestões: com o e-mail configurado, o aviso vai também por e-mail');
+    ok((await comoQ(KEVIN, `select public.testar_aviso_dev() j`))[0].j.r === 'ok' && (await comoQ(EMAIL_ADMIN, `select public.testar_aviso_dev() j`))[0].j.r === 'sem_acesso', 'sugestões: o Kevin testa o aviso; a Amanda não');
+    for (let i = 0; i < 19; i++) await env(BIA, 'ideia ' + i);
+    ok((await env(BIA, 'mais uma')).r === 'limite', 'sugestões: no máximo 20 por dia para cada pessoa');
+  }
+
   // a atualização roda de novo sem estragar nada
   const rr = await tenta(sal.db.exec(fs.readFileSync(path.join(RAIZ, 'supabase/atualizacao.sql'), 'utf8')));
   ok(!rr.erro && (await nq(`select count(*)::int n from profissionais`))[0].n === 3 && (await nq(`select recurso from servicos where id = 'limpeza'`))[0].recurso === 'maca', 'rodar a atualização de novo mantém as profissionais e os recursos' + (rr.erro ? ': ' + rr.erro : ''));
   ok((await comoQ(BIA, `select profissional from horarios`)).every((r) => r.profissional === 'bia'), 'e as regras de acesso continuam valendo');
   ok((await nq(`select count(*)::int n from retornos`))[0].n === 2, 'rodar a atualização de novo mantém os retornos');
+  ok((await nq(`select count(*)::int n from sugestoes`))[0].n === 22 && (await nq(`select email from desenvolvedor`))[0].email === 'kevin@teste.com', 'rodar a atualização de novo mantém as sugestões e o e-mail do Kevin');
 }
 
 fim('banco');

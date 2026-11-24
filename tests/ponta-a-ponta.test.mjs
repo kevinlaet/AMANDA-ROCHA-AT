@@ -197,9 +197,13 @@ ok(/Atualizado às \d\d:\d\d/.test(await P.locator('#atualizado').innerText()), 
 }
 // simples para quem nunca usou painel: abre no Início, com guia e abas
 ok((await P.locator('[data-aba]:not([hidden])').evaluateAll((e) => e.map((x) => x.dataset.aba))).join() === 'inicio', 'abre na aba Início, só com o que precisa dela agora');
-ok(await P.locator('#boasVindas').isVisible(), 'primeira vez: aparece o guia de boas-vindas');
+ok(await P.locator('#ola').isVisible() && /Amanda! .+/.test(await P.locator('#olaT').innerText()) && (await P.locator('#boasVindas').count()) === 0, 'o Início abre com uma saudação para a Amanda (sem guia nem explicações)');
+ok(/🔔 3 pedidos esperando você/.test(await P.locator('#olaChips').innerText()), 'a saudação avisa dos pedidos esperando');
+ok((await P.locator('#selo').count()) === 0 && await P.locator('#vApp header .cab-logo').isVisible(), 'o topo tem o logo e não tem mais o selo');
 ok((await P.locator('#nPedNav').innerText()) === '3', 'a barra de baixo mostra 3 pedidos no botão Início');
-ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('[data-aba]:not([data-aba="profissionais"]) details.ajuda summary', { hasText: 'Como usar esta parte' }).count()) === 4, 'são 4 abas, cada uma com "Como usar esta parte"');
+ok((await P.locator('.abas [data-aba-btn]').count()) === 4 && (await P.locator('[data-aba="inicio"] details.ajuda').count()) === 0 && (await P.locator('[data-aba]:not([data-aba="profissionais"]) details.ajuda summary', { hasText: 'Como usar esta parte' }).count()) === 3, 'são 4 abas; o Início não tem mais "Como usar esta parte"');
+const ordem = await P.evaluate(() => [...document.querySelectorAll('[data-aba="inicio"] > [id], [data-aba="inicio"] > .atalhos')].map((e) => e.id || e.className));
+ok(ordem[ordem.length - 1] === 'blocoPed' && await P.locator('#blocoPed').isVisible(), 'os pedidos ficam no final do Início (e aparecem porque há pedidos)');
 await foto(P, 'painel-pedidos');
 
 // confirmar pelo cartão do pedido
@@ -308,16 +312,12 @@ ok(caixa2 && caixa2.y >= 0 && caixa2.y + caixa2.height <= vp.height + 1, 'com mu
 await foto(P, 'painel-acoes', false);
 await P.keyboard.press('Escape');
 await foto(P, 'painel-completo');
-await aba(P, 'inicio');
-await P.click('#boasVindas [data-guia-ok]:not([data-ir])');
-ok(await P.locator('#boasVindas').isHidden(), '"Já entendi" esconde o guia');
 await aba(P, 'agenda');
 
 // sessão
 await P.reload(); await P.waitForSelector('#vApp:not([hidden])');
 ok(true, 'continua logada depois de recarregar');
 ok(await P.locator('[data-aba="agenda"]').isVisible() && (await P.getAttribute('[data-aba-btn="agenda"]', 'aria-current')) === 'page', 'ao recarregar, continua na aba em que estava');
-ok(await P.locator('#boasVindas').isHidden(), 'o guia não volta depois de "Já entendi"');
 await doMais(P, 'conta');
 await P.click('#bSair');
 ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta para o login');
@@ -334,9 +334,9 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   await p.goto(BASE + 'admin/');
   await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', 'certa'); await p.click('#bLogin');
   await p.waitForSelector('#vApp:not([hidden])');
-  // botão do guia leva direto para abrir horários
-  await p.click('#boasVindas [data-abrir-form]');
-  ok(await p.locator('[data-aba="agenda"]').isVisible() && await p.locator('#cardAbrir').isVisible() && await p.locator('#boasVindas').isHidden(), 'guia: "Abrir meus horários" vai para a Agenda com o formulário aberto');
+  // atalho do Início leva direto para abrir horários
+  await p.click('[data-aba="inicio"] .atalhos [data-abrir-form]');
+  ok(await p.locator('[data-aba="agenda"]').isVisible() && await p.locator('#cardAbrir').isVisible(), 'atalho "Abrir novos horários" vai para a Agenda com o formulário aberto');
   await aba(p, 'enviar');
   await p.waitForSelector('#envDias [data-env]');
   const chips = await p.locator('#envDias [data-env]').evaluateAll((els) => els.map((e) => e.getAttribute('data-env')));
@@ -490,7 +490,75 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
     await foto(P2, 'painel-retornos', false);
     await P2.locator('#retornos .ret', { hasText: 'Beatriz' }).locator('[data-ret=sem_resposta]').click();
     ok(await espera(async () => (await q(`select status from retornos where nome = 'Beatriz Nunes'`))[0].status === 'sem_resposta' && (await P2.locator('#retornos .ret').count()) === 0), 'retorno: "Não respondeu" anota e tira da lista');
-    ok(/Nenhum retorno/.test(await P2.locator('#retornos').innerText()), 'retorno: sem retornos, avisa com calma');
+    ok(await P2.locator('#blocoRet').isHidden(), 'retorno: sem retornos, o bloco some (nada de frase desanimadora)');
+  }
+
+  // próximos atendimentos: 2 meses, agrupados por semana e por mês
+  {
+    const D45 = await dia(45), D70 = await dia(70);
+    await db.exec(`insert into horarios (data, hora, status, nome, telefone, servico) values ('${D45}', '10:00', 'confirmado', 'Paula Futuro', '11955556666', 'Auriculoterapia'), ('${D70}', '10:00', 'confirmado', 'Rosa Longe', '11955557777', 'Auriculoterapia')`);
+    await aba(P2, 'inicio');
+    await P2.click('#bAtualizar');
+    ok(await espera(async () => /Paula Futuro/.test(await P2.locator('#proximos').innerText())), 'próximos: mostra atendimentos de até 2 meses');
+    ok(!/Rosa Longe/.test(await P2.locator('#proximos').innerText()), 'próximos: depois de 2 meses, ainda não aparece');
+    const titulos = await P2.locator('#proximos .prox-gt b').allInnerTexts();
+    const MES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'][+D45.slice(5, 7) - 1];
+    ok(/^(ESTA SEMANA|SEMANA QUE VEM)$/i.test(titulos[0]) && titulos.some((t) => t.toLowerCase().startsWith(MES)), 'próximos: agrupados por semana e, mais para frente, por mês (' + titulos.join(' · ') + ')');
+    const paula = P2.locator('#proximos .prox', { hasText: 'Paula' });
+    ok((await paula.locator('a[data-lembrete]').count()) === 1 && /Mandar lembrete para Paula/.test(await paula.locator('a[data-lembrete]').getAttribute('aria-label')), 'próximos: mesmo longe, cada atendimento tem o botão de lembrete');
+    await P2.evaluate(() => { document.getElementById('toast').hidden = true; document.getElementById('proxT').scrollIntoView(); });
+    await foto(P2, 'painel-proximos-2-meses', false);
+  }
+
+  // sugestões de alterações: a Amanda escreve, anexa uma foto e envia; o Kevin recebe na página dele
+  {
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await P2.waitForSelector('#blocoSug:not([hidden])');
+    await P2.click('#bSug');
+    ok(await espera(async () => /Escreva sua ideia/.test(await P2.locator('#toast').innerText())), 'sugestões: sem texto, pede para escrever antes de enviar');
+    await P2.fill('#sugTxt', 'Queria ver as clientes que fazem aniversário no mês 🎂');
+    await P2.setInputFiles('#sugArq', { name: 'ideia.png', mimeType: 'image/png', buffer: PNG });
+    await P2.waitForSelector('#sugPrev:not([hidden])');
+    ok(true, 'sugestões: a foto escolhida aparece antes de enviar');
+    await P2.locator('#blocoSug').scrollIntoViewIfNeeded();
+    await foto(P2, 'painel-sugestao', false);
+    await P2.click('#bSug');
+    ok(await espera(async () => (await q(`select count(*)::int n from sugestoes where texto like 'Queria ver as clientes%' and foto like 'data:image/jpeg;base64,%' and status = 'nova' and profissional = 'amanda'`))[0].n === 1), 'sugestões: fica salva no banco, com a foto (em JPEG leve) e status "nova"');
+    ok(await espera(async () => /Sugestão enviada/.test(await P2.locator('#toast').innerText())) && (await P2.inputValue('#sugTxt')) === '' && await P2.locator('#sugPrev').isHidden(), 'sugestões: avisa que foi enviada e limpa o campo');
+    ok(await espera(async () => /aniversário/.test(await P2.locator('#sugLista').innerText()) && /Nova/.test(await P2.locator('#sugLista').innerText())), 'sugestões: ela vê a sugestão na lista, com o status');
+    const aviso = (await q(`select body from net.enviados order by id desc limit 1`))[0].body;
+    ok(/Sugestão nova de Amanda/.test(aviso.title) && /aniversário/.test(aviso.message), 'sugestões: o aviso para o Kevin sai na hora');
+    await P2.click('#sugLista [data-sug-foto]');
+    ok(await espera(async () => await P2.locator('#envio img.foto-grande').isVisible()), 'sugestões: "Ver foto" abre a foto que ela mandou');
+    await P2.click('#envio [data-acao=fecharEnvio]');
+
+    await db.exec(`insert into auth.users (email) values ('kevin@teste.com') on conflict do nothing`);
+    const ck = await contexto(IPHONE);
+    const K = await ck.newPage();
+    await K.goto(BASE + 'admin/sugestoes/');
+    await K.fill('#email', 'kevin@teste.com'); await K.fill('#senha', 'certa'); await K.click('#bLogin');
+    ok(await espera(async () => /não está configurado/.test(await K.locator('#mLogin').innerText())), 'página do Kevin: antes de configurar o e-mail, ninguém entra');
+    await db.exec(`update desenvolvedor set email = 'kevin@teste.com'`);
+    await K.fill('#senha', 'certa'); await K.click('#bLogin');
+    await K.waitForSelector('#vApp:not([hidden])');
+    await K.waitForSelector('#lista .it');
+    ok((await K.locator('#resumo .novas b').innerText()) === '1' && /^\(1\) /.test(await K.title()), 'página do Kevin: contador de sugestões novas (também no título da aba)');
+    const it = K.locator('#lista .it').first();
+    ok(/Amanda/.test(await it.innerText()) && /aniversário/.test(await it.innerText()), 'página do Kevin: mostra quem mandou e o texto');
+    await it.locator('[data-foto]').click();
+    ok(await espera(async () => await it.locator('img').isVisible()), 'página do Kevin: abre a foto');
+    ok(/sugestoes-/.test(await K.locator('#avisos').innerText()), 'página do Kevin: mostra o tópico para receber no celular');
+    await foto(K, 'kevin-sugestoes');
+    await it.locator('[data-st=feita]').click();
+    ok(await espera(async () => (await q(`select status from sugestoes where texto like 'Queria ver as clientes%'`))[0].status === 'feita'), 'página do Kevin: "Feita" muda o status no banco');
+    ok(await espera(async () => /Nenhuma sugestão nova/.test(await K.locator('#lista').innerText())), 'página do Kevin: a sugestão sai da lista de novas');
+    await K.click('[data-f=feita]');
+    ok(/aniversário/.test(await K.locator('#lista').innerText()), 'página do Kevin: aparece em "Feitas"');
+    await K.click('#bTeste');
+    ok(await espera(async () => /teste enviado/.test(await K.locator('#toast').innerText())) && (await q(`select body from net.enviados order by id desc limit 1`))[0].body.email === 'kevin@teste.com', 'página do Kevin: o aviso de teste vai para o e-mail configurado');
+    await ck.close();
+    await P2.reload(); await P2.waitForSelector('#vApp:not([hidden])');
+    ok(await espera(async () => /Feita ✓/.test(await P2.locator('#sugLista').innerText())), 'sugestões: a Amanda vê que a ideia dela foi feita');
   }
 
   // editar dados
@@ -845,10 +913,10 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
 
 // ===== 4e. Mais: Histórico, Segurança (guardião) e Minha conta =====
 {
-  const entrar = async (c, senha = 'certa') => { const p = await c.newPage(); await p.goto(BASE + 'admin/'); await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', senha); await p.click('#bLogin'); await p.waitForSelector('#vApp:not([hidden])'); await p.waitForSelector('#selo:not([hidden])'); return p; };
+  const entrar = async (c, senha = 'certa') => { const p = await c.newPage(); await p.goto(BASE + 'admin/'); await p.fill('#email', EMAIL_ADMIN); await p.fill('#senha', senha); await p.click('#bLogin'); await p.waitForSelector('#vApp:not([hidden])'); await p.waitForFunction(() => !document.getElementById('mSeg').hidden); return p; };
   const c = await contexto(IPHONE);
   const M = await entrar(c);
-  ok((await M.locator('#selo').innerText()) === 'Protegido', 'topo do painel mostra o selo "Protegido" do guardião');
+  ok((await M.locator('#selo').count()) === 0 && /Tudo normal|novo/.test(await M.locator('#mSeg').textContent()), 'o topo fica limpo (sem selo); a situação do guardião fica em Mais › Segurança');
   ok(await M.locator('#bancoVelho').isHidden(), 'com o banco atualizado, não aparece aviso de atualização');
   await aba(M, 'mais');
   ok((await M.locator('[data-aba="mais"] .lista [data-ir]:visible').count()) === 8, 'Mais tem 8 páginas: Seus números, Clientes, Serviços, Profissionais (para sócias), Histórico, Segurança, Como funciona e Minha conta');
@@ -962,7 +1030,7 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
 
   // proteção ligada na mão: o site leva a cliente direto para o WhatsApp
   await M.click('#gStatus [data-acao=protecao]');
-  await M.waitForFunction(() => /Proteção ligada/.test(document.getElementById('selo').textContent));
+  await M.waitForFunction(() => /Proteção ligada/.test(document.getElementById('mSeg').textContent));
   ok((await q('select pausado from guardiao'))[0].pausado === true, 'Amanda liga a proteção pelo painel');
   const cs = await contexto(ANDROID);
   const S = await cs.newPage();
@@ -974,13 +1042,13 @@ ok(await P.locator('#vLogin').isVisible(), 'sair (em Mais › Minha conta) volta
   ok(/Cliente Protegida/.test(decodeURIComponent(S.url())) && (await q(`select count(*)::int n from horarios where nome = 'Cliente Protegida'`))[0].n === 0, `com a proteção ligada, a cliente vai para o WhatsApp com o pedido (${hEscolhido}) e nada é reservado`);
   await cs.close();
   await M.click('#gStatus [data-acao=protecao]');
-  await M.waitForFunction(() => document.getElementById('selo').textContent === 'Protegido');
+  await M.waitForFunction(() => !/Proteção ligada/.test(document.getElementById('mSeg').textContent));
   ok((await q('select pausado from guardiao'))[0].pausado === false, 'Amanda religa o agendamento pelo site');
 
   // sair dos outros aparelhos
   const c2 = await contexto(IPHONE);
   const O = await entrar(c2);
-  await M.reload(); await M.waitForSelector('#selo:not([hidden])');
+  await M.reload(); await M.waitForFunction(() => !document.getElementById('mSeg').hidden);
   await M.click('[data-aba="seguranca"] [data-acao=sair-outros]');
   await M.waitForFunction(() => /outros aparelhos foram desconectados/.test(document.getElementById('toast').innerText));
   await O.reload();
@@ -1451,6 +1519,12 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   const cS = await contexto(ANDROID, { apiDoBanco: apiS });
   const S = await entrarComo(cS, 'sandra@teste.com');
   ok(await S.locator('#visao').isVisible(), 'sócia: aparece a chave "Só a minha agenda / Todas as profissionais"');
+  ok(/Sandra! /.test(await S.locator('#olaT').innerText()), 'Início: a saudação usa o nome de quem entrou (Sandra)');
+  ok(await S.locator('#proximos .vazio-bom').isVisible() && /espaço pra novas clientes/.test(await S.locator('#proximos').innerText()) && !/Nenhum/.test(await S.locator('[data-aba="inicio"]').innerText()), 'Início: sem atendimentos, aparece uma mensagem positiva (nada de "Nenhum…")');
+  const divulgar = decodeURIComponent(await S.locator('#proximos .vazio-bom a.zap').getAttribute('href'));
+  ok(/^https:\/\/wa\.me\/\?text=/.test(divulgar) && /agendar/.test(divulgar), 'Início: o botão "Divulgar" abre o WhatsApp com o link de agendamento');
+  ok(await S.locator('#blocoPed').isHidden() && await S.locator('#blocoRet').isHidden(), 'Início: sem pedidos nem retornos, esses blocos nem aparecem');
+  await foto(S, 'painel-inicio-vazio', false);
   await aba(S, 'agenda');
   ok((await S.locator('#tAgenda').innerText()) === 'Minha agenda' && (await S.locator('#agenda .s').count()) === 0, 'sócia: começa vendo só a própria agenda (a Sandra ainda não abriu horários)');
   const como = S.locator('[data-aba="agenda"] [data-como-cliente]');
@@ -1499,7 +1573,7 @@ ok(!JSON.stringify(respostaPublica).match(/Joana|Maria|Rita|Edilva|988887777|912
   ok(/maca/.test(await B.locator('#toast').innerText()), 'parceira: marcar a maca já ocupada pela Amanda mostra aviso claro de maca ocupada');
   ok((await sq(`select status from horarios where id = $1`, [b14]))[0].status === 'livre', 'e nada é alterado');
   await B.keyboard.press('Escape');
-  await aba(B, 'mais'); await B.click('[data-ir="seguranca"]');
+  await doMais(B, 'seguranca');
   ok(/Sua conta/.test(await B.locator('#gStatus').innerText()) && (await B.locator('#gStatus [data-acao="protecao"]').count()) === 0, 'parceira: na Segurança, vê só a própria conta, sem ligar a proteção do salão');
   // cadastro de clientes: sugestão desde a 1ª letra, cadastro travado e correção só pelas sócias
   const cB2 = await contexto(ANDROID, { apiDoBanco: apiS });

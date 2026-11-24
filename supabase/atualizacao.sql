@@ -2309,6 +2309,214 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------
+-- Sugestões de alterações do app: a profissional escreve uma ideia (com
+-- foto opcional) no Início do painel; chega para o desenvolvedor (Kevin)
+-- numa página só dele (admin/sugestoes/) e por e-mail/celular (ntfy).
+-- Tabelas novas: não alteram nenhum dado que já existe.
+-- ---------------------------------------------------------------------
+create table if not exists public.sugestoes (
+  id uuid primary key default gen_random_uuid(),
+  profissional text references public.profissionais (id),
+  autor text not null,
+  texto text not null check (length(btrim(texto)) between 2 and 1000),
+  foto text check (foto is null or (length(foto) <= 1400000 and foto ~ '^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$')),
+  status text not null default 'nova' check (status in ('nova', 'andamento', 'feita')),
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+alter table public.sugestoes enable row level security;
+-- fechada: só pelas funções abaixo
+revoke all on public.sugestoes from anon, authenticated;
+
+-- Quem recebe as sugestões (uma linha só). O Kevin coloca o e-mail dele aqui pelo SQL Editor
+-- (nunca no repositório): o mesmo e-mail entra na página de sugestões e recebe os avisos.
+create table if not exists public.desenvolvedor (
+  id boolean primary key default true check (id),
+  email text check (email is null or email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
+  ntfy_topico text not null default 'sugestoes-' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)
+);
+alter table public.desenvolvedor enable row level security;
+revoke all on public.desenvolvedor from anon, authenticated;
+insert into public.desenvolvedor (id) values (true) on conflict (id) do nothing;
+
+create or replace function public.sou_dev()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (select 1 from public.desenvolvedor d
+                  where d.email is not null and lower(d.email) = lower(coalesce(auth.jwt() ->> 'email', '')))
+$$;
+
+-- Aviso para o desenvolvedor: celular (tópico do ntfy) e e-mail (o ntfy encaminha), sem travar nada se falhar.
+create or replace function public.avisar_dev(p_titulo text, p_texto text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  d public.desenvolvedor;
+  v_url text := (select g.painel_url from public.guardiao g where g.id = 1);
+  v_corpo jsonb;
+begin
+  select * into d from public.desenvolvedor where id;
+  if not found or not public.notificacoes_disponiveis() then
+    return false;
+  end if;
+  v_corpo := jsonb_build_object('topic', d.ntfy_topico, 'title', left(p_titulo, 120), 'message', left(p_texto, 600),
+                                'priority', 3, 'tags', jsonb_build_array('bulb'));
+  if v_url ~ '/admin/?$' then
+    v_corpo := v_corpo || jsonb_build_object('click', regexp_replace(v_url, '/?$', '/') || 'sugestoes/');
+  end if;
+  if d.email is not null then
+    v_corpo := v_corpo || jsonb_build_object('email', d.email);
+  end if;
+  begin
+    execute 'select net.http_post(url := $1, body := $2, params := ''{}''::jsonb, headers := ''{"Content-Type": "application/json"}''::jsonb, timeout_milliseconds := 5000)'
+      using 'https://ntfy.sh/', v_corpo;
+    return true;
+  exception when others then
+    return false;
+  end;
+end;
+$$;
+
+-- Enviar uma sugestão. Resposta: {r: 'ok'|'sem_acesso'|'dados'|'foto'|'limite', id}
+create or replace function public.enviar_sugestao(p_texto text, p_foto text default null)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text := lower(coalesce(auth.jwt() ->> 'email', ''));
+  v_prof text := public.minha_profissional();
+  v_nome text;
+  v_txt text;
+  v_id uuid;
+begin
+  if v_email = '' or (v_prof is null and not public.sou_admin()) then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  v_txt := btrim(regexp_replace(replace(coalesce(p_texto, ''), E'\r', ''), '[\x01-\x09\x0B-\x1F\x7F]', ' ', 'g'));
+  v_txt := left(regexp_replace(v_txt, '\n{3,}', E'\n\n', 'g'), 1000);
+  if length(v_txt) < 2 then
+    return json_build_object('r', 'dados');
+  end if;
+  if p_foto is not null and (length(p_foto) > 1400000 or p_foto !~ '^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$') then
+    return json_build_object('r', 'foto');
+  end if;
+  if (select count(*) from public.sugestoes s where s.autor = v_email and s.criado_em > now() - interval '1 day') >= 20 then
+    return json_build_object('r', 'limite');
+  end if;
+  insert into public.sugestoes (profissional, autor, texto, foto)
+  values (v_prof, v_email, v_txt, p_foto)
+  returning id into v_id;
+  v_nome := coalesce((select split_part(p.nome, ' ', 1) from public.profissionais p where p.id = v_prof), 'Painel');
+  perform public.avisar_dev('💡 Sugestão nova de ' || v_nome,
+                            left(v_txt, 400) || case when p_foto is not null then E'\n📷 Com foto' else '' end);
+  return json_build_object('r', 'ok', 'id', v_id);
+end;
+$$;
+
+-- As sugestões de quem está logada (sem a foto, que vem só quando ela toca para ver).
+create or replace function public.minhas_sugestoes()
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text := lower(coalesce(auth.jwt() ->> 'email', ''));
+begin
+  if v_email = '' or (public.minha_profissional() is null and not public.sou_admin()) then
+    return null;
+  end if;
+  return (select coalesce(json_agg(t order by t.criado_em desc), '[]'::json)
+            from (select s.id, s.texto, s.foto is not null as tem_foto, s.status, s.criado_em, s.atualizado_em
+                    from public.sugestoes s where s.autor = v_email order by s.criado_em desc limit 30) t);
+end;
+$$;
+
+-- Página do desenvolvedor: todas as sugestões, com quem mandou e os totais.
+create or replace function public.sugestoes_dev()
+returns json
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_dev() then
+    return null;
+  end if;
+  return json_build_object(
+    'novas', (select count(*) from public.sugestoes where status = 'nova'),
+    'andamento', (select count(*) from public.sugestoes where status = 'andamento'),
+    'feitas', (select count(*) from public.sugestoes where status = 'feita'),
+    'topico', (select d.ntfy_topico from public.desenvolvedor d where d.id),
+    'avisos', public.notificacoes_disponiveis(),
+    'lista', (select coalesce(json_agg(t order by t.criado_em desc), '[]'::json)
+                from (select s.id, s.texto, s.foto is not null as tem_foto, s.status, s.criado_em, s.atualizado_em,
+                             coalesce(p.nome, s.autor) as quem
+                        from public.sugestoes s left join public.profissionais p on p.id = s.profissional
+                       order by s.criado_em desc limit 200) t));
+end;
+$$;
+
+create or replace function public.marcar_sugestao(p_id uuid, p_status text)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_dev() then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  if p_status is null or p_status not in ('nova', 'andamento', 'feita') then
+    return json_build_object('r', 'dados');
+  end if;
+  update public.sugestoes set status = p_status, atualizado_em = now() where id = p_id;
+  return json_build_object('r', case when found then 'ok' else 'nao_achei' end);
+end;
+$$;
+
+-- A foto de uma sugestão: para quem mandou ou para o desenvolvedor.
+create or replace function public.foto_sugestao(p_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select s.foto from public.sugestoes s
+   where s.id = p_id
+     and (public.sou_dev() or s.autor = lower(coalesce(auth.jwt() ->> 'email', '')))
+$$;
+
+create or replace function public.testar_aviso_dev()
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sou_dev() then
+    return json_build_object('r', 'sem_acesso');
+  end if;
+  if not public.notificacoes_disponiveis() then
+    return json_build_object('r', 'sem_avisos');
+  end if;
+  return json_build_object('r', case when public.avisar_dev('Teste das sugestões ✅', 'Se este aviso chegou, as sugestões novas também vão chegar.') then 'ok' else 'falhou' end);
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- Permissões das funções
 -- (o Supabase dá acesso automático a funções novas; aqui tudo é fechado e
 -- depois liberado só para quem precisa)
@@ -2389,3 +2597,18 @@ grant execute on function public.salvar_retorno(uuid, date, text) to authenticat
 grant execute on function public.marcar_retorno(uuid, text, date) to authenticated;
 grant execute on function public.apagar_retorno(uuid) to authenticated;
 grant execute on function public.retornos_lista(text) to authenticated;
+revoke all on function public.sou_dev() from public, anon, authenticated;
+revoke all on function public.avisar_dev(text, text) from public, anon, authenticated;
+revoke all on function public.enviar_sugestao(text, text) from public, anon, authenticated;
+revoke all on function public.minhas_sugestoes() from public, anon, authenticated;
+revoke all on function public.sugestoes_dev() from public, anon, authenticated;
+revoke all on function public.marcar_sugestao(uuid, text) from public, anon, authenticated;
+revoke all on function public.foto_sugestao(uuid) from public, anon, authenticated;
+revoke all on function public.testar_aviso_dev() from public, anon, authenticated;
+grant execute on function public.sou_dev() to authenticated;
+grant execute on function public.enviar_sugestao(text, text) to authenticated;
+grant execute on function public.minhas_sugestoes() to authenticated;
+grant execute on function public.sugestoes_dev() to authenticated;
+grant execute on function public.marcar_sugestao(uuid, text) to authenticated;
+grant execute on function public.foto_sugestao(uuid) to authenticated;
+grant execute on function public.testar_aviso_dev() to authenticated;

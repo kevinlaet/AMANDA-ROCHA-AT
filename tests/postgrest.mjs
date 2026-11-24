@@ -5,7 +5,7 @@ import { EMAIL_ADMIN } from './banco.mjs';
 
 export const SUPABASE_URL = 'https://teste.supabase.co';
 export const ANON_KEY = 'sb_publishable_chave_de_teste';
-export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa', 'sandra@teste.com': 'certa', 'bia@teste.com': 'certa' };
+export const SENHAS = { [EMAIL_ADMIN]: 'certa', 'outra@pessoa.com': 'certa', 'sandra@teste.com': 'certa', 'bia@teste.com': 'certa', 'kevin@teste.com': 'certa' };
 
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
 const COLUNAS = { horarios: new Set(['status', 'nome', 'servico', 'telefone', 'pedido_em', 'lembrete_em', 'data', 'hora', 'valor', 'faltou', 'profissional']), servicos: new Set(['id', 'nome', 'detalhe', 'novidade', 'desde', 'ativo', 'ordem', 'duracao', 'preco', 'preco_antes', 'preco_obs', 'descricao', 'beneficios', 'profissional', 'recurso']), profissionais: new Set(['id', 'nome', 'email', 'papel', 'ativo', 'ordem']) };
@@ -113,6 +113,13 @@ export function criarApi({ db, como, opcoes = {} }) {
         if (caminho === '/rest/v1/rpc/salvar_retorno') { const b = corpo(); return json(route, (await db.query('select public.salvar_retorno($1, $2::date, $3) j', [b.p_horario, b.p_data, b.p_obs ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/marcar_retorno') { const b = corpo(); return json(route, (await db.query('select public.marcar_retorno($1, $2, $3::date) j', [b.p_id, b.p_status ?? null, b.p_data ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/rpc/apagar_retorno') return json(route, (await db.query('select public.apagar_retorno($1) j', [corpo().p_id])).rows[0].j);
+        if (caminho === '/rest/v1/rpc/enviar_sugestao') { const b = corpo(); return json(route, (await db.query('select public.enviar_sugestao($1, $2) j', [b.p_texto ?? null, b.p_foto ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/minhas_sugestoes') return json(route, (await db.query('select public.minhas_sugestoes() j')).rows[0].j);
+        if (caminho === '/rest/v1/rpc/sugestoes_dev') return json(route, (await db.query('select public.sugestoes_dev() j')).rows[0].j);
+        if (caminho === '/rest/v1/rpc/sou_dev') return json(route, (await db.query('select public.sou_dev() j')).rows[0].j);
+        if (caminho === '/rest/v1/rpc/testar_aviso_dev') return json(route, (await db.query('select public.testar_aviso_dev() j')).rows[0].j);
+        if (caminho === '/rest/v1/rpc/marcar_sugestao') { const b = corpo(); return json(route, (await db.query('select public.marcar_sugestao($1, $2) j', [b.p_id, b.p_status ?? null])).rows[0].j); }
+        if (caminho === '/rest/v1/rpc/foto_sugestao') return json(route, (await db.query('select public.foto_sugestao($1) j', [corpo().p_id])).rows[0].j);
         if (caminho === '/rest/v1/rpc/cadastrar_contato') { const b = corpo(); return json(route, (await db.query('select public.cadastrar_contato($1, $2, $3) j', [b.p_nome, b.p_telefone, b.p_prof ?? null])).rows[0].j); }
         if (caminho === '/rest/v1/contatos') {
           const params = [], pid = url.searchParams.get('id') || '';

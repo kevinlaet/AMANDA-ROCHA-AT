@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- Página do Kevin: só roda o código deste site e só conversa com o Supabase. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Sugestões do app</title>
+<meta name="theme-color" content="#0B5F59">
+<link rel="icon" href="../../img/logo.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:'Great Vibes';src:url(../../fonts/greatvibes-sub.woff2) format('woff2');font-display:swap}
+@font-face{font-family:'Cormorant';src:url(../../fonts/cormorant-sub.woff2) format('woff2');font-weight:500 600;font-display:swap}
+@font-face{font-family:'Montserrat';src:url(../../fonts/montserrat-sub.woff2) format('woff2');font-weight:400 800;font-display:swap}
+:root{--teal:#0B5F59;--teal-d:#053F3A;--peach:#F5C59D;--peach-l:#FBE3CE;--cream:#FFF8F1;--sand:#F7EBDF;--ink:#16302C;--muted:#55706B;--line:#E7D6C6;--ok:#1B8A4B;--ok-bg:#E6F4EC;--warn:#B5651D;--warn-bg:#FFF3E5;--bad:#B3392F;--bad-bg:#FDECEA;color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--cream);min-height:100vh;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+header{background:linear-gradient(160deg,var(--teal) 0%,var(--teal-d) 100%);color:var(--cream);padding:calc(16px + env(safe-area-inset-top)) 16px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cab{display:flex;align-items:center;gap:12px;min-width:0}
+.cab img{width:44px;height:44px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(245,197,157,.35)}
+header h1{font-family:'Great Vibes',cursive;font-weight:400;font-size:32px;color:var(--peach);line-height:1}
+header small{display:block;font-weight:600;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--peach-l)}
+.sair{background:transparent;border:1.5px solid rgba(245,197,157,.6);color:var(--peach-l);border-radius:12px;padding:8px 14px;min-height:42px;font-weight:600;font-size:14px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 60px}
+h2{font-size:18px;font-weight:800;color:var(--teal);margin:26px 0 12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 6px 18px rgba(11,95,89,.06)}
+label{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
+input[type=email],input[type=password]{width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;outline:none}
+input:focus{border-color:var(--teal)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:10px 16px;border-radius:14px;border:2px solid transparent;font-weight:700;width:100%;text-align:center}
+.btn.main{background:var(--teal);color:var(--cream)}
+.btn.ghost{border-color:var(--line);background:#fff}
+.btn:disabled{opacity:.5}
+.msg{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--bad-bg);color:var(--bad);font-weight:600;font-size:15px}
+.resumo{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;margin-top:18px}
+.resumo div{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 12px;text-align:center}
+.resumo b{display:block;font-weight:800;font-size:32px;line-height:1.1;color:var(--teal-d)}
+.resumo span{display:block;margin-top:4px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.resumo .novas{background:linear-gradient(160deg,var(--peach-l),#fff);border-color:var(--peach)}
+.resumo .novas b{font-size:38px;color:var(--warn)}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.filtros button{min-height:40px;padding:6px 14px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:14px}
+.filtros button[aria-pressed=true]{background:var(--teal);color:var(--cream);border-color:var(--teal)}
+.lista{display:grid;gap:12px;margin-top:14px}
+.it{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:10px;box-shadow:0 6px 18px rgba(11,95,89,.06)}
+.it.nova{border-left:6px solid var(--warn)}
+.it-t{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.it-t b{font-size:16px}
+.it-t span{display:block;font-size:13px;color:var(--muted)}
+.st{font-style:normal;font-size:12px;font-weight:800;border-radius:99px;padding:4px 10px;white-space:nowrap;background:var(--warn-bg);color:var(--warn)}
+.st.andamento{background:#E9F4F1;color:var(--teal)}.st.feita{background:var(--ok-bg);color:var(--ok)}
+.it p{white-space:pre-line;overflow-wrap:anywhere}
+.it img{width:100%;max-height:70vh;object-fit:contain;border-radius:14px;background:var(--cream)}
+.acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acoes .btn{min-height:44px;font-size:14px}
+.ver{justify-self:start;background:none;border:0;color:var(--teal);font-weight:700;min-height:36px}
+.vazio{color:var(--muted);padding:8px 2px}
+.avisos p{font-size:14.5px;color:var(--muted);margin-top:6px}
+.avisos code{font-size:14px;background:var(--sand);padding:2px 8px;border-radius:8px;color:var(--ink);overflow-wrap:anywhere}
+.avisos .btn{margin-top:12px}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;font-weight:600;z-index:20}
+.toast.erro{background:var(--bad)}
+.credito{font-family:Cormorant,Georgia,'Times New Roman',serif;font-weight:600;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;text-align:center;opacity:.45;color:var(--muted);padding:24px 16px calc(24px + env(safe-area-inset-bottom));border-top:1px solid var(--line);max-width:640px;margin:0 auto}
+@media (max-width:360px){.resumo b{font-size:28px}.resumo .novas b{font-size:32px}}
+</style>
+</head>
+<body>
+<section id="vLogin" hidden>
+  <header><div class="cab"><img src="../../img/logo.svg" alt="" width="44" height="44"><div><h1>Sugestões</h1><small>Página do Kevin</small></div></div></header>
+  <div class="wrap">
+    <h2>Entrar</h2>
+    <form class="card" id="fLogin" novalidate>
+      <label for="email">E-mail</label>
+      <input type="email" id="email" name="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" required>
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" name="password" autocomplete="current-password" required>
+      <button class="btn main" type="submit" id="bLogin" style="margin-top:18px">Entrar</button>
+      <div class="msg" id="mLogin" role="alert" hidden></div>
+    </form>
+  </div>
+</section>
+
+<section id="vApp" hidden>
+  <header><div class="cab"><img src="../../img/logo.svg" alt="" width="44" height="44"><div><h1>Sugestões</h1><small>Painel do Kevin</small></div></div><button class="sair" type="button" id="bSair">Sair</button></header>
+  <div class="wrap">
+    <div class="resumo" id="resumo"></div>
+    <div class="filtros" role="group" aria-label="Quais sugestões ver" id="filtros">
+      <button type="button" data-f="nova" aria-pressed="true">Novas</button><button type="button" data-f="andamento" aria-pressed="false">Em andamento</button><button type="button" data-f="feita" aria-pressed="false">Feitas</button><button type="button" data-f="todas" aria-pressed="false">Todas</button>
+    </div>
+    <div class="lista" id="lista"><p class="vazio">Carregando…</p></div>
+    <h2>Avisos</h2>
+    <div class="card avisos" id="avisos"><p>Carregando…</p></div>
+  </div>
+</section>
+
+<footer class="credito">Desenvolvido por Kevin Laet</footer>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="../../config.js"></script>
+<script src="sugestoes.js"></script>
+</body>
+</html>
