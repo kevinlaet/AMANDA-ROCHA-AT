@@ -511,6 +511,18 @@ button.ola-chip{cursor:pointer}
 .bolha small{position:absolute;right:12px;bottom:5px;font-size:11px;color:#5E8B73;white-space:nowrap}
 .r-nota{margin-top:14px;font-size:13.5px;color:var(--muted);text-align:center}
 .r-hoje{margin-top:14px}
+.msg-ops{display:grid;gap:8px;margin-top:10px}
+.msg-op{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;min-height:60px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font:inherit;color:var(--ink)}
+.msg-op b{display:block;font-size:15px;line-height:1.3}
+.msg-op small{display:block;font-size:13px;color:var(--muted)}
+.msg-op .mo-r{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:#fff}
+.msg-op[aria-checked=true]{border-color:var(--teal);background:#F1F8F6}
+.msg-op[aria-checked=true] .mo-r{border-color:var(--teal);background:radial-gradient(circle,var(--teal) 0 5px,#fff 6px)}
+#msgTxt{margin-top:10px;min-height:200px;background:#F3FBF6;border-color:#C9EBD6;line-height:1.45}
+#msgEnviar{margin-top:14px}
+#msgEnviar svg,.r-hoje .ret-zap svg{width:24px;height:24px;flex:none}
+#msgTxt,#rtMsg{overflow:hidden}
+.cli-acoes button.z{color:#147A3E}
 </style>
 </head>
 <body>
@@ -677,6 +689,12 @@ button.ola-chip{cursor:pointer}
     <button class="voltar" type="button" id="rtVoltar" data-ir="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span id="rtVoltarT">Clientes</span></button>
     <div class="aba-topo"><h2 class="aba-t" id="rtTit">Retorno</h2><p id="rtSub"></p></div>
     <div id="rtCorpo"></div>
+    </section>
+
+    <section class="aba" data-aba="mensagem" hidden>
+    <button class="voltar" type="button" id="msgVoltar" data-ir="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Clientes</button>
+    <div class="aba-topo"><h2 class="aba-t">Enviar mensagem</h2><p>Escolha o que dizer. Você confere o texto antes de enviar.</p></div>
+    <div id="msgCorpo"></div>
     </section>
 
     <section class="aba" data-aba="clientes" hidden>

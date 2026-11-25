@@ -97,7 +97,7 @@
   var VINTE_QUATRO_HORAS=24*3600*1000;
   if(sess&&!sess.inicio){sess.inicio=Date.now();salvar(sess)}
   function expirou(){return !!(sess&&Date.now()-(sess.inicio||0)>VINTE_QUATRO_HORAS)}
-  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;rtela=null;zerarFat();fat.prof='';fat.serv='';fat.fp=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
+  function encerrar(msg,escopo){var fim=sairServidor(escopo);salvar(null);rows=[];guard=null;clientes=null;hist.ok=false;sugs=undefined;ola=null;olaPronto=false;retornos=null;rtela=null;msgTela=null;zerarFat();fat.prof='';fat.serv='';fat.fp=null;$('ola').hidden=true;irAba('inicio');mostrar(msg);return fim}
   var MSG_24H='Por segurança, o painel pede a senha uma vez por dia. Entre de novo, por favor.';
   function msgExpirou(){return MSG_24H}
   var renovando=null;
@@ -172,9 +172,9 @@
   $('bSair').onclick=function(){encerrar()};
 
   // ---------- abas ----------
-  var DO_MAIS={numeros:1,clientes:1,servicos:1,historico:1,seguranca:1,ajuda:1,conta:1,profissionais:1};
+  var DO_MAIS={mensagem:1,numeros:1,clientes:1,servicos:1,historico:1,seguranca:1,ajuda:1,conta:1,profissionais:1};
   function irAba(n){
-    if(!document.querySelector('[data-aba="'+n+'"]')||(n==='retorno'&&!rtela))n='inicio';
+    if(!document.querySelector('[data-aba="'+n+'"]')||(n==='retorno'&&!rtela)||(n==='mensagem'&&!msgTela))n='inicio';
     abaAtual=n;var nav=DO_MAIS[n]?'mais':n;
     if(n==='faturamento')nav=fat.volta==='numeros'?'mais':'inicio';
     if(n==='retorno')nav=rtela.volta==='clientes'?'mais':rtela.volta;
@@ -187,6 +187,7 @@
     if(n==='numeros'&&sess)carregarNumeros();
     if(n==='faturamento'&&sess&&eu)carregarFat();
     if(n==='retorno')desenharRetTela();
+    if(n==='mensagem')desenharMsgTela();
     if(n==='conta')$('cEmail').textContent=sess&&emailSessao()?'Conectada como '+emailSessao():'Conectada';
     if(n==='seguranca')verSeguranca();
     desenharSelos();
@@ -591,12 +592,14 @@
   // a mensagem: "Oi, Carla! Aqui é a Amanda 💛 Como está a sua pele desde a última sessão? Correu tudo bem? ..."
   function eDePele(t){return /pele|limpeza|mancha|espinha|cravo|acne|rosto|poro/.test(semAcento(t||''))}
   function assuntoPadrao(serv){return eDePele(serv)?'a sua pele':''}
-  function textoRetorno(nome,assunto,foto,prof){
-    var a=String(assunto||'').trim().replace(/[?.!]+$/,''),q=a?'Como '+(/^(as|os)\s/i.test(a)?'estão ':'está ')+a+' desde a última sessão?':'Como você está desde a última sessão?';
-    return 'Oi, '+primeiro(nome)+'! Aqui é a '+primeiro(nomeProf(prof||minhaProf()))+' 💛\n\n'+q+' Correu tudo bem?\n\n'+
-      (foto?'Se puder, me manda uma foto pra gente acompanhar o resultado juntas.':'Me conta como você tá se sentindo pra gente acompanhar juntas.');
+  // tom de conversa de WhatsApp, como a Amanda escreve: pergunta como ela ficou, sem pressão
+  function textoRetorno(nome,assunto,foto,prof,serv){
+    var a=String(assunto||'').trim().replace(/[?.!]+$/,''),quando=eDePele(serv)?'depois da limpeza':'depois da última sessão';
+    var p=a?'Passando pra saber como '+(/^(as|os)\s/i.test(a)?'estão ':'tá ')+a+' '+quando+'. Ficou tudo certinho?':'Passando pra saber como você ficou '+quando+'. Tá tudo bem por aí?';
+    var fim=foto?'Se puder, me manda uma foto pra eu acompanhar a evolução 😊':a?'Me conta como você tá se sentindo 😊':'Qualquer coisa, tô por aqui 😊';
+    return 'Oi, '+primeiro(nome)+'! Aqui é a '+primeiro(nomeProf(prof||minhaProf()))+' 💛\n\n'+p+'\n\n'+fim;
   }
-  function msgRetorno(x){return x.mensagem||textoRetorno(x.nome,assuntoPadrao(x.servico),eDePele(x.servico),x.profissional)}
+  function msgRetorno(x){return x.mensagem||textoRetorno(x.nome,assuntoPadrao(x.servico),eDePele(x.servico),x.profissional,x.servico)}
   function sugestoesAssunto(serv){return eDePele(serv)?['a sua pele','as manchas','as espinhas']:/auricul/.test(semAcento(serv||''))?['as suas dores','o seu sono','a ansiedade']:['a sua pele','as suas dores','o seu sono']}
   // o retorno em aberto de uma cliente da lista (pelo WhatsApp ou, sem ele, pelo nome)
   function retDaCliente(x){
@@ -606,8 +609,8 @@
     var ret=o.ret||null,serv=(ret&&ret.servico)||o.servico||'',fotoIni=ret&&ret.mensagem?/foto/i.test(ret.mensagem):eDePele((ret&&ret.obs)||serv);
     rtela={ref:o.ref||null,nome:(ret&&ret.nome)||o.nome,servico:serv,base:o.base||hojeSP(),prof:(ret&&ret.profissional)||o.prof||minhaProf(),ret:ret,volta:o.volta||'inicio',
       editando:false,dias:null,outra:false,data:ret?ret.data:'',assunto:ret?(ret.obs||''):assuntoPadrao(serv),foto:fotoIni,msg:'',editada:false};
-    rtela.msg=ret&&ret.mensagem?ret.mensagem:textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof);
-    rtela.editada=!!(ret&&ret.mensagem&&ret.mensagem!==textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof));
+    rtela.msg=ret&&ret.mensagem?ret.mensagem:textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof,rtela.servico);
+    rtela.editada=!!(ret&&ret.mensagem&&ret.mensagem!==textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof,rtela.servico));
     irAba('retorno');
   }
   function abrirRetHorario(r){var ret=retornoDe(r.id);fecharSheet();abrirRetorno({ref:r.id,nome:r.nome,servico:r.servico&&POR_FORA.indexOf(r.servico)<0?r.servico:'',base:r.data,prof:profDe(r),ret:ret,volta:'agenda'})}
@@ -657,6 +660,7 @@
       '<button class="btn main" type="button" data-rt="salvar" style="margin-top:16px">Salvar retorno</button>'+
       (r?'<button class="ret-rem r-rem" type="button" data-rt="apagar">Remover este retorno</button>':'')+
       '<p class="r-nota">No dia, ela aparece no Início e em Clientes, com o botão para você mandar. Nada é enviado sozinho.</p>';
+    crescer($('rtMsg'));
   }
   var GRAF_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   function prevRetTela(){
@@ -665,7 +669,7 @@
     return '<div class="r-data">'+GRAF_CAL+'<div><b>'+esc(dataExtensa(d))+'</b>'+(aj?'<span>Ajustado para o sábado mais perto, seu dia de atendimento.</span>':
       !sab&&rtAmanda()?'<span class="sab-sug">Não é sábado. <button type="button" data-rt-sab="'+sabadoPerto(d)+'">Usar '+esc(dia(sabadoPerto(d)))+'</button></span>':'')+'</div></div>';
   }
-  function rtRegerar(){if(!rtela||rtela.editada)return;rtela.msg=textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof);var m=$('rtMsg');if(m)m.value=rtela.msg}
+  function rtRegerar(){if(!rtela||rtela.editada)return;rtela.msg=textoRetorno(rtela.nome,rtela.assunto,rtela.foto,rtela.prof,rtela.servico);var m=$('rtMsg');if(m){m.value=rtela.msg;crescer(m)}}
   function rtSetData(d,aj){rtela.data=d;rtela.ajustado=!!aj;var p=$('rtPrev');if(p)p.innerHTML=prevRetTela();var i=$('rtData');if(i&&i.value!==d)i.value=d}
   document.addEventListener('click',function(e){
     if(!rtela)return;
@@ -703,7 +707,7 @@
   document.addEventListener('input',function(e){
     var t=e.target;if(!rtela||!t)return;
     if(t.id==='rtObs'){rtela.assunto=t.value;rtRegerar()}
-    else if(t.id==='rtMsg'){rtela.msg=t.value;rtela.editada=true;var s=document.querySelector('[data-rt="sugerido"]');if(s)s.hidden=false}
+    else if(t.id==='rtMsg'){crescer(t);rtela.msg=t.value;rtela.editada=true;var s=document.querySelector('[data-rt="sugerido"]');if(s)s.hidden=false}
     else if(t.id==='rtData'&&/^\d{4}-\d\d-\d\d$/.test(t.value)){rtela.dias=null;rtSetData(t.value<hojeSP()?hojeSP():t.value,false)}
   });
   document.addEventListener('change',function(e){var t=e.target;if(rtela&&t&&t.id==='rtFoto'){rtela.foto=t.checked;rtRegerar()}});
@@ -1009,6 +1013,7 @@
     if(a==='sair-outros')sairOutros(b);
     if(a==='cli-obs')abrirObs(b.getAttribute('data-chave'));
     if(a==='cli-ret'){var xc=cliPorChave(b.getAttribute('data-chave'));if(xc)abrirRetCliente(xc)}
+    if(a==='cli-msg'){var xm=cliPorChave(b.getAttribute('data-chave'));if(xm){msgTela={x:xm,op:'como',txt:'',editado:false};irAba('mensagem')}}
     if(a==='ntfy-copiar')copiarCodigo();
     if(a==='ntfy-teste')testarNtfy(b);
     if(a==='resumo-agora')resumoAgora(b);
@@ -1736,17 +1741,54 @@
     l.forEach(function(r){if(out.length<n&&out.indexOf(r)<0)out.push(r)});
     return out.sort(function(a,b){return (a.data+a.hora)<(b.data+b.hora)?-1:1})}
   // convite para voltar: pessoal, com um motivo de verdade e dois horários prontos para escolher
+  // convite com horários livres de verdade; o lembrete do tempo só entra quando faz sentido
   function conviteVolta(x){
-    var n=primeiro(x.nome),d=diasDesde(x.ultima),sv=x.ultimo_servico||'',s=semAcento(sv);
-    var motivo=s.indexOf('auriculo')>=0?'Já faz '+d+' dias da sua última sessão de auriculoterapia. Com o tempo o efeito das sementes vai passando, e a auriculoterapia costuma funcionar melhor com constância.':
-      s.indexOf('limpeza')>=0?'Já faz '+d+' dias da sua limpeza de pele. A pele se renova mais ou menos a cada 4 a 6 semanas, então é um bom momento para a próxima: com o cuidado em dia, o resultado dura mais.':
-      'Já faz '+d+' dias do seu último atendimento e lembrei de você.';
+    var n=primeiro(x.nome),d=diasDesde(x.ultima),sv=x.ultimo_servico||'',s=semAcento(sv),tempo=d>=14?Math.round(d/7)+' semanas':d+' dias';
+    var dica=s.indexOf('limpeza')>=0&&d>=28?'Já faz '+tempo+' da sua limpeza, um ótimo momento pra próxima.':
+      s.indexOf('auriculo')>=0&&d>=10?'Já faz '+tempo+' da sua última sessão de auriculoterapia, e ela costuma funcionar melhor com constância.':'';
     var l=proximosLivres(sv,2);
-    var op=l.length?'Separei '+(l.length>1?'dois horários':'um horário')+' para você:\n'+l.map(function(r,i){return (l.length>1?(i+1)+') ':'')+cap(semana(r.data))+', '+curta(r.data)+' às '+hh(r.hora)}).join('\n')+
-      '\n\nÉ só responder '+(l.length>1?'1 ou 2':'"quero"')+' que eu já reservo.':'Qual dia fica bom para você nas próximas semanas? Me responde aqui que eu encaixo você.';
-    return 'Oi, '+n+'! Aqui é a Amanda 🌿\n\n'+motivo+'\n\n'+op+'\n\nE lembra: se uma amiga fizer o primeiro atendimento comigo por indicação sua, você ganha 1 sessão de auriculoterapia. Te espero!';
+    var op=l.length?'Tenho '+(l.length>1?'uns horários livres':'um horário livre')+' e lembrei de você:\n'+l.map(function(r,i){return (l.length>1?(i+1)+') ':'')+semana(r.data)+', '+curta(r.data)+' às '+hh(r.hora)}).join('\n')+
+      '\n\n'+(l.length>1?'Se algum ficar bom, me responde com o número que eu já reservo pra você 💛':'Se ficar bom, me responde que eu já reservo pra você 💛'):
+      'Quando quiser marcar, me fala o melhor dia pra você que eu encaixo 💛';
+    return 'Oi, '+n+'! Aqui é a Amanda 🌿\n\n'+(dica?dica+'\n\n':'')+op+'\n\nAh! Se uma amiga vier por indicação sua, você ganha uma sessão de auriculoterapia de presente 🎁';
   }
   var IC_NOTA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  // ---------- tela Mensagem: a Amanda escolhe o que dizer (sem pressão) e confere o texto antes de enviar ----------
+  var msgTela=null;
+  function opcoesMsg(x){
+    var serv=x.ultimo_servico||(x.servicos&&x.servicos[0])||'',prof=(x.profissionais&&x.profissionais[0])||minhaProf(),rt=retornos?retDaCliente(x):null;
+    var como=rt&&rt.mensagem?rt.mensagem:textoRetorno(x.nome,assuntoPadrao(serv),eDePele(serv),prof,serv);
+    return [{id:'como',t:'Perguntar como ela está',d:'Acompanhamento, sem pressão',txt:como},
+      {id:'porta',t:'Perguntar e deixar a porta aberta',d:'Acompanhamento com um convite leve para voltar',txt:como+'\n\nE quando quiser marcar a próxima, me chama que eu separo um horário pra você. Sem pressa, viu?'},
+      {id:'convite',t:'Oferecer horários livres',d:'Com horários da sua agenda para ela escolher',txt:conviteVolta(x)},
+      {id:'oi',t:'Só abrir a conversa',d:'Um oi simples',txt:'Oi, '+primeiro(x.nome)+'! Tudo bem? Aqui é a '+primeiro(nomeProf(prof))+' 💛'}];
+  }
+  function crescer(t){if(!t)return;t.style.height='auto';t.style.height=Math.max(t.scrollHeight+4,120)+'px'}
+  function linkMsg(){return 'https://wa.me/55'+msgTela.x.telefone+'?text='+encodeURIComponent(msgTela.txt)}
+  function desenharMsgTela(){
+    var box=$('msgCorpo');if(!box||abaAtual!=='mensagem')return;
+    if(!msgTela){irAba('clientes');return}
+    var x=msgTela.x,ops=opcoesMsg(x),op=ops.filter(function(o){return o.id===msgTela.op})[0]||ops[0],serv=x.ultimo_servico||'';
+    if(!msgTela.editado)msgTela.txt=op.txt;
+    var ini=esc((String(x.nome||'?').trim().charAt(0)||'?').toUpperCase());
+    box.innerHTML='<div class="r-cab"><span class="ret-av" aria-hidden="true">'+ini+'</span><div><b>'+esc(x.nome)+'</b><span>Última vez: '+esc(semana(x.ultima).slice(0,3)+', '+curta(x.ultima))+(serv?' · '+esc(serv):'')+'</span></div></div>'+
+      '<div class="r-sec">O que você quer dizer?</div><div class="msg-ops" role="radiogroup" aria-label="Mensagem">'+ops.map(function(o){
+        return '<button type="button" class="msg-op" role="radio" aria-checked="'+(o.id===op.id)+'" data-msg-op="'+o.id+'"><span class="mo-r" aria-hidden="true"></span><span><b>'+esc(o.t)+'</b><small>'+esc(o.d)+'</small></span></button>'}).join('')+'</div>'+
+      '<div class="r-sec">Mensagem<small>Pode mudar o texto antes de enviar</small></div>'+
+      '<textarea id="msgTxt" maxlength="1500" rows="8">'+esc(msgTela.txt)+'</textarea>'+
+      '<a class="btn zap" id="msgEnviar" target="_blank" rel="noopener" href="'+esc(linkMsg())+'">'+IC_RET.zap+'Enviar no WhatsApp</a>'+
+      '<p class="r-nota">Abre o WhatsApp com o texto pronto. Você confere e envia.</p>';
+    crescer($('msgTxt'));
+  }
+  document.addEventListener('click',function(e){
+    if(!msgTela)return;
+    var o=e.target.closest('[data-msg-op]');
+    if(o){msgTela.op=o.getAttribute('data-msg-op');msgTela.editado=false;desenharMsgTela();return}
+    if(e.target.closest('#msgEnviar')){var rt=retornos?retDaCliente(msgTela.x):null;
+      // mandou a pergunta de acompanhamento: o retorno combinado fica como "mensagem enviada"
+      if(rt&&rt.status==='pendente'&&rt.data<=somaDias(hojeSP(),7)&&(msgTela.op==='como'||msgTela.op==='porta'))marcarRet(rt.id,'enviada')}
+  });
+  document.addEventListener('input',function(e){if(msgTela&&e.target&&e.target.id==='msgTxt'){crescer(e.target);msgTela.txt=e.target.value;msgTela.editado=true;var l=$('msgEnviar');if(l)l.href=linkMsg()}});
   function zapCliente(x,volta){if(!x.telefone)return '';
     var t=volta?conviteVolta(x):'Oi, '+primeiro(x.nome)+'! Aqui é a Amanda.';
     return 'https://wa.me/55'+x.telefone+'?text='+encodeURIComponent(t)}
@@ -1772,9 +1814,10 @@
       var faixa=rt?'<div class="cli-ret'+(rt.data<hj?' atras':rt.data===hj?' hoje':'')+'">'+IC_RET.volta+'<div><b>Retorno combinado</b><span>'+esc(rt.obs||rt.servico||'Acompanhar como ela está')+'</span></div>'+pilulaRet(rt,hj)+'</div>'+
         (zr?'<a class="btn zap" target="_blank" rel="noopener" data-ret-zap="'+esc(rt.id)+'" href="'+esc(zr)+'">'+IC_RET.zap+'Enviar mensagem de retorno</a>':'')+
         (rt.status==='enviada'?'<p class="cli-ret-env">'+IC_RET.ok+'Mensagem de retorno enviada '+esc(idade(rt.enviada_em))+'</p>':''):'';
-      // com retorno combinado, a mensagem certa é a do retorno: o WhatsApp do cartão volta a ser um "oi" simples
-      if(rt){sumiu=false;z=zapCliente(x,false)}
-      var acoes=[z?'<a class="z" target="_blank" rel="noopener" href="'+esc(z)+'">'+IC_RET.zap+(sumiu?'Convidar a voltar':'WhatsApp')+'</a>':'<span class="vazio-z">Sem WhatsApp</span>'];
+      if(rt)sumiu=false;
+      // quem já foi atendida ganha "Mensagem" (escolhe o que dizer); quem ainda não veio, só o WhatsApp
+      var acoes=[!x.telefone?'<span class="vazio-z">Sem WhatsApp</span>':x.ultima?'<button type="button" class="z" data-acao="cli-msg" data-chave="'+esc(x.chave)+'">'+IC_RET.zap+'Mensagem</button>':
+        '<a class="z" target="_blank" rel="noopener" href="'+esc(zapCliente(x,false))+'">'+IC_RET.zap+'WhatsApp</a>'];
       if(podeRet)acoes.push('<button type="button"'+(rt?'':' class="r"')+' data-acao="cli-ret" data-chave="'+esc(x.chave)+'">'+IC_RET.volta+(rt?'Retorno':'Marcar retorno')+'</button>');
       acoes.push('<button type="button" data-acao="cli-obs" data-chave="'+esc(x.chave)+'">'+IC_NOTA+(x.obs?'Editar anotação':'Anotar')+'</button>');
       return '<div class="card cli'+(due?' cli-hoje':'')+'"><div class="cli-t"><b>'+esc(x.nome)+'</b>'+(x.atendimentos?'':'<span class="tag nov">Cliente nova</span>')+(x.contato_id?'<span class="tag">Cadastro travado</span>':'')+(todas()&&x.profissionais&&x.profissionais.length?'<span class="tag-prof">com '+esc(x.profissionais.map(function(i){return primeiro(nomeProf(i))}).join(', '))+'</span>':'')+'</div>'+
